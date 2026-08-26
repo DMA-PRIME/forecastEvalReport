@@ -1,0 +1,419 @@
+/* ========================================================================= */
+/*                           FULLSCREEN FUNCTIONALITY                        */
+/* ========================================================================= */
+      
+/* --------------------- Fullscreen Overlay Container --------------------- */
+      /* Creates the overlay that contains the plot when in fullscreen mode */
+      .fs-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 9999;
+        background: white;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+      }
+    
+/* --------------------- Fullscreen Plot Wrapper --------------------- */
+      /* Ensures the plot wrapper fills the fullscreen overlay */
+      .fs-overlay .fs-wrap {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+    
+/* --------------------- Fullscreen Plot Sizing --------------------- */
+      /* Makes the plotly graph fill the fullscreen space properly */
+      .fs-overlay .js-plotly-plot,
+    .fs-overlay .plotly {
+      width: 100% !important;
+      height: 100% !important;
+      flex: 1 1 auto;
+      box-sizing: border-box !important;
+    }
+    
+/* --------------------- Fullscreen Modebar Positioning --------------------- */
+/* Positions plotly toolbar away from the edge in fullscreen */
+
+  .fs-lock .modebar-container {
+    right: 10px !important;
+  }
+  
+  .fs-lock .plot-container {
+    box-sizing: border-box;
+  }
+
+/* ========================================================================= */
+/*                         GEOGRAPHY DROPDOWN STYLING                       */
+/* ========================================================================= */
+
+/* --------------------- Geography Selector Container --------------------- */
+/* Centers the geography dropdown above the plot */
+  .geo-filter-row {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+
+/* --------------------- Geography Selector Sizing --------------------- */
+/* Controls the size of the geography dropdown */
+  .geo-filter-row select {
+    min-width: 220px;
+    max-width: 320px;
+  }
+
+/* ========================================================================= */
+/*                           PLOT CONTAINER STYLING                         */
+/* ========================================================================= */
+
+/* --------------------- Individual Plot Panel --------------------- */
+/* Styles each plot panel when multiple plots are present */
+  .plot-panel {
+    width: 100%;
+    max-width: 1200px;
+    box-sizing: border-box;
+  }
+
+/* --------------------- Main Plot Wrapper --------------------- */
+/* Ensures the plot wrapper takes full width without extra spacing */
+  .fs-wrap {
+    width: 100%;
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+  }
+
+/* ========================================================================= */
+/*                         FLOATING LEGEND SYSTEM                           */
+/* ========================================================================= */
+
+/* --------------------- Main Floating Legend Container --------------------- */
+/* The main floating legend box that appears in the top-left corner */
+  .fs-wrap .float-legend {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(255,255,255,0.98);
+    border: 2px solid #cbd5e0;
+    border-radius: 8px;
+    padding: 0;
+    width: 255px;
+    max-height: calc(100vh - 60px);
+    overflow: hidden;
+    font-size: 12px;
+    z-index: 10000;
+    pointer-events: auto;
+    user-select: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  }
+
+/* --------------------- Legend Body (scrollable content) --------------------- */
+  .fs-wrap .float-legend .legend-body {
+    padding: 6px 8px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+  }
+
+/* --------------------- Collapsed Legend State --------------------- */
+/* Hides the legend content when collapsed */
+  .fs-wrap .float-legend.collapsed .legend-body {
+    display: none;
+  }
+
+/* ========================================================================= */
+/*                         LEGEND SECTION ORGANIZATION                       */
+/* ========================================================================= */
+
+/* --------------------- Individual Legend Section --------------------- */
+/* Styles each section within the legend (Model Data, Horizons, etc.) */
+  .fs-wrap .float-legend .legend-section {
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e5e5e5;
+  }
+  
+  .fs-wrap .float-legend .legend-section:last-child {
+    border-bottom: none;
+    margin-bottom: 4px;
+    padding-bottom: 0;
+  }
+
+/* --------------------- Section Title Styling --------------------- */
+/* Styles the titles of each legend section */
+  .fs-wrap .float-legend .legend-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 8px;
+    margin-top: 4px;
+  }
+
+/* --------------------- Collapsible Section Titles --------------------- */
+/* Makes section titles clickable for parameter groups */
+  .fs-wrap .float-legend .legend-section-title.clickable-title {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+/* --------------------- Section Collapse Toggle --------------------- */
+/* The arrow indicator for collapsible sections */
+  .fs-wrap .float-legend .section-toggle {
+    font-size: 10px;
+    color: #666;
+    transition: transform 0.2s ease;
+  }
+
+/* --------------------- Collapsed Section Content --------------------- */
+/* Hides content of collapsed parameter sections */
+  .fs-wrap .float-legend .legend-section-content.collapsed {
+    display: none;
+  }
+
+/* ========================================================================= */
+/*                         LEGEND ITEM INTERACTIONS                          */
+/* ========================================================================= */
+
+/* --------------------- Individual Legend Items --------------------- */
+/* Styles each clickable item within a legend section */
+  .fs-wrap .float-legend .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 4px 4px;
+    border-radius: 3px;
+    transition: background 0.15s;
+    margin-bottom: 2px;
+  }
+
+/* --------------------- Legend Item Hover Effect --------------------- */
+/* Subtle background change when hovering over legend items */
+  .fs-wrap .float-legend .legend-item:hover {
+    background: rgba(0,0,0,0.04);
+  }
+
+/* --------------------- Legend Checkboxes --------------------- */
+/* Styles the checkboxes that control trace visibility */
+  .fs-wrap .float-legend .legend-checkbox {
+    flex-shrink: 0;
+    margin: 0;
+    cursor: pointer;
+    width: 14px;
+    height: 14px;
+  }
+
+/* ========================================================================= */
+/*                           LEGEND VISUAL INDICATORS                        */
+/* ========================================================================= */
+
+/* --------------------- Default Swatch Styling (FLEXIBLE FOR SVG) --------------------- */
+/* Flexible container for JavaScript-generated SVG symbols */
+  .fs-wrap .float-legend .legend-swatch {
+    width: 20px;
+    height: 12px;
+    flex-shrink: 0;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+  }
+
+/* --------------------- SVG Content Override --------------------- */
+/* Ensures SVG content from JavaScript displays properly */
+  .fs-wrap .float-legend .legend-swatch svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+/* --------------------- Modeling Period Colors (SPECIAL SQUARES) --------------------- */
+/* These remain as colored squares since they represent background regions */
+  .fs-wrap .float-legend .legend-swatch.training {
+    background-color: rgba(52, 95, 175, 0.15) !important;
+    border: 1px solid #345FAF !important;
+    border-radius: 2px !important;
+    width: 12px !important;
+    height: 12px !important;
+  }
+  
+  .fs-wrap .float-legend .legend-swatch.validation {
+    background-color: rgba(228, 87, 46, 0.15) !important;
+    border: 1px solid #E4572E !important;
+    border-radius: 2px !important;
+    width: 12px !important;
+    height: 12px !important;
+  }
+  
+  .fs-wrap .float-legend .legend-swatch.testing {
+    background-color: rgba(46, 139, 87, 0.15) !important;
+    border: 1px solid #2E8B57 !important;
+    border-radius: 2px !important;
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+/* ========================================================================= */
+/*                         LEGEND STATE INDICATORS                          */
+/* ========================================================================= */
+
+/* --------------------- Unchecked Item Styling --------------------- */
+  /* Dims legend items when their traces are hidden */
+  .fs-wrap .float-legend .legend-checkbox:not(:checked) ~ span {
+    opacity: 0.4;
+  }
+
+/* ========================================================================= */
+/*                         LEGEND HEADER AND CONTROLS                       */
+/* ========================================================================= */
+
+/* --------------------- Drag Handle Styling --------------------- */
+/* The header of the floating legend that can be dragged - matches dropdown style */
+  .fs-wrap .legend-drag {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    cursor: pointer;  
+    padding: 10px 16px;
+    font-size: 12px;
+    font-family: "Open Sans", verdana, arial, sans-serif;
+    color: #2c3e50;
+      background-color: #ffffff;
+      border-bottom: 2px solid #cbd5e0;
+    border-radius: 8px 8px 0 0;
+    transition: all 0.2s ease;
+    }
+  
+  .fs-wrap .legend-drag:hover {
+    background-color: #f8f9fa;
+  }
+
+/* --------------------- Collapse/Expand Button --------------------- */
+  /* The button that collapses/expands the entire legend - uses matching arrow */
+    .fs-wrap .legend-toggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0 4px;
+      color: #2c3e50;
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+    }
+  
+  .fs-wrap .legend-toggle:hover {
+    color: #648FFF;
+  }
+
+/* --------------------- Rotate arrow when collapsed --------------------- */
+  .fs-wrap .float-legend.collapsed .legend-toggle {
+    transform: rotate(-90deg);
+  }
+
+/* ========================================================================= */
+  /*                    PRETTY GEOGRAPHY DROPDOWN STYLING                     */
+  /* ========================================================================= */
+  
+  /* --------------------- Dropdown Container --------------------- */
+  .geo-filter-row {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+    padding: 0 20px;
+  }
+
+/* --------------------- Pretty Select Dropdown --------------------- */
+  .geo-filter-row select {
+    min-width: 280px;
+    max-width: 400px;
+    padding: 10px 16px;
+    font-size: 15px;
+    font-family: "Open Sans", verdana, arial, sans-serif;
+    color: #2c3e50;
+      background-color: #ffffff;
+      border: 2px solid #cbd5e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c3e50' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px;
+    padding-right: 40px;
+  }
+
+/* --------------------- Hover State --------------------- */
+  .geo-filter-row select:hover {
+    border-color: #648FFF;
+      box-shadow: 0 4px 8px rgba(100,143,255,0.15);
+  }
+
+/* --------------------- Focus State --------------------- */
+  .geo-filter-row select:focus {
+    outline: none;
+    border-color: #648FFF;
+      box-shadow: 0 0 0 3px rgba(100,143,255,0.1);
+  }
+
+/* --------------------- Dropdown Options --------------------- */
+  .geo-filter-row select option {
+    padding: 10px;
+    font-size: 14px;
+    color: #2c3e50;
+      background-color: #ffffff;
+  }
+
+/* --------------------- Selected Option Highlight --------------------- */
+  .geo-filter-row select option:checked {
+    background-color: #648FFF;
+      color: white;
+  }
+
+/* --------------------- Label (if you want to add one later) --------------------- */
+  .geo-filter-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+      margin-right: 12px;
+    display: flex;
+    align-items: center;
+  }
+  
+/* ========================================================================= */
+/*                          Report Header Structure                          */
+/* ========================================================================= */
+
+/* ----------------------- Centering the main title ------------------------- */
+  div#header {
+    text-align: center;
+  }
+
+/* --------------- Add line to all headers in the document -------------------*/
+  h1 {
+    border-bottom: 1px solid #000;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+  }
+
+/* ------------------- Remove line from the main title -----------------------*/
+  div#header h1 {
+    border-bottom: none;
+  }

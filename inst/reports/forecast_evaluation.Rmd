@@ -1,0 +1,1025 @@
+---
+title: "Forecast Evaluation Report"
+output:
+  html_document:
+    self_contained: true
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    df_print: paged
+    number_sections: false
+params:
+  implementation.model.file: NA
+  evaluation.model.file: NA
+  disease: NA
+  name: NA
+  email: NA
+  reason: NA
+  base.box: NA
+  general.model.type: NA
+  outcome.data.label: NA
+  outcome.data: NA
+  outcome.name: NA
+  training.data.file: NA
+  training.variable.name: NA
+  training_data_source: NA
+  model.descriptions: NA
+  variables.crosswalk.file: NA
+  location.crosswalk: NA
+  state.context: NA
+  population.label: NA
+  output.dir: NA
+  plot.styles: NA
+  eval.config: NA
+  plot.export: NA
+---
+
+<!--
+This template ships with the forecastEvalReport package.
+Helper functions and validators called by this template live in R/
+within the package. Do not edit rendered output — edit this template
+or the corresponding R/ helpers.
+-->
+
+<style>
+.main-container {
+  max-width: 1500px !important;
+  padding-left: 40px !important;
+  padding-right: 40px !important;
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+```{r loading-parameter-checks}
+config <<- forecastEvalReport:::validate_report_params(params)
+```
+
+```{r loading-plot-styles, include=FALSE}
+#------------------------------------------------------------------------------#
+# Resolving plot styles --------------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: If plot_styles were passed through params (injected by generate_      #
+# report()), use them. Otherwise fall back to package defaults. This makes     #
+# the styles available to all downstream plotting chunks as PLOT_STYLES,       #
+# matching the name the plotting functions expect.                             #
+#------------------------------------------------------------------------------#
+
+  ##############################################################
+  # Pulling the plot styles file: Using the user provided file #
+  ##############################################################
+  PLOT_STYLES <- if(!is.null(params$plot.styles) && is.list(params$plot.styles)){
+    
+    # Calling the user provided file 
+    params$plot.styles
+    
+  ############################################################
+  # Creating the plot style file: Using the package defaults #
+  ############################################################
+  }else{
+    
+    # Creating the default file
+    forecastEvalReport::create_plot_styles()
+    
+  }
+
+```
+
+```{r loading-eval-config, include=FALSE}
+#------------------------------------------------------------------------------#
+# Resolving the evaluation config ----------------------------------------------
+#------------------------------------------------------------------------------#
+# About: If eval.config was passed through params (injected by generate_       #
+# report()), use it. Otherwise fall back to package defaults. Makes the        #
+# evaluation tuning settings available downstream as EVAL_CONFIG.              #
+#------------------------------------------------------------------------------#
+
+  #############################################
+  # Pulling the user provided evaluation file #
+  #############################################
+  EVAL_CONFIG <<- if(!is.null(params$eval.config) && is.list(params$eval.config)){
+    
+    # User provided file
+    params$eval.config
+    
+  #######################################
+  # Pulling the default evaluation file #
+  #######################################
+  }else{forecastEvalReport::create_evaluation_config()}
+
+```
+
+```{r loading-scripts, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+#------------------------------------------------------------------------------#
+# Loading CSS and JS files -----------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: Loads all CSS and JS files bundled with the package into the report.  #
+# Files are located via system.file() so paths resolve correctly regardless    #
+# of where the package is installed. CSS files control the report appearance   #
+# and accordion styling. JS files control the floating legend behavior, plot   #
+# max phase tracking, legend checkbox sync, and geography dropdown sync.       #
+#------------------------------------------------------------------------------#
+
+  ##############################
+  # Loading the main CSS file  #
+  ##############################
+  htmltools::tags$style(
+    paste(readLines(
+      system.file("reports", "styles.css", package = "forecastEvalReport")
+    ), collapse = "\n")
+  )
+
+  ################################
+  # Loading the accordion CSS    #
+  ################################
+  htmltools::tags$style(
+    paste(readLines(
+      system.file("reports", "accordion.css", package = "forecastEvalReport")
+    ), collapse = "\n")
+  )
+
+  ############################
+  # Loading the max-phase JS #
+  ############################
+  htmltools::includeScript(
+    system.file("reports", "plot-max-phase.js", package = "forecastEvalReport")
+  )
+
+  ##################################
+  # Loading the floating legend JS #
+  ##################################
+  htmltools::includeScript(
+    system.file("reports", "float-legend.js", package = "forecastEvalReport")
+  )
+
+  ###################################
+  # Loading the legend checkbox JS  #
+  ###################################
+  htmltools::includeScript(
+    system.file("reports", "syncLegendCheckboxesOnRender.js",
+                package = "forecastEvalReport")
+  )
+
+  #############################
+  # Loading the geo-sync JS   #
+  #############################
+  htmltools::includeScript(
+    system.file("reports", "sync-geo-dropdowns.js",
+                package = "forecastEvalReport")
+  )
+
+  # NOTE: plotly_fullscreen.js is intentionally NOT loaded here via
+  # includeScript(). It is a bare `function(el, x){...}` meant to be attached
+  # per-plot through htmlwidgets::onRender() inside build_fullscreen_button().
+  # Loading it as a standalone <script> injects a nameless top-level function,
+  # which throws "Function statements require a function name" and halts all
+  # subsequent page scripts (including the fullscreen + resize logic).
+
+```
+
+```{r loading-implementation-model, include=FALSE}
+#------------------------------------------------------------------------------#
+# Loading and validating the implementation model file -------------------------
+#------------------------------------------------------------------------------#
+# About: This section loads and validates the implementation model file        #
+# supplied by the user. Validation is dispatched based on the `reason`         #
+# (FluSight, COVIDHub, etc.) and aborts the report if the file fails the       #
+# format spec. The evaluation model file is loaded and validated separately    #
+# in a later chunk.                                                            #
+#------------------------------------------------------------------------------#
+
+  ###################################
+  # Loading the implementation file #
+  ###################################
+  if(!is.na(config$implementation_model_file)){
+
+    implementation_model <<- switch(config$reason,
+                        
+      ##################                                       
+      # FluSight Check #
+      ##################
+      "FluSight" = forecastEvalReport::validate_flusight_model(config$implementation_model_file),
+      
+      ######################
+      # COVID-19 Hub Check #
+      ######################
+      "COVIDHub" = forecastEvalReport::validate_covidhub_model(config$implementation_model_file),
+      
+      #################
+      # RSV Hub Check #
+      #################
+      "RSVHub" = forecastEvalReport::validate_rsvhub_model(config$implementation_model_file),
+      
+      ###################
+      # Metrocast Check #
+      ###################
+      "MetroCast" = forecastEvalReport::validate_metrocast_model(config$implementation_model_file),
+      
+      #################################
+      # General Model Check: Software #
+      #################################
+      "Software"  = forecastEvalReport::validate_general_model(config$implementation_model_file,
+                                                               state_context = config$state_context),
+      
+      #################################
+      # General Model Check: Internal #
+      #################################
+      "Internal"  = forecastEvalReport::validate_general_model(config$implementation_model_file,
+                                                               state_context = config$state_context),
+      
+      # Fallback for hubs we haven't implemented validators for yet
+      utils::read.csv(
+        config$implementation_model_file,
+        colClasses     = c(location = "character"),
+        stringsAsFactors = FALSE
+      )
+    )
+
+  ##################################################
+  # Running if no implementation model is provided #
+  ##################################################
+  }else{implementation_model <- NULL}
+
+```
+
+```{r loading-evaluation-model, include=FALSE}
+#------------------------------------------------------------------------------#
+# Loading and validating the evaluation model file -----------------------------
+#------------------------------------------------------------------------------#
+# About: This section loads and validates the evaluation model file supplied   #
+# by the user. The evaluation file is always in the general format regardless  #
+# of the operational hub `reason`. Only historical rows are accepted; users    #
+# must filter their file to target_end_date < reference_date before passing    #
+# it to this validator.                                                        #
+#------------------------------------------------------------------------------#
+
+  ###############################
+  # Loading the evaluation file #
+  ###############################
+  if(!is.na(config$evaluation_model_file)){
+
+    # Validating the evaluation model structure 
+    evaluation_model <<- forecastEvalReport::validate_eval_model(
+      config$evaluation_model_file,
+      state_context = config$state_context
+    )
+
+  ############################################
+  # Running if no evaluation file is present #
+  ############################################
+  }else{evaluation_model <- NULL}
+
+```
+
+```{r validating-aux-file, include=FALSE}
+#------------------------------------------------------------------------------#
+# Validating the auxiliary information cross walk ------------------------------
+#------------------------------------------------------------------------------#
+# About: This section validates the auxiliary information cross walk file      #
+# created in a previous step. The goal of this is to ensure that all entries   #
+# needed for plotting, definitions, and other pieces of the report are         #
+# readily available. Prior to running this, the user must run the function to  #
+# build the cross walk. The resulting file path must be provided in the        #
+# options file to create the report.                                           #
+#------------------------------------------------------------------------------#
+
+  ####################################################
+  # Running if the cross walk file has been provided #
+  ####################################################
+  if(!is.na(config$variables_crosswalk_file)){
+  
+    # Reading in the cross walk file 
+    variables_crosswalk_raw <<- utils::read.csv(
+      config$variables_crosswalk_file,
+      stringsAsFactors = FALSE,
+      na.strings       = c("NA", "")
+    )
+  
+    # Validating the cross walk file 
+    variables_crosswalk <<- forecastEvalReport::validate_variables_crosswalk(
+      variables_crosswalk_raw,
+      verbose = TRUE
+    )
+  
+  ##########################################################
+  # Not running if a validation file has not been provided #
+  ##########################################################
+  }else{variables_crosswalk <- NULL}
+
+```
+
+```{r loading-overlay, echo=FALSE, message=FALSE, warning=FALSE}
+#------------------------------------------------------------------------------#
+# Loading the circle -----------------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: This section loads the function that shows the loading circle when    #
+# the reports are slow to render. This is pure aesthetic and has no impact on    #
+# the structure of the report.                                                 #
+#------------------------------------------------------------------------------#
+forecastEvalReport:::loading_overlay_html()
+```
+
+```{r extracting-implementation-data, include=FALSE}
+#------------------------------------------------------------------------------#
+# Extracting implementation model metadata -------------------------------------
+#------------------------------------------------------------------------------#
+# About: Extracts reference dates, outcome labels, spatial scale, locations,   #
+# and projection periods from the validated implementation model. Location     #
+# codes are normalized to human-readable names. Results live in `impl_meta`.   #
+#------------------------------------------------------------------------------#
+
+  #####################################################
+  # Triggering if an implementation model is provided #
+  #####################################################
+  if(!is.null(implementation_model)){
+
+    # Extracting information from the implementation model 
+    impl_meta <<- forecastEvalReport::extract_implementation_data(
+      implementation_model = implementation_model,
+      config               = config,
+      save_data            = !is.list(params$plot.export)
+    )
+
+  ######################################################
+  # Returning NULL if no implementation model provided #
+  ######################################################
+  }else{impl_meta <- NULL}
+
+```
+
+```{r extracting-evaluation-data, include=FALSE}
+#------------------------------------------------------------------------------#
+# Extracting evaluation model metadata -----------------------------------------
+#------------------------------------------------------------------------------#
+# About: Extracts reference dates, outcome labels, spatial scale, locations,   #
+# and projection periods from the validated evaluation model. Location         #
+# codes are normalized to human-readable names. Results live in `eval_meta`.   #
+#------------------------------------------------------------------------------# 
+
+  #################################################
+  # Triggering if an evaluation model is provided #
+  #################################################
+  if(!is.null(evaluation_model)){
+    
+    # Extracting information from the evaluation model 
+    eval_meta <<- forecastEvalReport::extract_evaluation_data(
+      evaluation_model = evaluation_model,
+      config           = config,
+      impl_meta        = impl_meta
+    )
+    
+  #####################################################
+  # Returning NULL if no evaluation model is provided #
+  #####################################################
+  }else{eval_meta <- NULL}
+
+```
+
+```{r assembling-report-data, include=FALSE}
+#------------------------------------------------------------------------------#
+# Assembling the master data set -----------------------------------------------
+#------------------------------------------------------------------------------#
+# About: Reads outcome and auxiliary variable files, normalizes locations,     #
+# filters to forecast locations, and stacks into a single long-format master   #
+# data frame saved to the Data/ folder. Result is the path to the saved CSV.   #
+#------------------------------------------------------------------------------#
+
+  #############################################
+  # Runs if the master cross walk is provided #
+  #############################################
+  if(!is.null(variables_crosswalk)){
+
+    # Calling the assemble report data function 
+    master_result <<- forecastEvalReport:::assemble_report_data(
+      config               = config,
+      variables_crosswalk  = variables_crosswalk,
+      impl_meta            = impl_meta,
+      eval_meta            = eval_meta,
+      implementation_model = implementation_model,
+      evaluation_model     = evaluation_model
+    )
+    
+    # Unpack the result: Data frame used downstream
+    master_data <<- master_result$data
+    
+    # Unpack the result: Path saved for reference
+    master_data_path <- master_result$path
+
+  ##################################################
+  # Returning nothing if no cross walk is provided #
+  ##################################################
+  }else{master_data      <- NULL
+        master_data_path <- NA_character_}
+
+```
+
+```{r report-header, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+#------------------------------------------------------------------------------#
+# Creating the report header ---------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: This section creates the report header or the gray box that is shown  #
+# at the top of the report. Eventually, this section will be part of a user    #
+# function where they can customize where things sit.                          #
+#------------------------------------------------------------------------------#
+
+  ########################################
+  # Function to create the report header #
+  ########################################
+  forecastEvalReport:::section_header(
+    impl_meta           = impl_meta,
+    eval_meta           = eval_meta,
+    config              = config,
+    variables_crosswalk = variables_crosswalk
+  )
+
+```
+
+```{r overview-text, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+#------------------------------------------------------------------------------#
+# Creating the overview text ---------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: This section creates the overview section text using the models and   #
+# configuration file provided by the user. It also takes into account the      #
+# variables cross walk file. Eventually, this section will be part of a user   #
+# function where they can customize where things sit in the report.            #
+#------------------------------------------------------------------------------#
+  
+  ################################################
+  # Function to create the overview section text #
+  ################################################
+  forecastEvalReport:::section_overview_text(
+    impl_meta           = impl_meta,
+    eval_meta           = eval_meta,
+    config              = config,
+    variables_crosswalk = variables_crosswalk
+  )
+
+```
+
+```{r meta-table, echo=FALSE, message=FALSE, warning=FALSE}
+#------------------------------------------------------------------------------#
+# Creating the meta table ------------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: This section creates the meta table for the report that includes the  #
+# contact information for the model shown, the data used, outcome forecasted   #
+# and other basic or meta information about the rest of the results shown in   #
+# the report.                                                                  #
+#------------------------------------------------------------------------------#
+
+  #####################################
+  # Function to create the meta table #
+  #####################################
+  forecastEvalReport:::section_meta_table(
+    impl_meta           = impl_meta,
+    eval_meta           = eval_meta,
+    config              = config,
+    variables_crosswalk = variables_crosswalk
+  )
+
+```
+
+```{r definitions, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+#------------------------------------------------------------------------------#
+# Creating the definitions accordion -------------------------------------------
+#------------------------------------------------------------------------------#
+# About: This section creates the definitions accordion with information for   #
+# users about general terms and model specific terminology. It is controlled   #
+# by the user provided variable cross walk file.                               #
+#------------------------------------------------------------------------------#
+  
+  ##################################
+  # Creating the section accordion #
+  ##################################
+  forecastEvalReport:::section_definitions(
+    variables_crosswalk = variables_crosswalk,
+    config              = config,
+    impl_meta           = impl_meta,
+    eval_meta           = eval_meta
+  )
+```
+
+```{r forecast-plots, echo=FALSE, message=FALSE, warning=FALSE}
+#------------------------------------------------------------------------------#
+# Building the primary forecast figure -----------------------------------------
+#------------------------------------------------------------------------------#
+# About: This section builds an interactive Plotly-based forecast              #
+# visualization for each location in the forecast file. Each plot shows the    #
+# target data (truth line), implementation model projections and prediction    #
+# intervals, historical estimates (when available), evaluation model traces    #
+# (per horizon), auxiliary variable traces, modeling period phase ribbons, a   #
+# current-week reference line, and a range slider.                             #
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+# Plot-only export request -----------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: When the report params carry a plot.export list, this branch builds   #
+# and writes the forecast plot(s) and exits the render early, so none of the   #
+# later report sections run. Without it, the report renders normally below.    #
+#------------------------------------------------------------------------------#
+
+  if(is.list(params$plot.export)){
+
+    # Unpacking the export request from the report params
+    .exp     <- params$plot.export
+
+    # HTML keeps the page interactive; any other format is a static image
+    .is_html <- identical(.exp$format, "html")
+
+    # Output extension follows the format ("html" or the static type)
+    .ext     <- if(.is_html) "html" else .exp$format
+
+#------------------------------------------------------------------------------#
+# Single-section writer --------------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: One writer call for either output. HTML keeps the interactive page;   #
+# any static format screenshots the same section as an image.                  #
+#------------------------------------------------------------------------------#
+
+    .write_one <- function(.sec, .file){
+
+      # HTML: write the interactive page
+      if(.is_html){
+        forecastEvalReport:::write_forecast_html(
+          section   = .sec,
+          file      = .file,
+          overwrite = .exp$overwrite
+        )
+
+      # Static: screenshot the same section to an image
+      }else{
+        forecastEvalReport:::write_forecast_image(
+          section   = .sec,
+          file      = .file,
+          format    = .exp$format,
+          width     = .exp$width,
+          height    = .exp$height,
+          scale     = .exp$scale,
+          delay     = .exp$delay,
+          font_size = .exp$font_size,
+          legend    = .exp$legend,
+          overwrite = .exp$overwrite
+        )
+      }
+    }
+
+#------------------------------------------------------------------------------#
+# Per-location section builder -------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: Builds one section for a location, dispatching on the export target:  #
+# the forecast-consistency section when plot = "consistency", otherwise the    #
+# forecast section. A static export drops the range slider and forces all data #
+# visible via for_export; HTML stays interactive.                              #
+#------------------------------------------------------------------------------#
+
+    .build <- function(.loc){
+
+      # Forecast-consistency export: build that section for this location
+      if(identical(.exp$plot, "consistency")){
+        return(forecastEvalReport:::section_forecast_consistency(
+          impl_meta            = impl_meta,
+          eval_meta            = eval_meta,
+          config               = config,
+          implementation_model = implementation_model,
+          master_data          = master_data,
+          variables_crosswalk  = variables_crosswalk,
+          plot_styles          = PLOT_STYLES,
+          max_forecasts        = .exp$n_forecasts,
+          forecast_every       = .exp$forecast_every,
+          end_cushion          = .exp$end_cushion,
+          for_export           = !.is_html,
+          location             = .loc,
+          font_size            = .exp$font_size,
+          tick_size            = .exp$tick_size,
+          forecast_size        = .exp$forecast_size,
+          forecast_color       = .exp$forecast_color,
+          observed_size        = .exp$observed_size,
+          observed_color       = .exp$observed_color,
+          aux_size             = .exp$aux_size,
+          aux_color            = .exp$aux_color,
+          title_gap            = .exp$title_gap,
+          view_start           = .exp$view_start,
+          view_end             = .exp$view_end
+        ))
+      }
+
+      # Forecast plot (default): build the forecast section for this location
+      forecastEvalReport:::section_forecast_plots(
+        impl_meta            = impl_meta,
+        eval_meta            = eval_meta,
+        config               = config,
+        implementation_model = implementation_model,
+        master_data          = master_data,
+        variables_crosswalk  = variables_crosswalk,
+        plot_styles          = PLOT_STYLES,
+        location             = .loc,
+        for_export           = !.is_html,
+        font_size            = .exp$font_size,
+        view_start           = .exp$view_start,
+        view_end             = .exp$view_end
+      )
+    }
+
+#------------------------------------------------------------------------------#
+# Resolving the output target --------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: A directory target (no extension, a trailing slash, or an existing    #
+# directory) writes one file per geography; a single file path writes only     #
+# the requested geography, or all of them behind a dropdown.                   #
+#------------------------------------------------------------------------------#
+
+    # Directory target: no extension, trailing slash, or existing directory
+    .dir_target <- is.null(.exp$file) || dir.exists(.exp$file) ||
+      grepl("[/\\\\]$", .exp$file) ||
+      identical(tools::file_ext(.exp$file), "")
+
+    ######################################################
+    # Per-geography files: directory target, no location #
+    ######################################################
+    if(is.null(.exp$location) && isTRUE(.dir_target)){
+
+      # Geographies, sourced exactly as section_forecast_plots() does
+      .meta <- if(!is.null(impl_meta)) impl_meta else eval_meta
+      .geos <- if(!is.null(.meta$locations) && length(.meta$locations) > 0){
+        .meta$locations
+      }else{
+        unique(master_data$location)
+      }
+
+      # Resolving (and creating) the output directory
+      .dir <- if(is.null(.exp$file)) "." else .exp$file
+      if(!dir.exists(.dir)){
+        dir.create(.dir, recursive = TRUE, showWarnings = FALSE)
+      }
+
+      # File stem follows the plot target
+      .stem <- if(identical(.exp$plot, "consistency")){
+        "forecast_consistency_"
+      }else{
+        "forecast_plot_"
+      }
+
+      # Writing one file per geography
+      saved_plot_paths <- character(0)
+      for(.g in .geos){
+
+        # Filesystem-safe geography name for the file stem
+        .safe <- gsub("^_+|_+$", "", gsub("[^A-Za-z0-9._-]+", "_", .g))
+
+        # Build and write this geography's plot
+        .out  <- .write_one(
+          .build(.g),
+          file.path(.dir, paste0(.stem, .safe, ".", .ext))
+        )
+
+        # Collecting the written path
+        saved_plot_paths <- c(saved_plot_paths, .out)
+      }
+
+    #############################################################
+    # Single file: all geographies (dropdown), or the given one #
+    #############################################################
+    }else{
+
+      # One file: the given location, or every geography in a dropdown
+      saved_plot_paths <- .write_one(.build(.exp$location), .exp$file)
+
+    }
+
+    # Stopping the render here so no later report sections run
+    knitr::knit_exit()
+
+  }
+
+#------------------------------------------------------------------------------#
+# Normal in-report rendering ---------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: When no export was requested, render the forecast section into the    #
+# report as usual.                                #
+#------------------------------------------------------------------------------#
+
+  # Render the forecast section into the report
+  forecastEvalReport:::section_forecast_plots(
+    impl_meta            = impl_meta,
+    eval_meta            = eval_meta,
+    config               = config,
+    implementation_model = implementation_model,
+    master_data          = master_data,
+    variables_crosswalk  = variables_crosswalk,
+    plot_styles          = PLOT_STYLES
+  )
+```
+
+
+
+```{r model-table-intro, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+#------------------------------------------------------------------------------#
+# Producing the model section header and paragraph -----------------------------
+#------------------------------------------------------------------------------#
+# About: This section produces the section heading and introductory paragraph  #
+# that precede the model development and inputs table. Kept as its own section #  
+# function so the heading text stays modular and out of the report template.   #
+#------------------------------------------------------------------------------#
+
+  #############################
+  # Creating the model header #
+  #############################
+  forecastEvalReport:::section_model_table_intro()
+
+```
+
+```{r model-table, echo=FALSE, message=FALSE, warning=FALSE}
+#------------------------------------------------------------------------------#
+# Interactive Table for Model Inputs -------------------------------------------
+#------------------------------------------------------------------------------#
+# About: This section produces an interactive table summarizing the model      #
+# inputs and the modeling periods. The table lists the model variables         #
+# (predictors) and the data sources used, followed by the training, validation #
+# , testing, and forecast period date ranges when each is available.           #
+#------------------------------------------------------------------------------#
+
+  ############################
+  # Creating the model table #
+  ############################
+  forecastEvalReport:::section_model_table(
+    variables_crosswalk = variables_crosswalk,
+    config              = config,
+    impl_meta           = impl_meta,
+    eval_meta           = eval_meta
+  )
+
+```
+
+```{r model-description, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+#------------------------------------------------------------------------------#
+# Creating the model intro paragraph -------------------------------------------
+#------------------------------------------------------------------------------#
+# About: This section produces the introductory paragraph describing how many  #
+# unique models were used in the analysis and the general model category they  #
+# fall under. The wording adapts to whether one or multiple models were used   #
+# and whether auxiliary variables (model inputs) are present in the report.    #
+#------------------------------------------------------------------------------#
+
+  ############################################
+  # Creating the model description paragraph #
+  ############################################
+  forecastEvalReport:::section_model_description(config = config)
+
+```
+
+::: {style="margin-top: 2em;"}
+:::
+
+```{r model-descriptions, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+#------------------------------------------------------------------------------#
+# Model Block Quotes -----------------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: This section produces a model block quote description for each model  #
+# listed in the configuration file, showing the model label as a bold heading  #
+# followed by the user-provided plain-language description. When no model      #
+# descriptions were provided, nothing is rendered.                             #
+#------------------------------------------------------------------------------#
+
+  ###################################
+  # Creating the model block quotes #
+  ###################################
+  forecastEvalReport:::section_model_descriptions(config = config)
+
+```
+
+::: {style="margin-top: 2em;"}
+:::
+
+```{r parameter-definitions, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+#------------------------------------------------------------------------------#
+# Parameter definitions drop-down ----------------------------------------------
+#------------------------------------------------------------------------------#
+# About: This section produces a collapsible accordion containing definitions  #
+# for the auxiliary variables used in the model. Each row shows the variable's #
+# clean name, its data source clean name, and its definition. The entire       #
+# accordion (header, intro text, table, and close) is rendered by this single  #
+# function. When no auxiliary variables are present, nothing is rendered so    #
+# the section is cleanly omitted.                                              #
+#------------------------------------------------------------------------------#
+
+  ########################################
+  # Creating the section parameter table #
+  ########################################
+  forecastEvalReport:::section_parameter_definitions(
+    variables_crosswalk = variables_crosswalk
+  )
+
+```
+
+```{r testing-evaluation, echo=FALSE, message=FALSE, warning=FALSE}
+#------------------------------------------------------------------------------#
+# Testing-period evaluation data and metrics -----------------------------------
+#------------------------------------------------------------------------------#
+# About: This chunk builds the data sets containing the various testing        #
+# period metrics, such as percent agreement, forecast bias, peak timing and    #
+# magnitude, and the traditional methods. It also takes in the configuration   #
+# file, allowing users to set their own thresholds for the metrics.            #
+#------------------------------------------------------------------------------#
+
+  ##########################################################
+  # Preparing the testing data and running all the metrics #
+  ##########################################################
+  testing_eval <<- forecastEvalReport:::build_testing_evaluation(
+      eval_meta               = eval_meta,
+      master_data             = master_data,
+      non_transmission_months = EVAL_CONFIG$non_transmission_months,
+      season_start_day_month  = EVAL_CONFIG$season_start_day_month,
+      peak_window             = EVAL_CONFIG$peak_window,
+      stable_threshold        = EVAL_CONFIG$stable_threshold,
+      pct_error_cushion       = EVAL_CONFIG$pct_error_cushion,
+      timing_tol_steps        = EVAL_CONFIG$timing_tol_steps,
+      mag_tol                 = EVAL_CONFIG$mag_tol
+    )
+
+  ##############################################
+  # Unpack for the downstream display sections #
+  ##############################################
+
+  # Testing data
+  data.for.evaluation   <- testing_eval$data
+
+  # Percent agreement table
+  percentAgreement.data <- testing_eval$percentAgreement
+  
+  # Forecast bias table 
+  forecastBias.data     <- testing_eval$forecastBias
+  
+  # Peak timing and magnitude 
+  peakPhase.data        <- testing_eval$peakPhase
+  
+  # Traditional methods 
+  traditional.data      <- testing_eval$traditional
+  
+```
+
+```{r testing-intro, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+#------------------------------------------------------------------------------#
+# Creating the 'Testing Period Evaluation' Intro -------------------------------
+#------------------------------------------------------------------------------#
+# About: This section produces the orienting paragraph and the per-metric      #
+# descriptions shown at the top of the testing-period evaluation section:      #
+# percent agreement, forecast bias, peak-phase timing, peak-phase magnitude,   #
+# and the traditional (statistical) scoring metrics. The testing-phase date    #
+# span is taken from `eval_meta$testing_start` / `eval_meta$testing_end`. When #  
+# no testing data is present, the function renders nothing so the section      #
+# disappears from the report entirely.                                         #
+#------------------------------------------------------------------------------#
+
+  ################################################
+  # Creating the testing period evaluation intro #
+  ################################################
+  forecastEvalReport:::section_testing_intro(eval_meta = eval_meta)
+
+```
+
+::: {style="margin-top: 1.1em;"}
+:::
+
+```{r trans-text-1-eval, echo=FALSE}
+#------------------------------------------------------------------------------#
+# Building the testing transition text -----------------------------------------
+#------------------------------------------------------------------------------#
+# About: This section produces the short transitional paragraph that bridges   #
+# the metric overview and the figures and tables summarizing testing-period    #
+# performance. When no testing data is present, the function renders nothing   #
+# so the paragraph drops out of the report along with the rest of the testing- #
+# period block.                                                                #
+#------------------------------------------------------------------------------#
+
+  ################################################
+  # Building the testing section text transition #
+  ################################################
+  forecastEvalReport:::section_testing_transition(eval_meta = eval_meta)
+
+```
+
+::: {style="margin-top: 1em;"}
+:::
+
+```{r pct-agreement, echo=FALSE, message=FALSE, warning=FALSE}
+#------------------------------------------------------------------------------#
+# Building percent agreement section -------------------------------------------
+#------------------------------------------------------------------------------#
+# About: This section builds the full Percent Agreement accordion for the      #
+# testing-period block: an intro, the "Percent Agreement Over Time" figure     #
+# (one panel per location, switched by a geography dropdown), a synced Median  #
+# (Range) summary table by forecast horizon, and a Detailed Methods accordion. #
+# Renders nothing when no testing data is present, matching every other        #
+# testing-period section.                                                      #
+#------------------------------------------------------------------------------#
+
+  ######################################
+  # Building percent agreement section #
+  ######################################
+  forecastEvalReport:::section_percent_agreement(
+    percentAgreement.data = percentAgreement.data,
+    eval_meta             = eval_meta,
+    outcome               = NULL,                
+    variables_crosswalk   = variables_crosswalk,
+    eval_config           = EVAL_CONFIG
+  )
+```
+
+```{r forecast-bias, echo=FALSE, message=FALSE, warning=FALSE}
+#------------------------------------------------------------------------------#
+# Building forecast bias section -----------------------------------------------
+#------------------------------------------------------------------------------#
+# About: This section builds the interactive Plotly forecast bias figure for a #
+# single location, with a Bias (%) / Raw Counts toggle. The figure overlays    #  
+# observed-count bars, one dashed line per forecast horizon, and an overall    #
+# median line, and shades each non-transmission (No Evaluation) span with      #
+# dotted boundaries and a centered label. Row-level values on non-transmission #  
+# dates are retained for visual continuity but broken out of the lines with an #  
+# all-NA scaffold so the series do not connect across them.                    #
+#------------------------------------------------------------------------------#
+
+  ########################################
+  # Building the forecast period section #
+  ########################################
+  forecastEvalReport:::section_forecast_bias(
+    forecastBias.data   = forecastBias.data,
+    eval_meta           = eval_meta,
+    outcome             = NULL,                 
+    variables_crosswalk = variables_crosswalk,
+    eval_config         = EVAL_CONFIG
+  )
+```
+
+```{r peak-phase, echo=FALSE, message=FALSE, warning=FALSE}
+forecastEvalReport:::section_peak_phase(
+  peakPhase.data      = testing_eval$peakPhase,   # straight from the bundle
+  eval_meta           = eval_meta,
+  data.for.evaluation = testing_eval$data,        # straight from the bundle
+  training.data.label = training.data.label,
+  outcome             = NULL,                       # NULL -> clean name from the crosswalk
+  variables_crosswalk = variables_crosswalk,
+  eval_config         = EVAL_CONFIG
+)
+```
+
+```{r traditional-metrics, echo=FALSE, message=FALSE, warning=FALSE}
+forecastEvalReport:::section_traditional_metrics(
+  traditional.data    = testing_eval$traditional,
+  eval_meta           = eval_meta,
+  outcome             = NULL,                 # NULL -> clean name from the crosswalk
+  variables_crosswalk = variables_crosswalk,
+  eval_config         = EVAL_CONFIG
+)
+```
+
+```{r forecast-consistency, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+forecastEvalReport:::section_forecast_consistency(
+  impl_meta            = impl_meta,
+  eval_meta            = eval_meta,
+  config               = config,
+  implementation_model = implementation_model,
+  master_data          = master_data,
+  variables_crosswalk  = variables_crosswalk,
+  plot_styles          = PLOT_STYLES,
+  max_forecasts        = 10000L
+)
+```
+
+```{r prepare-eval-data, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+#------------------------------------------------------------------------------#
+rt <- forecastEvalReport:::build_realtime_evaluation(
+  impl_meta           = impl_meta,
+  master_data         = master_data,
+  variables_crosswalk = variables_crosswalk
+)
+```
+
+
+```{r realtime-evaluation, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+htmltools::tagList(
+  section_realtime_intro(rt$data),
+  section_realtime_percent_agreement(
+    rt$percentAgreement, impl_meta,
+    variables_crosswalk = variables_crosswalk,
+    eval_config         = EVAL_CONFIG
+  ),
+  section_realtime_forecast_bias(
+    rt$forecastBias, impl_meta,
+    variables_crosswalk = variables_crosswalk,
+    eval_config         = EVAL_CONFIG
+  ),
+  section_realtime_traditional_metrics(
+    rt$traditional, impl_meta,
+    variables_crosswalk = variables_crosswalk,
+    eval_config         = EVAL_CONFIG
+  )
+)
+```

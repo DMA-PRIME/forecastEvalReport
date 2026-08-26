@@ -1,0 +1,908 @@
+#' Build a variables crosswalk file
+#'
+#' Seeds a variables crosswalk CSV from the user's validated report
+#' configuration and loaded model files. The seeded file contains standard
+#' glossary rows, one data source row per location/disease group, and one
+#' outcome row per group. Users complete the file by filling in report-facing
+#' names, definitions, and metadata, then pass it to
+#' `validate_variables_crosswalk()` as part of report generation.
+#'
+#' The output file is written to the current working directory. The filename
+#' is constructed from the contact name, disease, reason, and model type
+#' stored in `config`.
+#'
+#' @param config A validated configuration list produced by
+#'   `validate_report_params()`.
+#' @param implementation_model A validated implementation model data frame
+#'   produced by the appropriate hub validator (e.g.,
+#'   `validate_flusight_model()`), or `NULL` if not available.
+#' @param evaluation_model A validated evaluation model data frame produced
+#'   by `validate_eval_model()`, or `NULL` if not available.
+#' @param force Logical. If `TRUE` and the output file already exists, the
+#'   file is overwritten after a loud warning. If `FALSE` (default) and the
+#'   file already exists, the function stops with an error and requires the
+#'   user to re-run with `force = TRUE` to confirm the overwrite.
+#'
+#' @return Invisibly returns the path to the written file.
+#'
+#' @export
+build_variables_crosswalk <- function(config,
+                                      implementation_model = NULL,
+                                      evaluation_model     = NULL,
+                                      force                = FALSE) {
+
+#------------------------------------------------------------------------------#
+# Creating the `is_absent` helper ----------------------------------------------
+#------------------------------------------------------------------------------#
+# About: Checks whether a single value is absent (NULL, NA, or empty string).  #
+# Used throughout to guard optional config fields.                             #
+#------------------------------------------------------------------------------#
+
+  is_absent <- function(x){
+    is.null(x) || length(x) == 0L ||
+      (length(x) == 1L && (is.na(x) || nchar(trimws(as.character(x))) == 0L))
+  }
+
+#------------------------------------------------------------------------------#
+# Defining lookup tables -------------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: Hub-to-disease mapping and disease-to-clean-name mapping used when    #
+# deriving group metadata from hubverse-format files.                          #
+#------------------------------------------------------------------------------#
+
+  #################################
+  # Hub reason to disease mapping #
+  #################################
+  hub_disease_map <- c(
+    FluSight  = "influenza",
+    COVIDHub  = "covid_19",
+    RSVHub    = "RSV",
+    MetroCast = "influenza"
+  )
+
+  #################################
+  # Disease to clean name mapping #
+  #################################
+  disease_clean_map <- c(
+    covid_19  = "COVID-19",
+    RSV       = "RSV",
+    influenza = "Influenza"
+  )
+
+  ##################################
+  # Hubverse reasons (non-general) #
+  ##################################
+  hubverse_reasons <- c("FluSight", "COVIDHub", "RSVHub", "MetroCast")
+
+  ##################################
+  # Standard general_term glossary #
+  ##################################
+  glossary <- list(
+
+    ##########################
+    # Target Data Definition #
+    ##########################
+    list(
+
+      # Term
+      variable   = "Target Data",
+
+      # Definition
+      definition = paste0(
+        "The data source used to represent the outcome measure that the forecast ",
+        "is designed to estimate or predict. Target data typically represent the ",
+        "reference or 'ground truth' and may include surveillance counts, ",
+        "laboratory-confirmed cases, hospitalizations, or other public health ",
+        "indicators used for evaluation and decision-making."
+      )
+    ),
+
+    ###################################
+    # Implementation Model Definition #
+    ###################################
+    list(
+
+      # Term
+      variable   = "Implementation Model",
+
+      # Definition
+      definition = paste0(
+        "The finalized, post-training version of a forecasting model. Once trained ",
+        "and validated, the implementation model is applied in an operational ",
+        "setting to generate routine projections without further parameter tuning."
+      )
+    ),
+
+    ##################################
+    # Current Projections Definition #
+    ##################################
+    list(
+
+      # Term
+      variable   = "Current Projections",
+
+      # Definition
+      definition = paste0(
+        "Forward-looking values generated by the implementation model beyond the ",
+        "most recent observed week. Projections represent expected future outcomes ",
+        "under the assumption that recent trends and model conditions continue and ",
+        "are accompanied by uncertainty."
+      )
+    ),
+
+    ###################################
+    # Historical Estimates Definition #
+    ###################################
+    list(
+
+      # Term
+      variable   = "Historical Estimates",
+
+      # Definition
+      definition = paste0(
+        "Model-generated estimates for past time periods produced after training, ",
+        "validation, and testing have concluded. Historical estimates are used to ",
+        "assess model fit, stability, and alignment with observed data but are not ",
+        "intended for real-time operational decisions."
+      )
+    ),
+
+    ###############################
+    # Evaluation Model Definition #
+    ###############################
+    list(
+
+      # Term
+      variable   = "Evaluation Model",
+
+      # Definition
+      definition = paste0(
+        "A version of the forecasting model used during the training process to ",
+        "assess performance, uncertainty, and stability using historical data. The ",
+        "evaluation model supports model selection, parameter tuning, and validation ",
+        "and is not used to generate operational projections."
+      )
+    ),
+
+    ######################
+    # Horizon Definition #
+    ######################
+    list(
+
+      # Term
+      variable   = "Horizon",
+
+      # Definition
+      definition = paste0(
+        "The number of time steps into the future for which forecasts are generated ",
+        "from each historical forecast origin when evaluating model performance, ",
+        "uncertainty, and stability."
+      )
+    ),
+
+    ##############################
+    # Training Period Definition #
+    ##############################
+    list(
+
+      # Term
+      variable   = "Training Period",
+
+      # Definition
+      definition = paste0(
+        "The historical data window over which model parameters are estimated and ",
+        "structural relationships are learned. Data from the training period are ",
+        "used exclusively for model fitting, while data for the subsequent ",
+        "validation and testing periods are held out to evaluate model behavior ",
+        "and performance."
+      )
+    ),
+
+    ################################
+    # Validation Period Definition #
+    ################################
+    list(
+
+      # Term
+      variable   = "Validation Period",
+
+      # Definition
+      definition = paste0(
+        "The historical data window reserved for evaluating model behavior after ",
+        "training. The validation period is used to compare candidate models, tune ",
+        "parameters, and assess uncertainty while remaining separate from both the ",
+        "training and testing periods."
+      )
+    ),
+
+    #############################
+    # Testing Period Definition #
+    #############################
+    list(
+
+      # Term
+      variable   = "Testing Period",
+
+      # Definition
+      definition = paste0(
+        "The historical data window reserved for final model evaluation after ",
+        "training and validation are complete. The testing period serves to assess ",
+        "how the finalized model performs on unseen data."
+      )
+    ),
+
+    #################################
+    # Auxiliary Variable Definition #
+    #################################
+    list(
+
+      # Term
+      variable   = "Auxiliary Variables",
+
+      # Definition
+      definition = paste0(
+        "Observed variables and auxiliary datasets incorporated into the model to ",
+        "provide additional information beyond the primary outcome."
+      )
+    ),
+
+    ###########################################
+    # Population Adjusted CDC data definition #
+    ###########################################
+    list(
+
+      # Term
+      variable   = "Auxiliary Variables (CDC Adjusted)",
+
+      # Definition
+      definition = paste0(
+        "Observed variables and auxiliary datasets incorporated into the model to ",
+        "provide additional information beyond the primary outcome. CDC-derived ",
+        "variables are population-adjusted to best reflect values at the geographic ",
+        "scale presented."
+      )
+
+    )
+
+  )
+
+#------------------------------------------------------------------------------#
+# Input validation -------------------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: Confirms that at least one model file is supplied and that the config #
+# has the fields needed for seeding.                                           #
+#------------------------------------------------------------------------------#
+
+  ############################################
+  # At least one model file must be provided #
+  ############################################
+  if(is.null(implementation_model) && is.null(evaluation_model)){
+
+    # Stopping the function if an error occurs
+    stop(
+      "At least one of `implementation_model` or `evaluation_model` must be ",
+      "provided. Both are NULL.",
+      call. = FALSE
+    )
+
+  }
+
+  ######################################
+  # Required config fields for seeding #
+  ######################################
+
+  # Required input columns for seeing the main
+  required_config <- c("outcome_data_label", "outcome_name", "outcome_data",
+                       "contact_name", "reason", "general_model_type", "disease")
+
+  # Checking if any required columns are missing
+  missing_config <- required_config[
+    vapply(required_config, function(f) is_absent(config[[f]]), logical(1))
+  ]
+
+  # Triggering if an error occurs
+  if(length(missing_config) > 0){
+
+    # Stopping the script if any errors occur
+    stop(
+      "The following required config fields are missing or NA: ",
+      paste(missing_config, collapse = ", "), ". ",
+      "Run `validate_report_params()` first to produce a complete config.",
+      call. = FALSE
+    )
+
+  }
+
+#------------------------------------------------------------------------------#
+# Derive (spatial_scale, location, disease) groups -----------------------------
+#------------------------------------------------------------------------------#
+# About: Extracts the unique group combinations from each supplied model file. #
+# For hubverse files, disease is derived from the hub type and spatial_scale   #
+# from the location values. For general-format files, all three are read       #
+# directly from the file columns.                                              #
+#------------------------------------------------------------------------------#
+
+  ##################################################
+  # Helper: derive groups from a single model file #
+  ##################################################
+  derive_groups <- function(model_df, is_general){
+
+    # Determining if the file is general format (i.e., not hub verse)
+    if(is_general){
+
+      # General format: columns are explicit
+      groups <- unique(model_df[, c("location_general", "location", "disease")])
+      names(groups) <- c("spatial_scale", "location", "disease")
+
+    # Hubverse format:
+    }else{
+
+      # Hubverse format: disease from hub map, spatial_scale from location value
+      hub_disease <- hub_disease_map[config$reason]
+
+      # Locations within hubverse model
+      locs <- unique(model_df$location)
+
+      # Derive spatial_scale per location
+      if(config$reason == "MetroCast"){
+
+        # MetroCast: look up original_location_code in metrocast_locations
+        mc <- forecastEvalReport::metrocast_locations
+
+        # Setting spatial scale for metrocast
+        ss_vec <- vapply(locs, function(loc){
+          idx <- match(loc, mc$location)
+          if(is.na(idx)) return("hsa")  # unknown: assume hsa
+          if(mc$original_location_code[idx] == "All") "state" else "hsa"
+        }, character(1))
+
+      # Setting spatial scale for all other diseases
+      }else{
+
+        # FluSight / COVIDHub / RSVHub: US -> national, else -> state
+        ss_vec <- ifelse(locs == "US", "national", "state")
+
+      }
+
+      ##############################################
+      # Creating the unique groupings for the data #
+      ##############################################
+      groups <- data.frame(
+        spatial_scale = ss_vec,
+        location      = locs,
+        disease       = hub_disease,
+        stringsAsFactors = FALSE
+      )
+
+    }
+
+    # Returning the unique groups
+    groups
+
+  }
+
+  #################################################
+  # Determine whether each file is general format #
+  #################################################
+  is_general_impl <- !is.null(implementation_model) &&
+    config$reason %in% c("Software", "Internal")
+  is_general_eval <- !is.null(evaluation_model)
+
+  # Blank list to store general format groupings
+  groups_list <- list()
+
+  # Groups pulled from implementation file
+  if(!is.null(implementation_model)){
+    groups_list[["impl"]] <- derive_groups(implementation_model, is_general_impl)
+  }
+
+  # Groups pulled from evaluation model
+  if(!is.null(evaluation_model)){
+    groups_list[["eval"]] <- derive_groups(evaluation_model, is_general_eval)
+  }
+
+  # Union of groups across both files
+  all_groups <- unique(do.call(rbind, groups_list))
+
+  # Creating the list of all groupings for the cross walk
+  all_groups <- all_groups[order(all_groups$spatial_scale,
+                                 all_groups$location,
+                                 all_groups$disease), ]
+
+  # Removing the rownames
+  rownames(all_groups) <- NULL
+
+#------------------------------------------------------------------------------#
+# Construct filename -----------------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: Builds the output CSV filename from the contact name, disease(s),     #
+# reason, and model type. Spaces are replaced with underscores.                #
+#------------------------------------------------------------------------------#
+
+  ################################
+  # Disease part of the filename #
+  ################################
+
+  # Pulling all unique diseases in the filename
+  unique_diseases <- unique(all_groups$disease)
+
+  # Determining what should show in the file name: One Disease
+  disease_part <- if(length(unique_diseases) == 1){
+
+    # Disease to show
+    unique_diseases
+
+  # Determining what should show in the file name: Multiple Disease
+  }else{"multi"}
+
+  ##################################
+  # Sanitize and assemble filename #
+  ##################################
+
+  # Function to sanitize any multi-word pieces of filename
+  sanitize <- function(x) gsub(" ", "_", trimws(x))
+
+  # Creating the distinct file name
+  filename <- paste0(
+    sanitize(config$contact_name), "-",
+    sanitize(disease_part), "-",
+    sanitize(config$reason), "-",
+    sanitize(config$general_model_type),
+    ".csv"
+  )
+
+  # Creating the final name: Working Directory + Filename
+  output_path <- file.path(getwd(), filename)
+
+#------------------------------------------------------------------------------#
+# Check for existing file ------------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: If the output file already exists, the function warns loudly and      #
+# stops unless `force = TRUE` is set by the user, in which case it warns and   #
+# overwrites. This protects hand-entered rows and edits from accidental loss.  #
+#------------------------------------------------------------------------------#
+
+  ##################################################
+  # Checking if the cross walk path already exisit #
+  ##################################################
+  if(file.exists(output_path)){
+
+    # Message to print to users
+    warning_msg <- paste0(
+      "\n",
+      "================================================================================\n",
+      "  \u26a0  WARNING: File already exists\n",
+      "================================================================================\n",
+      "  File:    ", output_path, "\n",
+      "  \n",
+      "  This file may contain manually added rows, edited definitions, or\n",
+      "  custom entries that you have provided since the last build. If you\n",
+      "  overwrite it, ALL of that content will be permanently lost.\n",
+      "  \n",
+      "  To overwrite: re-run with force = TRUE\n",
+      "    build_variables_crosswalk(..., force = TRUE)\n",
+      "  \n",
+      "  To preserve your edits: do NOT re-run. Use the existing file.\n",
+      "================================================================================\n"
+    )
+
+    #############################################
+    # Stopping if user does not force overwrite #
+    #############################################
+    if(!isTRUE(force)){
+
+      # Stop -- user must explicitly opt in to overwrite
+      stop(warning_msg, call. = FALSE)
+
+    ################################################
+    # Overwrite if the user indicates force create #
+    ################################################
+    }else{
+
+      # force = TRUE -- warn but proceed
+      message(warning_msg)
+
+      # Message to show to user
+      message("Proceeding with overwrite as force = TRUE was set.\n")
+
+    }
+  }
+
+#------------------------------------------------------------------------------#
+# Build the general_term rows --------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: Seeds one general_term row per standard glossary entry. These rows    #
+# appear once globally (not per group). The spatial_scale, location, disease,  #
+# and disease_name_clean columns are all NA for general_term rows.             #
+#------------------------------------------------------------------------------#
+
+  ######################
+  # Blank row template #
+  ######################
+  blank_row <- function(){
+
+    # Rows to create
+    list(
+      spatial_scale      = NA_character_,
+      location           = NA_character_,
+      disease            = NA_character_,
+      disease_name_clean = NA_character_,
+      variable_type      = NA_character_,
+      variable           = NA_character_,
+      clean_name_full    = NA_character_,
+      clean_name_abb     = NA_character_,
+      on_right_axis      = NA,
+      data_source        = NA_character_,
+      convert_percent    = NA,
+      definition         = NA_character_,
+      binning            = NA_character_,
+      cohort             = NA_character_,
+      file               = NA_character_
+    )
+
+  }
+
+  ###########################
+  # Build general_term rows #
+  ###########################
+  general_rows <- lapply(glossary, function(term){
+
+    # Starting with blank rows
+    r <- blank_row()
+
+    # Filling in the general term row type
+    r$variable_type   <- "general_term"
+
+    # Filling in variable name
+    r$variable        <- term$variable
+
+    # Default variable name
+    r$clean_name_full <- term$variable
+
+    # Default variable name
+    r$clean_name_abb  <- term$variable
+
+    # Filling in preset definitions
+    r$definition      <- term$definition
+
+    # Returnimg the data frame
+    r
+
+  })
+
+#------------------------------------------------------------------------------#
+# Build per-group rows ---------------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: For each (spatial_scale, location, disease) group derived in Step 2,  #
+# seeds a data_source row from outcome.data.label, an outcome row from         #
+# outcome.name (with a definition placeholder), and optionally a training      #
+# data_source row if training data was provided in the config.                 #
+#------------------------------------------------------------------------------#
+
+  #####################################
+  # Function to go through each group #
+  #####################################
+  group_rows <- lapply(seq_len(nrow(all_groups)), function(g){
+
+    # Group identifiers: Spatial Scale
+    ss  <- all_groups$spatial_scale[g]
+
+    # Group identifiers: Location
+    loc <- all_groups$location[g]
+
+    # Group identifiers: Disease
+    dis <- all_groups$disease[g]
+
+    # Using the raw disease or cleaned disease name
+    dnc <- if(dis %in% names(disease_clean_map)) disease_clean_map[dis] else dis
+
+    # Empty list to store results
+    rows <- list()
+
+    ###########################
+    # Outcome data_source row #
+    ###########################
+
+    # Blank row to store data sources
+    r <- blank_row()
+
+    # Spatial scale entry
+    r$spatial_scale      <- ss
+
+    # Location entry
+    r$location           <- loc
+
+    # Disease entry
+    r$disease            <- dis
+
+    # Cleaned disease name entry
+    r$disease_name_clean <- dnc
+
+    # Variable type entry
+    r$variable_type      <- "data_source"
+
+    # Variable name entry
+    r$variable           <- config$outcome_data_label
+
+    # Clean name of variable entry
+    r$clean_name_full    <- config$outcome_data_label
+
+    # Abbreviation name entry
+    r$clean_name_abb     <- config$outcome_data_label
+
+    # Saving all results under the outcome data source row
+    rows[["outcome_ds"]] <- r
+
+    ###############
+    # Outcome row #
+    ###############
+
+    # Blank row to store outcome
+    r <- blank_row()
+
+    # Spatial scale entry
+    r$spatial_scale      <- ss
+
+    # Location entry
+    r$location           <- loc
+
+    # Disease entry
+    r$disease            <- dis
+
+    # Cleaned disease name entry
+    r$disease_name_clean <- dnc
+
+    # Variable type entry
+    r$variable_type      <- "outcome"
+
+    # Variable name entry
+    r$variable           <- config$outcome_name
+
+    # Clean name of variable entry
+    r$clean_name_full    <- config$outcome_name
+
+    # Abbreviation name entry
+    r$clean_name_abb     <- config$outcome_name
+
+    # Data source entry
+    r$data_source        <- config$outcome_data_label
+
+    # Definition entry
+    r$definition         <- "USER: provide a definition"
+
+    # File entry
+    r$file               <- config$outcome_data
+
+    # Saving all results under the outcome row
+    rows[["outcome"]]    <- r
+
+    ############################################################
+    # Training data_source row (only if training data present) #
+    ############################################################
+    if(!is_absent(config$training_data_file)){
+
+      # Blank row to store training data source
+      r <- blank_row()
+
+      # Spatial scale entry
+      r$spatial_scale      <- ss
+
+      # Location entry
+      r$location           <- loc
+
+      # Disease entry
+      r$disease            <- dis
+
+      # Cleaned disease name entry
+      r$disease_name_clean <- dnc
+
+      # Variable type entry
+      r$variable_type      <- "data_source"
+
+      # Variable name entry -- uses data source label (matches outcome pattern)
+      r$variable           <- config$training_data_source
+
+      # Clean name of variable entry
+      r$clean_name_full    <- config$training_data_source
+
+      # Abbreviation name entry
+      r$clean_name_abb     <- config$training_data_source
+
+      # Saving all results under the training data source row
+      rows[["training_ds"]] <- r
+
+      ################
+      # Training row #
+      ################
+
+      # Blank row to store training variable
+      r <- blank_row()
+
+      # Spatial scale entry
+      r$spatial_scale      <- ss
+
+      # Location entry
+      r$location           <- loc
+
+      # Disease entry
+      r$disease            <- dis
+
+      # Cleaned disease name entry
+      r$disease_name_clean <- dnc
+
+      # Variable type entry
+      r$variable_type      <- "training"
+
+      # Variable name entry -- the actual training variable column name
+      r$variable           <- config$training_variable_name
+
+      # Clean name of variable entry
+      r$clean_name_full    <- config$training_variable_name
+
+      # Abbreviation name entry
+      r$clean_name_abb     <- config$training_variable_name
+
+      # Data source entry -- links to the training data_source row above
+      r$data_source        <- config$training_data_source
+
+      # Definition entry
+      r$definition         <- "USER: provide a definition"
+
+      # File entry
+      r$file               <- config$training_data_file
+
+      # Saving all results under the training row
+      rows[["training"]]   <- r
+
+    }
+
+    ##############################
+    # Returning all created rows #
+    ##############################
+    rows
+
+  })
+
+  ######################################################
+  # Flatten the nested list into a single list of rows #
+  ######################################################
+  all_group_rows <- unlist(group_rows, recursive = FALSE)
+
+#------------------------------------------------------------------------------#
+# Assemble the crosswalk data frame --------------------------------------------
+#------------------------------------------------------------------------------#
+# About: Combines the general_term rows and per-group rows into a single data  #
+# frame with the correct 15-column structure, in the correct row order:        #
+# general_term rows first, then per-group rows sorted by group.                #
+#------------------------------------------------------------------------------#
+
+  ############################
+  # Pulling all created rows #
+  ############################
+  all_rows <- c(general_rows, all_group_rows)
+
+  ######################################
+  # Function to create full cross walk #
+  ######################################
+  crosswalk <- do.call(rbind, lapply(all_rows, function(r){
+
+    # Creating the data frame
+    data.frame(
+
+      # Spatial scale
+      spatial_scale      = if(is.null(r$spatial_scale))      NA_character_ else r$spatial_scale,
+
+      # Location
+      location           = if(is.null(r$location))           NA_character_ else r$location,
+
+      # Disease
+      disease            = if(is.null(r$disease))            NA_character_ else r$disease,
+
+      # Clean Disease Name
+      disease_name_clean = if(is.null(r$disease_name_clean)) NA_character_ else r$disease_name_clean,
+
+      # Variable Type
+      variable_type      = if(is.null(r$variable_type))      NA_character_ else r$variable_type,
+
+      # Variable Name
+      variable           = if(is.null(r$variable))           NA_character_ else r$variable,
+
+      # Full Clean Name of Variable
+      clean_name_full    = if(is.null(r$clean_name_full))    NA_character_ else r$clean_name_full,
+
+      # Abbreviation of Variable
+      clean_name_abb     = if(is.null(r$clean_name_abb))     NA_character_ else r$clean_name_abb,
+
+      # On-Right Axis Indicator
+      on_right_axis      = NA,
+
+      # Data Source
+      data_source        = if(is.null(r$data_source))        NA_character_ else r$data_source,
+
+      # Convert to Percent
+      convert_percent    = NA,
+
+      # Definition
+      definition         = if(is.null(r$definition))         NA_character_ else r$definition,
+
+      # Binning Value
+      binning            = if(is.null(r$binning))            NA_character_ else r$binning,
+
+      # Cohort Value
+      cohort             = if(is.null(r$cohort))             NA_character_ else r$cohort,
+
+      # File Pathway
+      file               = if(is.null(r$file))               NA_character_ else r$file,
+
+      # Not storing strings as factors
+      stringsAsFactors   = FALSE
+    )
+
+  }))
+
+  ######################
+  # Removing row names #
+  ######################
+  rownames(crosswalk) <- NULL
+
+#------------------------------------------------------------------------------#
+# Write the file ---------------------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: Writes the assembled crosswalk to a CSV in the current working        #
+# directory.                                                                   #
+#------------------------------------------------------------------------------#
+
+  utils::write.csv(crosswalk, output_path, row.names = FALSE, na = "NA")
+
+#------------------------------------------------------------------------------#
+# Print the completion message -------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: Informs the user where the file was saved, which fields require       #
+# manual completion, and where to supply the file path in the options/YAML     #
+# for report generation.                                                       #
+#------------------------------------------------------------------------------#
+
+  ############################
+  # Message to show to users #
+  ############################
+  message(
+    "\n",
+    "================================================================================\n",
+    "  \u2713  Variables crosswalk built successfully\n",
+    "================================================================================\n",
+    "  File saved to:\n",
+    "    ", output_path, "\n",
+    "\n",
+    "  Rows seeded:\n",
+    "    - ", length(general_rows), " standard glossary (general_term) rows\n",
+    "    - ", nrow(all_groups), " location/disease group(s), each with ",
+    if(!is_absent(config$training_data_file)) "4" else "2",
+    " seeded rows\n",
+    "    - Total: ", nrow(crosswalk), " rows\n",
+    "\n",
+    "  Fields that require manual completion:\n",
+    "    - clean_name_full   : The full, report-facing name of each variable\n",
+    "    - clean_name_abb    : The abbreviated, report-facing name\n",
+    "    - on_right_axis     : TRUE/FALSE for aux_variable rows only\n",
+    "    - convert_percent   : TRUE/FALSE for aux_variable rows only\n",
+    "    - definition        : Required for outcome, aux_variable, and general_term rows\n",
+    "                          (outcome rows are pre-filled with a placeholder)\n",
+    "    - binning           : incident, severity, or burden (where applicable)\n",
+    "    - cohort            : dx or dx_cond_lab (where applicable)\n",
+    "    - file              : File path for aux_variable rows; outcome rows\n",
+    "                          are pre-filled from the options file\n",
+    "\n",
+    "  You may also add rows for:\n",
+    "    - Additional data sources (variable_type = 'data_source')\n",
+    "    - Auxiliary variables (variable_type = 'aux_variable')\n",
+    "    - Custom glossary terms (variable_type = 'general_term')\n",
+    "\n",
+    "  To use this file in your report, provide its path in the options/YAML:\n",
+    "    variables.crosswalk.file: ", output_path, "\n",
+    "================================================================================\n"
+  )
+
+  # Not showing the output path
+  invisible(output_path)
+
+}

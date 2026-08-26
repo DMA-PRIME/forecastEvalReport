@@ -1,0 +1,66 @@
+/* Accordion container
+- Styles the <details> element when used as an accordion.
+- Keeps a light border, rounded corners and subtle shadow for depth.
+*/
+  details.accordion {
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 0.85em 1.1em;
+    margin: 0.9em 0;
+    background: #fafafa;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+/* Summary (the clickable header row)
+- Slightly bolder and larger text to indicate interactivity.
+- Cursor indicates it's clickable.
+   - list-style removed to suppress default marker in some browsers.
+*/
+details.accordion summary {
+  font-weight: 600;
+  font-size: 1.05em;
+  cursor: pointer;
+  list-style: none;
+}
+
+/* Summary chevron/arrow (pseudo-element)
+   - Adds a right-aligned arrow character to indicate collapsed state.
+   - Colored to match accent and given a smooth transform transition.
+*/
+details.accordion summary::after {
+  content: "▸";
+  float: right;
+  color: #648FFF;
+  transition: transform 0.2s ease;
+}
+
+/* Open state for the details element
+   - Rotates the pseudo-element arrow when the <details> is open,
+     visually indicating expanded state.
+*/
+details.accordion[open] summary::after {
+  transform: rotate(90deg);
+}
+
+/* Accordion body (the content revealed when open)
+   - Adds spacing and a subtle top border separation from the header.
+*/
+details.accordion .accordion-body {
+  margin-top: 0.75em;
+  padding-top: 0.75em;
+  border-top: 1px solid #eee;
+}
+
+/* White accordion variant
+   - Used for nested accordions inside the main accordion.
+   - White background to contrast with the parent #fafafa background.
+*/
+details.accordion.white-accordion {
+  background: #ffffff;
+  border: 1px solid #eeeeee;
+  box-shadow: none;
+}
+
+details.accordion.white-accordion summary::after {
+  color: #522D80;
+}

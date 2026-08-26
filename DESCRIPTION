@@ -1,0 +1,32 @@
+Package: forecastEvalReport
+Title: What the Package Does (One Line, Title Case)
+Version: 0.0.0.9000
+Authors@R: 
+    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
+Description: What the package does (one paragraph).
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Imports: 
+    anytime,
+    dplyr,
+    DT,
+    htmltools,
+    htmlwidgets,
+    kableExtra,
+    knitr,
+    lubridate,
+    magrittr,
+    plotly,
+    rmarkdown,
+    scoringutils (>= 2.0.0)
+Depends: 
+    R (>= 3.5)
+LazyData: true
+Config/roxygen2/version: 8.0.0
+RoxygenNote: 8.0.0
+Suggests: 
+    reticulate,
+    webshot2
+SystemRequirements: Google Chrome or Chromium (optional; used by webshot2
+    for static PNG/JPEG/PDF export)
