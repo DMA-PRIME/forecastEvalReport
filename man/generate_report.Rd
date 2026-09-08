@@ -14,7 +14,8 @@ generate_report(
   plot_export = NULL,
   split_by_location = FALSE,
   split_filename = NULL,
-  location_crosswalk = NULL
+  location_crosswalk = NULL,
+  population_crosswalk = NULL
 )
 }
 \arguments{
@@ -24,9 +25,11 @@ produced by \code{create_options_template()}.}
 \item{output_dir}{Directory where the rendered HTML report should be
 saved. Defaults to the current working directory.}
 
-\item{output_file}{Name of report. It must end with .html. When
-\code{split_by_location = TRUE}, the location name is appended to this base
-name for each per-location file (e.g. \code{myreport-Upstate.html}).}
+\item{output_file}{Name of report. It must end with .html. When \code{NULL}, the
+automatic name preserves spaces and spelling from the configured contact,
+disease, reason, and model type. When \code{split_by_location = TRUE}, the exact
+location display name is appended to this base name for each per-location file
+(e.g. \code{my report-Pee Dee.html}).}
 
 \item{quiet}{Logical. If \code{TRUE} (default), suppresses
 \code{rmarkdown::render()} console output. Set to \code{FALSE} for verbose
@@ -64,8 +67,9 @@ location placeholder so every report gets a distinct path:
 \code{{location}} is a filesystem-safe label (e.g. \code{"Pee_Dee"}) and
 \code{{location_name}} is the raw location value (e.g. \code{"Pee Dee"}). The
 template may include subdirectories (created as needed) and must end in
-\code{.html}. When \code{NULL} (default), the location is appended to the base
-filename as \verb{-<Location>}. Ignored (with a warning) when
+\code{.html}. When \code{NULL} (default), the exact location display name is
+appended to the base filename as \verb{-<Location Name>}; spaces are preserved.
+Ignored (with a warning) when
 \code{split_by_location = FALSE}. Examples:
 \code{"region-covid_19-inpatient-{location}.html"} writes flat files with the
 location at the end; \code{"{location}/report.html"} writes one subfolder per
@@ -81,6 +85,13 @@ display name), a \code{data.frame} with those columns, or \code{NULL} (default) 
 use the package's built-in location lookups. Matching is exact after
 trimming whitespace; only listed locations are overridden, and a supplied
 name takes precedence over the built-in tables.}
+
+\item{population_crosswalk}{Optional population lookup used by the
+population-adjusted trend evaluation. May be a CSV path or data frame with
+columns \code{location} and \code{population}, or a named numeric vector. The
+custom rows extend and override \code{default_population_crosswalk}, so only
+unmatched locations need to be supplied. If a model location is not available
+in either source, report generation stops with a copy-ready example.}
 }
 \value{
 Invisibly returns the path to the rendered HTML report; a character
