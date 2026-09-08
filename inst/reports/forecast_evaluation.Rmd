@@ -28,6 +28,7 @@ params:
   model.descriptions: NA
   variables.crosswalk.file: NA
   location.crosswalk: NA
+  population.crosswalk: NA
   state.context: NA
   population.label: NA
   output.dir: NA
@@ -929,7 +930,8 @@ forecastEvalReport:::loading_overlay_html()
     eval_meta             = eval_meta,
     outcome               = NULL,                
     variables_crosswalk   = variables_crosswalk,
-    eval_config           = EVAL_CONFIG
+    eval_config           = EVAL_CONFIG,
+    population_crosswalk  = config$population_crosswalk
   )
 ```
 
@@ -954,7 +956,8 @@ forecastEvalReport:::loading_overlay_html()
     eval_meta           = eval_meta,
     outcome             = NULL,                 
     variables_crosswalk = variables_crosswalk,
-    eval_config         = EVAL_CONFIG
+    eval_config         = EVAL_CONFIG,
+    population_crosswalk = config$population_crosswalk
   )
 ```
 
@@ -976,7 +979,8 @@ forecastEvalReport:::section_traditional_metrics(
   eval_meta           = eval_meta,
   outcome             = NULL,                 # NULL -> clean name from the crosswalk
   variables_crosswalk = variables_crosswalk,
-  eval_config         = EVAL_CONFIG
+  eval_config         = EVAL_CONFIG,
+  population_crosswalk = config$population_crosswalk
 )
 ```
 

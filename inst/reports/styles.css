@@ -105,6 +105,63 @@
     margin-left: 0 !important;
   }
 
+/* --------------------- Forecast Plot Trailing Gap --------------------- */
+/* The forecast figure is drawn at a fixed height with a fixed bottom margin
+   reserved in build_yaxis_layout(). When the range slider needs less than
+   that reservation, the leftover shows up as blank canvas at the foot of the
+   figure -- which is most of the gap between the plot and the next heading.
+
+   Two knobs below. --forecast-plot-trim clips that blank canvas off the
+   bottom of the figure; --forecast-plot-gap is the breathing room that
+   remains, scaled to the viewport.
+
+   Tuning the trim: it clips from the bottom edge, so any value above the
+   amount of blank canvas actually present starts eating the range slider.
+   Raise it in steps of ~16px and stop one step before the slider loses its
+   lower border -- that threshold is the true amount of blank space. 48px is
+   a conservative starting point that will not clip. */
+  :root {
+    --forecast-plot-trim: 48px;
+    --forecast-plot-gap: 1.6vh;
+  }
+
+/* Clipping the blank canvas: the negative margin shortens the panel and pulls
+   what follows up by the same amount, and overflow hides the overhang. */
+  .fs-wrap .plot-panel {
+    overflow: hidden;
+  }
+
+  .fs-wrap .plot-panel > .html-widget,
+  .fs-wrap .plot-panel > .plotly {
+    display: block;
+    margin-bottom: calc(-1 * var(--forecast-plot-trim));
+  }
+
+/* Fullscreen sizes the figure in exact pixels from plotly_fullscreen.js, so
+   the trim is released there or the overlay would clip the slider. */
+  .fs-overlay.active .fs-wrap .plot-panel {
+    overflow: visible;
+  }
+
+  .fs-overlay.active .fs-wrap .plot-panel > .html-widget,
+  .fs-overlay.active .fs-wrap .plot-panel > .plotly {
+    margin-bottom: 0;
+  }
+
+/* Spacer emitted after the forecast plot by section_forecast_plots(). Sized
+   here rather than with a fixed inline margin so the distance to the next
+   section scales with the viewport but never exceeds the clamp ceiling. */
+  .forecast-plot-gap {
+    height: clamp(8px, var(--forecast-plot-gap), 28px);
+  }
+
+/* Collapsing the default top margin of the heading that follows the plot so
+   the gap above it is the spacer alone, not the spacer plus a heading margin
+   stacked on top of it. */
+  .forecast-plot-gap + h2 {
+    margin-top: 0;
+  }
+
 /* ========================================================================= */
 /*                         FLOATING LEGEND SYSTEM                           */
 /* ========================================================================= */

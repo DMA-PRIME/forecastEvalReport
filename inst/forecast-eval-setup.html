@@ -1,0 +1,2353 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#2E1A47">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>forecastEvalReport | Guided setup studio</title>
+  <style>
+    :root {
+      --clemson-orange: #f56600;
+      --regalia: #522d80;
+      --diploma: #2e1a47;
+      --college-avenue: #333333;
+      --goal-line: #ffffff;
+      --campus-brick: #b94700;
+      --bowman-field: #566127;
+      --ink: var(--diploma);
+      --ink-2: var(--regalia);
+      --muted: #68616f;
+      --paper: #f7f5f2;
+      --card: var(--goal-line);
+      --line: #ded7e6;
+      --line-strong: #c5b8d4;
+      --teal: var(--regalia);
+      --teal-dark: var(--diploma);
+      --teal-soft: #f1edf6;
+      --orange: var(--clemson-orange);
+      --orange-soft: #fff0e5;
+      --gold: #fbcb00;
+      --gold-soft: #fff8d9;
+      --blue: var(--regalia);
+      --blue-soft: #eee8f5;
+      --green: var(--bowman-field);
+      --green-soft: #eef1e5;
+      --red: var(--campus-brick);
+      --red-soft: #fbece5;
+      --shadow: 0 16px 42px rgba(46, 26, 71, .10);
+      --radius: 18px;
+      --radius-sm: 11px;
+      --focus: 0 0 0 4px rgba(245, 102, 0, .20);
+      --tutorial-scene-duration: 6000ms;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 0%, rgba(82, 45, 128, .10), transparent 28rem),
+        radial-gradient(circle at 92% 22%, rgba(245, 102, 0, .07), transparent 24rem),
+        var(--paper);
+      font-family: "Segoe UI", Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.5;
+    }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    a { color: var(--regalia); }
+    code { font-family: "Cascadia Code", Consolas, monospace; }
+    [hidden] { display: none !important; }
+
+    .skip-link {
+      position: fixed;
+      top: -70px;
+      left: 16px;
+      z-index: 1000;
+      padding: 10px 14px;
+      border-radius: 9px;
+      color: var(--goal-line);
+      background: var(--diploma);
+    }
+    .skip-link:focus { top: 14px; }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 38px max(24px, calc((100vw - 1260px) / 2)) 40px;
+      border-top: 7px solid var(--clemson-orange);
+      color: var(--goal-line);
+      background: linear-gradient(125deg, var(--diploma) 0%, var(--regalia) 72%, #643b91 100%);
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      width: 520px;
+      height: 520px;
+      left: -330px;
+      bottom: -390px;
+      border-radius: 50%;
+      background: rgba(245, 102, 0, .18);
+      pointer-events: none;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 420px;
+      height: 420px;
+      right: -120px;
+      top: -250px;
+      border: 55px solid rgba(255, 255, 255, .07);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .hero-inner { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr auto; gap: 34px; align-items: center; }
+    .eyebrow { display: flex; gap: 9px; align-items: center; color: var(--goal-line); font-size: .8rem; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+    .eyebrow::before { content: ""; width: 28px; height: 4px; border-radius: 99px; background: var(--clemson-orange); }
+    h1 { margin: 9px 0 13px; font-size: clamp(2.25rem, 5vw, 4.05rem); line-height: 1; letter-spacing: -.045em; }
+    .hero p { max-width: 780px; margin: 0; color: rgba(255,255,255,.84); font-size: 1.06rem; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 21px; }
+    .btn.hero-primary { color: var(--diploma); border-color: var(--clemson-orange); background: var(--clemson-orange); box-shadow: 0 8px 24px rgba(20,8,34,.22); }
+    .btn.hero-primary:hover { color: var(--goal-line); border-color: var(--campus-brick); background: var(--campus-brick); }
+    .btn.hero-secondary { color: var(--goal-line); border-color: rgba(255,255,255,.42); background: rgba(255,255,255,.08); }
+    .btn.hero-secondary:hover { color: var(--goal-line); border-color: rgba(255,255,255,.72); background: rgba(255,255,255,.15); }
+    .hero-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    .hero-badge { padding: 6px 11px; border: 1px solid rgba(255, 255, 255, .24); border-radius: 999px; background: rgba(255, 255, 255, .09); font-size: .8rem; font-weight: 700; }
+    .hero-mark { display: grid; width: 118px; height: 118px; place-items: center; border: 1px solid rgba(255,255,255,.24); border-radius: 30px; background: rgba(255,255,255,.10); box-shadow: inset 0 1px rgba(255,255,255,.2), 0 20px 50px rgba(24,10,42,.20); transform: rotate(2deg); }
+    .hero-mark svg { width: 74px; height: 74px; }
+
+    .app-shell { width: min(1260px, calc(100% - 32px)); margin: 26px auto 74px; }
+
+    .tutorial-shell {
+      overflow: hidden;
+      margin-bottom: 18px;
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--clemson-orange);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+    .tutorial-shell.is-collapsed .tutorial-body { display: none; }
+    .tutorial-header { display: flex; gap: 22px; align-items: center; justify-content: space-between; padding: 18px 20px; }
+    .tutorial-header-main { display: flex; gap: 13px; align-items: center; min-width: 0; }
+    .tutorial-icon { display: grid; flex: 0 0 46px; width: 46px; height: 46px; place-items: center; border-radius: 13px; color: var(--diploma); background: var(--orange-soft); font-size: 1.05rem; font-weight: 900; }
+    .tutorial-heading { min-width: 0; }
+    .tutorial-kicker { color: var(--campus-brick); font-size: .7rem; font-weight: 900; letter-spacing: .10em; text-transform: uppercase; }
+    .tutorial-heading h2 { margin: 1px 0 2px; font-size: 1.22rem; line-height: 1.2; }
+    .tutorial-heading p { margin: 0; color: var(--muted); font-size: .8rem; }
+    .tutorial-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 7px; }
+    .tutorial-meta span { padding: 3px 8px; border-radius: 999px; color: var(--ink-2); background: var(--teal-soft); font-size: .68rem; font-weight: 800; }
+    .tutorial-body { display: grid; grid-template-columns: minmax(260px, .7fr) minmax(500px, 1.3fr); border-top: 1px solid var(--line); }
+    .tutorial-copy { display: flex; flex-direction: column; padding: 25px 24px; background: linear-gradient(155deg, #fff 0%, #fbf8f4 100%); }
+    .tutorial-scene-number { color: var(--campus-brick); font-size: .72rem; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
+    .tutorial-copy h3 { margin: 7px 0 8px; font-size: clamp(1.45rem, 2.5vw, 2rem); line-height: 1.08; letter-spacing: -.025em; }
+    .tutorial-copy > p { margin: 0; color: var(--muted); font-size: .9rem; }
+    .tutorial-chapters { display: grid; gap: 5px; margin: 21px 0 22px; }
+    .tutorial-chapter { display: grid; grid-template-columns: 25px 1fr; gap: 9px; align-items: center; width: 100%; padding: 7px 8px; border: 0; border-radius: 9px; color: var(--muted); background: transparent; text-align: left; font-size: .78rem; font-weight: 750; }
+    .tutorial-chapter:hover { color: var(--ink); background: var(--teal-soft); }
+    .tutorial-chapter.active { color: var(--diploma); background: var(--orange-soft); }
+    .tutorial-chapter span:first-child { display: grid; width: 25px; height: 25px; place-items: center; border-radius: 50%; color: var(--regalia); background: var(--teal-soft); font-size: .68rem; font-weight: 900; }
+    .tutorial-chapter.active span:first-child { color: var(--diploma); background: var(--clemson-orange); }
+    .tutorial-copy-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+    .tutorial-player { min-width: 0; padding: 20px; color: var(--goal-line); background: var(--diploma); }
+    .tutorial-screen { position: relative; overflow: hidden; width: 100%; aspect-ratio: 16 / 9; min-height: 300px; border: 1px solid rgba(255,255,255,.15); border-radius: 15px; background: #fbfaf8; box-shadow: 0 18px 38px rgba(12,5,23,.30); }
+    .tutorial-window-bar { position: absolute; z-index: 3; top: 0; right: 0; left: 0; display: flex; gap: 6px; align-items: center; height: 34px; padding: 0 12px; color: #6f6874; background: #ece8ef; font-size: .64rem; font-weight: 800; }
+    .tutorial-window-bar i { width: 8px; height: 8px; border-radius: 50%; background: #c9c2ce; }
+    .tutorial-window-bar i:first-child { background: var(--clemson-orange); }
+    .tutorial-window-bar span { margin-left: 4px; }
+    .tutorial-scenes { position: absolute; inset: 34px 0 0; color: var(--ink); }
+    .tutorial-scene { display: none; height: 100%; padding: clamp(12px, 2.2vw, 20px); background: linear-gradient(145deg, #fff 0%, #f8f4fb 100%); }
+    .tutorial-scene.active { display: flex; flex-direction: column; animation: tutorial-scene-in .18s ease both; }
+    .tour-mini-stepper { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; margin-bottom: 9px; }
+    .tour-mini-step { display: flex; gap: 5px; align-items: center; min-width: 0; padding: 4px 5px; border-radius: 7px; color: #756e79; background: #f0edf2; }
+    .tour-mini-step span { display: grid; flex: 0 0 17px; width: 17px; height: 17px; place-items: center; border-radius: 50%; color: var(--regalia); background: #fff; font-size: .48rem; font-weight: 900; }
+    .tour-mini-step em { overflow: hidden; font-size: .49rem; font-style: normal; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+    .tour-mini-step.done { color: var(--regalia); background: var(--teal-soft); }
+    .tour-mini-step.done span { color: #fff; background: var(--regalia); }
+    .tour-mini-step.current { color: var(--diploma); background: var(--orange-soft); }
+    .tour-mini-step.current span { color: var(--diploma); background: var(--clemson-orange); }
+    .tour-scene-head { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; margin-bottom: 9px; }
+    .tour-scene-head small, .tour-scene-head strong, .tour-scene-head p { display: block; }
+    .tour-scene-head small { color: var(--campus-brick); font-size: .5rem; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
+    .tour-scene-head strong { margin-top: 1px; font-size: .85rem; line-height: 1.08; }
+    .tour-scene-head p { grid-column: 1 / -1; margin: 1px 0 0; color: var(--muted); font-size: .52rem; }
+    .tour-ready { align-self: center; padding: 3px 7px; border-radius: 99px; color: var(--bowman-field); background: var(--green-soft); font-size: .5rem; font-weight: 900; }
+    .tour-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+    .tour-field { min-width: 0; padding: 6px 7px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+    .tour-field b { display: block; margin-bottom: 3px; color: var(--regalia); font-size: .47rem; text-transform: uppercase; }
+    .tour-value { display: block; overflow: hidden; padding: 4px 5px; border: 1px solid #d6cddd; border-radius: 5px; color: var(--ink); background: #fff; font-size: .52rem; text-overflow: ellipsis; white-space: nowrap; }
+    .tour-value.select::after { content: "⌄"; float: right; color: var(--muted); }
+    .tour-actions { display: flex; gap: 7px; align-items: center; justify-content: flex-end; margin-top: auto; padding-top: 7px; }
+    .tour-note { margin-right: auto; color: var(--muted); font-size: .48rem; }
+    .tour-btn { display: inline-flex; min-height: 22px; padding: 4px 8px; align-items: center; border: 1px solid #c9bdd6; border-radius: 6px; color: var(--regalia); background: var(--teal-soft); font-size: .5rem; font-weight: 850; }
+    .tour-btn.primary { color: var(--diploma); border-color: var(--clemson-orange); background: var(--clemson-orange); }
+    .tour-file-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    .tour-file-card { min-width: 0; padding: 6px 7px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+    .tour-file-card header { display: flex; gap: 5px; align-items: center; justify-content: space-between; }
+    .tour-file-card header b { overflow: hidden; font-size: .55rem; text-overflow: ellipsis; white-space: nowrap; }
+    .tour-file-card header span { color: var(--muted); font-size: .44rem; font-weight: 800; }
+    .tour-file-path { overflow: hidden; margin-top: 4px; padding: 3px 5px; border: 1px solid #d6cddd; border-radius: 5px; color: #5e5663; font: .46rem Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
+    .tour-file-status { margin-top: 4px; color: var(--bowman-field); font-size: .46rem; font-weight: 850; }
+    .tour-group-bar { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 5px; align-items: center; margin-top: 6px; padding: 5px 6px; border-left: 3px solid var(--clemson-orange); border-radius: 6px; background: var(--orange-soft); font-size: .48rem; font-weight: 800; }
+    .tour-xwalk-toolbar { display: grid; grid-template-columns: 1.4fr .8fr auto; gap: 5px; margin-bottom: 6px; }
+    .tour-search { overflow: hidden; padding: 4px 6px; border: 1px solid var(--line-strong); border-radius: 6px; color: var(--muted); background: #fff; font-size: .48rem; text-overflow: ellipsis; white-space: nowrap; }
+    .tour-table { overflow: hidden; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+    .tour-table-head, .tour-table-row { display: grid; grid-template-columns: .75fr 1fr 1fr 1.35fr .55fr; gap: 6px; align-items: center; padding: 5px 7px; }
+    .tour-table-head { color: #fff; background: var(--diploma); font-size: .46rem; font-weight: 850; }
+    .tour-table-row { border-top: 1px solid var(--line); font-size: .48rem; }
+    .tour-table-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tour-table-row span:last-child { color: var(--bowman-field); font-weight: 900; }
+    .tour-type { padding: 2px 4px; border-radius: 99px; color: var(--regalia); background: var(--teal-soft); font-weight: 850; }
+    .tour-workflow-list { display: grid; gap: 5px; }
+    .tour-workflow { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 7px; align-items: center; padding: 6px 7px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+    .tour-workflow.selected { border-color: #f4ad7a; background: var(--orange-soft); }
+    .tour-check { display: grid; width: 15px; height: 15px; place-items: center; border: 2px solid #b8afbf; border-radius: 4px; color: var(--diploma); font-size: .48rem; font-weight: 900; }
+    .tour-workflow.selected .tour-check { border-color: var(--clemson-orange); background: var(--clemson-orange); }
+    .tour-workflow b { display: block; font-size: .54rem; }
+    .tour-workflow p { margin: 1px 0 0; color: var(--muted); font-size: .45rem; }
+    .tour-function { color: var(--regalia); font: 700 .45rem Consolas, monospace; white-space: nowrap; }
+    .tour-workflow-options { grid-column: 2 / -1; display: flex; gap: 5px; color: var(--regalia); font-size: .45rem; font-weight: 800; }
+    .tour-workflow-options span { padding: 2px 5px; border-radius: 5px; background: #fff; }
+    .tour-review-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; margin-bottom: 6px; }
+    .tour-review-stat { padding: 5px 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+    .tour-review-stat span, .tour-review-stat b { display: block; }
+    .tour-review-stat span { color: var(--muted); font-size: .4rem; font-weight: 850; text-transform: uppercase; }
+    .tour-review-stat b { margin-top: 1px; font-size: .63rem; }
+    .tour-validation { margin-bottom: 6px; padding: 5px 7px; border-left: 3px solid var(--clemson-orange); border-radius: 6px; color: var(--diploma); background: var(--orange-soft); font-size: .48rem; font-weight: 800; }
+    .tour-download-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+    .tour-download-field { min-width: 0; }
+    .tour-download-field b { display: block; margin-bottom: 2px; color: var(--regalia); font-size: .43rem; text-transform: uppercase; }
+    .tour-download-field span { display: block; overflow: hidden; padding: 4px 5px; border: 1px solid var(--line-strong); border-radius: 5px; background: #fff; font: .44rem Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
+    .tour-demo-target { position: relative; }
+    .tour-field.tour-demo-target { z-index: 6; }
+    .tour-file-action { padding: 2px 5px; border: 1px solid #c9bdd6; border-radius: 5px; color: var(--regalia) !important; background: var(--teal-soft); }
+    .tour-mini-menu {
+      visibility: hidden;
+      position: absolute;
+      z-index: 12;
+      top: calc(100% - 3px);
+      right: 6px;
+      left: 6px;
+      display: grid;
+      overflow: hidden;
+      border: 1px solid #d6cddd;
+      border-radius: 6px;
+      opacity: 0;
+      background: #fff;
+      box-shadow: 0 9px 18px rgba(46, 26, 71, .18);
+      transform: translateY(-4px);
+    }
+    .tour-mini-menu span { padding: 3px 6px; color: var(--ink); font-size: .47rem; }
+    .tour-mini-menu span + span { border-top: 1px solid var(--line); }
+    .tour-mini-menu span:first-child { color: var(--diploma); background: var(--orange-soft); font-weight: 850; }
+    .tour-swap { display: grid; }
+    .tour-swap > span { grid-area: 1 / 1; }
+    .tour-swap-after { opacity: 0; }
+    .tour-status-pending { color: var(--muted) !important; }
+    .tour-validation-badge { min-width: 66px; color: var(--campus-brick); background: var(--orange-soft); text-align: center; }
+    .tour-demo-workflow .tour-check-mark { opacity: 0; }
+    .tour-demo-workflow .tour-workflow-options { opacity: 0; transform: translateY(-3px); }
+    .tour-selection-count { position: relative; display: grid; min-width: 50px; text-align: center; }
+    .tour-selection-count span { grid-area: 1 / 1; }
+    .tour-selection-count .tour-count-after { opacity: 0; }
+    .tour-download-toast { margin-right: auto; padding: 3px 7px; border-radius: 99px; color: var(--bowman-field); opacity: 0; background: var(--green-soft); font-size: .48rem; font-weight: 900; transform: translateY(4px); }
+    .tour-download-toast + .tour-note { margin-right: 0; }
+    .tour-cursor {
+      position: absolute;
+      z-index: 30;
+      top: 50%;
+      left: 50%;
+      width: 20px;
+      height: 27px;
+      opacity: 0;
+      pointer-events: none;
+      filter: drop-shadow(0 0 1px #fff) drop-shadow(0 2px 2px rgba(46, 26, 71, .45));
+      transform-origin: 2px 2px;
+    }
+    .tour-cursor::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--diploma);
+      clip-path: polygon(0 0, 0 82%, 25% 63%, 40% 100%, 55% 93%, 39% 59%, 70% 57%);
+    }
+    .tour-cursor::after {
+      content: "";
+      position: absolute;
+      top: -8px;
+      left: -8px;
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--clemson-orange);
+      border-radius: 50%;
+      opacity: 0;
+      transform: scale(.35);
+    }
+    .tour-download-target .tour-cursor {
+      top: -4px;
+      --tour-cursor-start-y: -28px;
+      --tour-cursor-exit-y: -20px;
+    }
+    .tutorial-shell.tutorial-started .tutorial-scene.active .tour-cursor {
+      animation: tour-cursor-click var(--tutorial-scene-duration) ease-in-out both paused;
+    }
+    .tutorial-shell.tutorial-started .tutorial-scene.active .tour-cursor::after {
+      animation: tour-click-ring var(--tutorial-scene-duration) ease-out both paused;
+    }
+    .tutorial-shell.tutorial-started .tutorial-scene.active .tour-demo-target {
+      animation: tour-target-focus var(--tutorial-scene-duration) ease both paused;
+    }
+    .tutorial-shell.tutorial-started .tutorial-scene.active .tour-mini-menu {
+      animation: tour-menu-open var(--tutorial-scene-duration) ease both paused;
+    }
+    .tutorial-shell.tutorial-started .tutorial-scene.active .tour-swap-before,
+    .tutorial-shell.tutorial-started .tutorial-scene.active .tour-count-before {
+      animation: tour-swap-out var(--tutorial-scene-duration) ease both paused;
+    }
+    .tutorial-shell.tutorial-started .tutorial-scene.active .tour-swap-after,
+    .tutorial-shell.tutorial-started .tutorial-scene.active .tour-count-after {
+      animation: tour-swap-in var(--tutorial-scene-duration) ease both paused;
+    }
+    .tutorial-shell.tutorial-started .tutorial-scene.active .tour-demo-workflow {
+      animation: tour-workflow-select var(--tutorial-scene-duration) ease both paused;
+    }
+    .tutorial-shell.tutorial-started .tutorial-scene.active .tour-demo-workflow .tour-check {
+      animation: tour-check-box var(--tutorial-scene-duration) ease both paused, tour-target-focus var(--tutorial-scene-duration) ease both paused;
+    }
+    .tutorial-shell.tutorial-started .tutorial-scene.active .tour-demo-workflow .tour-check-mark {
+      animation: tour-check-mark-in var(--tutorial-scene-duration) ease both paused;
+    }
+    .tutorial-shell.tutorial-started .tutorial-scene.active .tour-demo-workflow .tour-workflow-options {
+      animation: tour-options-in var(--tutorial-scene-duration) ease both paused;
+    }
+    .tutorial-shell.tutorial-started .tutorial-scene.active .tour-download-toast {
+      animation: tour-result-in var(--tutorial-scene-duration) ease both paused;
+    }
+    .tutorial-shell.tutorial-started .tutorial-scene.active .tour-validation-badge {
+      animation: tour-badge-ready var(--tutorial-scene-duration) ease both paused;
+    }
+    .tutorial-shell.tutorial-started.is-playing .tutorial-scene.active .tour-cursor,
+    .tutorial-shell.tutorial-started.is-playing .tutorial-scene.active .tour-cursor::after,
+    .tutorial-shell.tutorial-started.is-playing .tutorial-scene.active .tour-demo-target,
+    .tutorial-shell.tutorial-started.is-playing .tutorial-scene.active .tour-mini-menu,
+    .tutorial-shell.tutorial-started.is-playing .tutorial-scene.active .tour-swap-before,
+    .tutorial-shell.tutorial-started.is-playing .tutorial-scene.active .tour-swap-after,
+    .tutorial-shell.tutorial-started.is-playing .tutorial-scene.active .tour-count-before,
+    .tutorial-shell.tutorial-started.is-playing .tutorial-scene.active .tour-count-after,
+    .tutorial-shell.tutorial-started.is-playing .tutorial-scene.active .tour-demo-workflow,
+    .tutorial-shell.tutorial-started.is-playing .tutorial-scene.active .tour-demo-workflow .tour-check,
+    .tutorial-shell.tutorial-started.is-playing .tutorial-scene.active .tour-demo-workflow .tour-check-mark,
+    .tutorial-shell.tutorial-started.is-playing .tutorial-scene.active .tour-demo-workflow .tour-workflow-options,
+    .tutorial-shell.tutorial-started.is-playing .tutorial-scene.active .tour-download-toast,
+    .tutorial-shell.tutorial-started.is-playing .tutorial-scene.active .tour-validation-badge { animation-play-state: running; }
+    @keyframes tour-cursor-click {
+      0%, 8% { opacity: 0; transform: translate(48px, var(--tour-cursor-start-y, 34px)) rotate(-7deg) scale(.94); }
+      18% { opacity: 1; }
+      36%, 42% { opacity: 1; transform: translate(-2px, -2px) rotate(0) scale(1); }
+      46% { opacity: 1; transform: translate(-2px, -2px) rotate(0) scale(.76); }
+      51%, 63% { opacity: 1; transform: translate(-2px, -2px) rotate(0) scale(1); }
+      78%, 100% { opacity: 0; transform: translate(-17px, var(--tour-cursor-exit-y, -13px)) rotate(0) scale(1); }
+    }
+    @keyframes tour-click-ring {
+      0%, 42% { opacity: 0; transform: scale(.35); }
+      46% { opacity: .95; transform: scale(.45); }
+      58%, 100% { opacity: 0; transform: scale(1.8); }
+    }
+    @keyframes tour-target-focus {
+      0%, 38%, 68%, 100% { box-shadow: none; }
+      44%, 59% { box-shadow: 0 0 0 3px rgba(245, 102, 0, .34); }
+    }
+    @keyframes tour-menu-open {
+      0%, 39% { visibility: hidden; opacity: 0; transform: translateY(-4px); }
+      45%, 60% { visibility: visible; opacity: 1; transform: translateY(0); }
+      68%, 100% { visibility: hidden; opacity: 0; transform: translateY(-2px); }
+    }
+    @keyframes tour-swap-out { 0%, 46% { opacity: 1; } 53%, 100% { opacity: 0; } }
+    @keyframes tour-swap-in { 0%, 46% { opacity: 0; transform: translateY(3px); } 55%, 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes tour-workflow-select {
+      0%, 45% { border-color: var(--line); background: #fff; }
+      54%, 100% { border-color: #f4ad7a; background: var(--orange-soft); }
+    }
+    @keyframes tour-check-box {
+      0%, 44% { border-color: #b8afbf; background: transparent; }
+      52%, 100% { border-color: var(--clemson-orange); background: var(--clemson-orange); }
+    }
+    @keyframes tour-check-mark-in {
+      0%, 44% { opacity: 0; transform: scale(.6); }
+      52% { opacity: 1; transform: scale(1.18); }
+      60%, 100% { opacity: 1; transform: scale(1); }
+    }
+    @keyframes tour-options-in { 0%, 49% { opacity: 0; transform: translateY(-3px); } 59%, 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes tour-result-in { 0%, 48% { opacity: 0; transform: translateY(4px); } 58%, 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes tour-badge-ready {
+      0%, 46% { color: var(--campus-brick); background: var(--orange-soft); }
+      55%, 100% { color: var(--bowman-field); background: var(--green-soft); }
+    }
+    .tutorial-caption { margin-top: 9px; padding: 7px 10px; border-radius: 8px; color: #fff; background: rgba(255,255,255,.10); font-size: .68rem; font-weight: 700; text-align: center; }
+    .tutorial-controls { display: grid; grid-template-columns: auto auto 1fr auto auto; gap: 9px; align-items: center; margin-top: 14px; }
+    .tutorial-control { min-height: 36px; padding: 6px 10px; border: 1px solid rgba(255,255,255,.24); border-radius: 9px; color: #fff; background: rgba(255,255,255,.08); font-weight: 800; }
+    .tutorial-control:hover { background: rgba(255,255,255,.15); }
+    .tutorial-control:disabled { cursor: not-allowed; opacity: .42; }
+    .tutorial-control.play { min-width: 104px; color: var(--diploma); border-color: var(--clemson-orange); background: var(--clemson-orange); }
+    .tutorial-progress { overflow: hidden; height: 6px; border-radius: 99px; background: rgba(255,255,255,.17); }
+    .tutorial-progress span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--clemson-orange); transition: width .08s linear; }
+    .tutorial-time { color: rgba(255,255,255,.73); font-size: .68rem; font-variant-numeric: tabular-nums; }
+    @keyframes tutorial-scene-in { from { opacity: 0; transform: translateX(12px); } }
+
+    .utility-bar { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+    .utility-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .save-status { display: inline-flex; gap: 7px; align-items: center; color: var(--muted); font-size: .82rem; }
+    .save-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px var(--green-soft); }
+
+    .stepper {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      margin-bottom: 18px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.88);
+      box-shadow: 0 5px 18px rgba(46,26,71,.05);
+    }
+    .step-tab { display: flex; gap: 10px; align-items: center; min-width: 0; padding: 11px 12px; border: 0; border-radius: 13px; color: var(--muted); background: transparent; text-align: left; }
+    .step-tab:hover { color: var(--ink); background: var(--teal-soft); }
+    .step-tab.active { color: var(--ink); background: var(--orange-soft); }
+    .step-tab.done .step-number { color: #fff; background: var(--regalia); }
+    .step-number { display: grid; flex: 0 0 29px; width: 29px; height: 29px; place-items: center; border-radius: 50%; color: var(--ink); background: #e8edef; font-size: .78rem; font-weight: 850; }
+    .step-tab.active .step-number { color: var(--diploma); background: var(--clemson-orange); }
+    .step-label { min-width: 0; }
+    .step-label strong, .step-label span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .step-label strong { font-size: .87rem; }
+    .step-label span { font-size: .7rem; font-weight: 600; }
+
+    .step-panel { display: none; }
+    .step-panel.active { display: block; }
+    .panel-card { padding: clamp(20px, 3.5vw, 34px); border: 1px solid var(--line); border-top: 3px solid var(--regalia); border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); }
+    .panel-heading { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; margin-bottom: 25px; }
+    .panel-heading h2 { margin: 0; font-size: clamp(1.75rem, 3vw, 2.55rem); line-height: 1.1; letter-spacing: -.035em; }
+    .panel-heading h2:focus-visible { outline: 3px solid rgba(245,102,0,.42); outline-offset: 5px; border-radius: 4px; }
+    .panel-heading p { max-width: 780px; margin: 7px 0 0; color: var(--muted); }
+    .step-kicker { color: var(--campus-brick); font-size: .76rem; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+    .section { margin-top: 28px; padding-top: 25px; border-top: 1px solid var(--line); }
+    .section:first-of-type { margin-top: 0; padding-top: 0; border-top: 0; }
+    .section-head { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 15px; }
+    .section-head h3 { margin: 0; font-size: 1.15rem; }
+    .section-head p { max-width: 720px; margin: 3px 0 0; color: var(--muted); font-size: .87rem; }
+
+    .grid { display: grid; gap: 15px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .span-2 { grid-column: span 2; }
+    .span-all { grid-column: 1 / -1; }
+    .field { min-width: 0; }
+    .field label, .field-label { display: block; margin-bottom: 6px; color: var(--ink-2); font-size: .79rem; font-weight: 800; }
+    .required::after { content: " *"; color: var(--orange); }
+    .field input, .field select, .field textarea {
+      width: 100%;
+      min-height: 44px;
+      padding: 9px 11px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+      background: #fff;
+      outline: none;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .field textarea { min-height: 94px; resize: vertical; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--clemson-orange); box-shadow: var(--focus); }
+    .field input.invalid, .field select.invalid, .field textarea.invalid { border-color: var(--red); background: #fffafa; }
+    .help { display: block; margin-top: 5px; color: var(--muted); font-size: .73rem; line-height: 1.35; }
+    .path-field { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .path-field .file-trigger { white-space: nowrap; }
+
+    .btn { display: inline-flex; gap: 7px; align-items: center; justify-content: center; min-height: 42px; padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 10px; color: var(--ink); background: #fff; font-weight: 760; text-decoration: none; }
+    .btn:hover { border-color: var(--clemson-orange); color: var(--campus-brick); }
+    .btn:focus-visible { outline: none; box-shadow: var(--focus); }
+    .btn.primary { color: var(--diploma); border-color: var(--clemson-orange); background: var(--clemson-orange); }
+    .btn.primary:hover { color: #fff; border-color: var(--campus-brick); background: var(--campus-brick); }
+    .btn.secondary { color: var(--regalia); border-color: #c9bdd6; background: var(--teal-soft); }
+    .btn.danger { color: var(--red); border-color: #efc6c6; background: #fff; }
+    .btn.small { min-height: 34px; padding: 5px 10px; font-size: .79rem; }
+    .btn.icon { width: 36px; min-height: 36px; padding: 0; }
+    .btn:disabled { cursor: not-allowed; opacity: .48; }
+    .file-trigger input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+    .callout { padding: 14px 17px; border-left: 5px solid var(--clemson-orange); border-radius: 11px; background: var(--orange-soft); font-size: .87rem; }
+    .callout strong { color: var(--ink); }
+    .callout.warning { border-left-color: var(--gold); background: var(--gold-soft); }
+    .callout.error { border-left-color: var(--red); background: var(--red-soft); }
+    .callout.info { border-left-color: var(--blue); background: var(--blue-soft); }
+    .inline-note { color: var(--muted); font-size: .8rem; }
+    .status-box { min-height: 40px; margin-top: 8px; padding: 9px 11px; border: 1px dashed var(--line-strong); border-radius: 9px; color: var(--muted); background: #fbfcfc; font-size: .78rem; }
+    .status-box.good { color: #1f6b4b; border-color: #9dccb3; background: var(--green-soft); }
+    .status-box.bad { color: var(--red); border-color: #e5b4b4; background: var(--red-soft); }
+
+    .subcard { padding: 18px; border: 1px solid var(--line); border-radius: 15px; background: #fbfcfc; }
+    .subcard h4 { margin: 0 0 4px; font-size: 1rem; }
+    .subcard > p { margin: 0 0 14px; color: var(--muted); font-size: .8rem; }
+    .model-description-list { display: grid; gap: 10px; }
+    .model-description-row { display: grid; grid-template-columns: minmax(180px, .7fr) minmax(280px, 1.6fr) auto; gap: 8px; align-items: start; }
+    .model-description-row input, .model-description-row textarea { width: 100%; min-height: 42px; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 9px; }
+    .model-description-row textarea { min-height: 70px; resize: vertical; }
+
+    .file-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .file-card { position: relative; padding: 19px; border: 1px solid var(--line); border-radius: 15px; background: #fbfcfc; }
+    .file-card.optional::before { content: "Optional"; position: absolute; top: 16px; right: 16px; padding: 3px 8px; border-radius: 99px; color: var(--muted); background: #eaf0f2; font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+    .file-card h4 { margin: 0 0 4px; padding-right: 65px; }
+    .file-card > p { margin: 0 0 13px; color: var(--muted); font-size: .79rem; }
+    .file-card .field + .field { margin-top: 12px; }
+
+    .group-toolbar { display: flex; flex-wrap: wrap; gap: 9px; align-items: end; margin-bottom: 13px; }
+    .group-toolbar .field { flex: 1 1 180px; }
+    .mini-table-wrap { overflow: auto; max-height: 330px; border: 1px solid var(--line); border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    th { position: sticky; top: 0; z-index: 2; padding: 9px 11px; color: #fff; background: var(--diploma); text-align: left; white-space: nowrap; }
+    td { padding: 9px 11px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: var(--orange-soft); }
+    .empty-row td { padding: 28px; color: var(--muted); text-align: center; }
+
+    .crosswalk-shell { margin: 0 calc(clamp(20px, 3.5vw, 34px) * -1) calc(clamp(20px, 3.5vw, 34px) * -1); }
+    .crosswalk-toolbar { display: grid; grid-template-columns: minmax(180px, 1fr) 190px auto; gap: 9px; align-items: end; padding: 16px clamp(20px, 3.5vw, 34px); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #f7faf9; }
+    .crosswalk-actions { display: flex; flex-wrap: wrap; gap: 7px; justify-content: flex-end; }
+    .crosswalk-table-wrap { overflow: auto; max-height: 640px; }
+    .crosswalk-table { min-width: 1120px; }
+    .crosswalk-table th:first-child, .crosswalk-table td:first-child { position: sticky; left: 0; z-index: 1; background: inherit; }
+    .crosswalk-table th:first-child { z-index: 3; background: var(--diploma); }
+    .crosswalk-table tbody tr:nth-child(even) { background: #fbfcfc; }
+    .crosswalk-table td:nth-child(1) { width: 48px; text-align: center; }
+    .crosswalk-table td:nth-child(2) { width: 118px; }
+    .crosswalk-table td:nth-child(3) { min-width: 180px; }
+    .crosswalk-table td:nth-child(4) { min-width: 155px; }
+    .crosswalk-table td:nth-child(5), .crosswalk-table td:nth-child(6) { min-width: 160px; }
+    .crosswalk-table td:nth-child(7) { min-width: 230px; white-space: normal; }
+    .crosswalk-table td:last-child { white-space: nowrap; }
+    .row-index { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .type-badge, .state-badge { display: inline-flex; padding: 4px 8px; border-radius: 999px; font-size: .7rem; font-weight: 800; white-space: nowrap; }
+    .type-data_source { color: #315c8e; background: #e8f0f8; }
+    .type-outcome { color: #8d492e; background: #fbece5; }
+    .type-training { color: #705493; background: #f1eafa; }
+    .type-aux_variable { color: #176958; background: #e3f4ee; }
+    .type-general_term { color: #665b28; background: #f8f1cf; }
+    .state-valid { color: #1d6c49; background: var(--green-soft); }
+    .state-invalid { color: var(--red); background: var(--red-soft); }
+    .cell-muted { color: var(--muted); }
+    .definition-cell { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+
+    .workflow-list { display: grid; gap: 13px; }
+    .workflow-card { overflow: hidden; border: 1px solid var(--line); border-radius: 15px; background: #fff; }
+    .workflow-card.enabled { border-color: #f1a56f; box-shadow: 0 7px 18px rgba(245,102,0,.08); }
+    .workflow-head { display: grid; grid-template-columns: auto 1fr auto; gap: 13px; align-items: center; padding: 16px 18px; }
+    .workflow-head input { width: 20px; height: 20px; accent-color: var(--clemson-orange); }
+    .workflow-title strong, .workflow-title span { display: block; }
+    .workflow-title strong { font-size: 1rem; }
+    .workflow-title span { margin-top: 2px; color: var(--muted); font-size: .78rem; }
+    .function-name { padding: 4px 8px; border-radius: 7px; color: var(--teal-dark); background: var(--teal-soft); font: 700 .72rem "Cascadia Code", Consolas, monospace; white-space: nowrap; }
+    .workflow-options { display: none; padding: 17px 18px 19px 51px; border-top: 1px solid var(--line); background: #f9fbfb; }
+    .workflow-card.enabled .workflow-options { display: block; }
+    .check-line { display: inline-flex; gap: 8px; align-items: flex-start; color: var(--ink); font-size: .84rem; font-weight: 650; }
+    .check-line input { margin-top: 3px; accent-color: var(--clemson-orange); }
+    .check-grid { display: flex; flex-wrap: wrap; gap: 11px 20px; margin-top: 9px; }
+
+    details.advanced { margin-top: 18px; border: 1px solid var(--line); border-radius: 13px; background: #fbfcfc; }
+    details.advanced summary { cursor: pointer; padding: 14px 16px; font-weight: 800; }
+    details.advanced[open] summary { border-bottom: 1px solid var(--line); }
+    .advanced-body { padding: 17px; }
+    .month-grid { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 7px; }
+    .month-pill { display: flex; gap: 6px; align-items: center; padding: 7px 8px; border: 1px solid var(--line); border-radius: 9px; background: #fff; font-size: .78rem; }
+    .month-pill input { accent-color: var(--clemson-orange); }
+
+    .review-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 17px; }
+    .review-stat { padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: #fbfcfc; }
+    .review-stat span, .review-stat strong { display: block; }
+    .review-stat span { color: var(--muted); font-size: .72rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+    .review-stat strong { margin-top: 3px; font-size: 1.25rem; }
+    .validation-summary { margin: 15px 0; }
+    .validation-summary ul { margin: 8px 0 0; padding-left: 21px; }
+    .preview-tabs { display: flex; gap: 7px; margin-top: 18px; border-bottom: 1px solid var(--line); }
+    .preview-tab { padding: 9px 12px; border: 0; border-bottom: 3px solid transparent; color: var(--muted); background: transparent; font-weight: 800; }
+    .preview-tab.active { color: var(--regalia); border-bottom-color: var(--clemson-orange); }
+    .code-preview { display: none; overflow: auto; max-height: 430px; margin: 0; padding: 17px; border-radius: 0 0 12px 12px; color: #f7f1fb; background: var(--diploma); font: .78rem/1.55 "Cascadia Code", Consolas, monospace; white-space: pre; }
+    .code-preview.active { display: block; }
+    .download-panel { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: center; margin-top: 19px; padding: 18px; border: 1px solid #f1a56f; border-radius: 14px; background: var(--orange-soft); }
+    .download-panel h3 { margin: 0; }
+    .download-panel p { margin: 3px 0 0; color: var(--muted); font-size: .83rem; }
+    .download-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .run-steps { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 11px; margin-top: 17px; }
+    .run-step { padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #fff; font-size: .82rem; }
+    .run-step b { display: grid; width: 25px; height: 25px; margin-bottom: 8px; place-items: center; border-radius: 50%; color: var(--diploma); background: var(--clemson-orange); }
+
+    .panel-footer { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-top: 18px; }
+    .footer-right { display: flex; gap: 8px; }
+
+    dialog { width: min(850px, calc(100% - 28px)); max-height: calc(100vh - 30px); padding: 0; border: 0; border-radius: 18px; color: var(--ink); background: #fff; box-shadow: 0 28px 85px rgba(7,35,51,.32); }
+    dialog::backdrop { background: rgba(12,33,48,.58); backdrop-filter: blur(2px); }
+    .dialog-head { display: flex; justify-content: space-between; gap: 15px; align-items: center; padding: 18px 21px; border-top: 4px solid var(--clemson-orange); color: #fff; background: linear-gradient(120deg, var(--diploma), var(--regalia)); }
+    .dialog-head h3 { margin: 0; }
+    .dialog-close { width: 36px; height: 36px; border: 1px solid rgba(255,255,255,.3); border-radius: 9px; color: #fff; background: rgba(255,255,255,.08); font-size: 1.25rem; }
+    .dialog-body { overflow: auto; max-height: calc(100vh - 165px); padding: 21px; }
+    .dialog-footer { display: flex; justify-content: space-between; gap: 10px; padding: 14px 21px; border-top: 1px solid var(--line); background: #f8faf9; }
+
+    .toast-region { position: fixed; right: 18px; bottom: 18px; z-index: 1100; display: grid; width: min(390px, calc(100% - 36px)); gap: 8px; }
+    .toast { padding: 12px 14px; border: 1px solid var(--line); border-left: 5px solid var(--clemson-orange); border-radius: 11px; background: #fff; box-shadow: 0 12px 32px rgba(46,26,71,.18); font-size: .82rem; animation: toast-in .2s ease; }
+    .toast.error { border-left-color: var(--red); }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(7px); } }
+
+    @media (max-width: 980px) {
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero-mark { display: none; }
+      .tutorial-body { grid-template-columns: 1fr; }
+      .tutorial-copy { display: block; }
+      .tutorial-chapters { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+      .tutorial-chapter { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+      .tutorial-copy-actions { margin-top: 14px; }
+      .step-label span { display: none; }
+      .grid.four { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .review-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .crosswalk-toolbar { grid-template-columns: 1fr 170px; }
+      .crosswalk-actions { grid-column: 1 / -1; justify-content: flex-start; }
+    }
+    @media (max-width: 760px) {
+      .app-shell { width: min(100% - 18px, 1260px); }
+      .tutorial-header { align-items: flex-start; }
+      .tutorial-header-main { align-items: flex-start; }
+      .tutorial-meta { display: none; }
+      .tutorial-chapters { display: none; }
+      .tutorial-screen { min-height: 380px; aspect-ratio: auto; }
+      .tutorial-controls { grid-template-columns: auto 1fr auto; }
+      .tutorial-progress { grid-column: 1 / -1; grid-row: 2; }
+      #tutorialPrev { grid-column: 1; grid-row: 1; }
+      #tutorialPlay { grid-column: 2; grid-row: 1; }
+      #tutorialNext { grid-column: 3; grid-row: 1; }
+      .tutorial-time { display: none; }
+      .stepper { grid-template-columns: repeat(5, 1fr); gap: 3px; }
+      .step-tab { justify-content: center; padding: 9px 5px; }
+      .step-label { display: none; }
+      .grid.two, .grid.three, .file-card-grid { grid-template-columns: 1fr; }
+      .span-2 { grid-column: auto; }
+      .model-description-row { grid-template-columns: 1fr auto; }
+      .model-description-row textarea { grid-column: 1 / -1; grid-row: 2; }
+      .month-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+      .workflow-options { padding-left: 18px; }
+      .function-name { display: none; }
+      .download-panel { grid-template-columns: 1fr; }
+      .download-actions { justify-content: flex-start; }
+      .run-steps { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 520px) {
+      .hero { padding-top: 31px; }
+      h1 { font-size: 2.2rem; }
+      .hero-actions .btn { width: 100%; }
+      .tutorial-header { gap: 10px; padding: 15px; }
+      .tutorial-icon { display: none; }
+      .tutorial-toggle { padding: 6px 8px; }
+      .tutorial-copy, .tutorial-player { padding: 15px; }
+      .tour-mini-step { justify-content: center; padding: 3px; }
+      .tour-mini-step em { display: none; }
+      .tour-scene-head { margin-bottom: 6px; }
+      .tour-scene-head p { display: none; }
+      .tour-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+      .tour-field, .tour-file-card { padding: 4px 5px; }
+      .tour-file-grid, .tour-workflow-list { gap: 4px; }
+      .tour-group-bar { grid-template-columns: 1fr 1fr 1fr; }
+      .tour-group-bar .tour-btn { display: none; }
+      .tour-xwalk-toolbar { grid-template-columns: 1fr auto; }
+      .tour-xwalk-toolbar .tour-search:nth-child(2) { display: none; }
+      .tour-table-head, .tour-table-row { grid-template-columns: .75fr 1fr 1.35fr; }
+      .tour-table-head span:nth-child(2), .tour-table-row span:nth-child(2),
+      .tour-table-head span:nth-child(5), .tour-table-row span:nth-child(5) { display: none; }
+      .tour-workflow { grid-template-columns: 18px minmax(0, 1fr); padding: 5px 6px; }
+      .tour-function { display: none; }
+      .tour-workflow-options { grid-column: 2; }
+      .tour-review-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .tour-note { display: none; }
+      .grid.four, .review-grid { grid-template-columns: 1fr; }
+      .crosswalk-toolbar { grid-template-columns: 1fr; }
+      .crosswalk-actions { grid-column: auto; }
+      .panel-footer { align-items: stretch; flex-direction: column; }
+      .footer-right { justify-content: flex-end; }
+      .path-field { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; transition-duration: .001ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to setup form</a>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <div>
+        <div class="eyebrow">Forecast evaluation · guided setup</div>
+        <h1>From files to report,<br>without writing code.</h1>
+        <p>Build a compatible options file, complete the variables crosswalk, and choose package outputs in one polished, offline workspace.</p>
+        <div class="hero-actions">
+          <button class="btn hero-primary" id="watchTutorial" type="button">▶ Watch the quick tour</button>
+          <button class="btn hero-secondary" id="jumpToSetup" type="button">Start building →</button>
+        </div>
+        <div class="hero-badges" aria-label="Key features">
+          <span class="hero-badge">Works offline</span>
+          <span class="hero-badge">Private by design</span>
+          <span class="hero-badge">Package-compatible</span>
+          <span class="hero-badge">One downloadable bundle</span>
+        </div>
+      </div>
+      <div class="hero-mark" aria-hidden="true">
+        <svg viewBox="0 0 80 80" fill="none">
+          <path d="M10 57L25 41L37 48L54 25L70 35" stroke="#F56600" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="25" cy="41" r="5" fill="#FFFFFF"/>
+          <circle cx="54" cy="25" r="5" fill="#F56600"/>
+          <path d="M11 68H69" stroke="white" stroke-opacity=".7" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="app-shell">
+    <section class="tutorial-shell" id="tutorial" aria-labelledby="tutorialTitle">
+      <div class="tutorial-header">
+        <div class="tutorial-header-main">
+          <div class="tutorial-icon" aria-hidden="true">▶</div>
+          <div class="tutorial-heading">
+            <div class="tutorial-kicker">Quick-start tutorial</div>
+            <h2 id="tutorialTitle">See the entire workflow before you begin</h2>
+            <p>A captioned, five-part walkthrough built into this file.</p>
+            <div class="tutorial-meta" aria-label="Tutorial details"><span>About 30 seconds</span><span>Animated clicks</span><span>Replay anytime</span></div>
+          </div>
+        </div>
+        <button class="btn small tutorial-toggle" id="tutorialToggle" type="button" aria-expanded="true" aria-controls="tutorialBody">Hide guide ↑</button>
+      </div>
+
+      <div class="tutorial-body" id="tutorialBody">
+        <div class="tutorial-copy">
+          <div class="tutorial-scene-number" id="tutorialSceneNumber">Chapter 1 of 5</div>
+          <h3 id="tutorialSceneTitle">Describe the report</h3>
+          <p id="tutorialSceneDescription">Add the report owner, forecasting context, and plain-language model information.</p>
+
+          <div class="tutorial-chapters" role="group" aria-label="Tutorial chapters">
+            <button class="tutorial-chapter active" type="button" data-tutorial-target="0"><span>1</span><span>Report details</span></button>
+            <button class="tutorial-chapter" type="button" data-tutorial-target="1"><span>2</span><span>Input files</span></button>
+            <button class="tutorial-chapter" type="button" data-tutorial-target="2"><span>3</span><span>Crosswalk</span></button>
+            <button class="tutorial-chapter" type="button" data-tutorial-target="3"><span>4</span><span>Outputs</span></button>
+            <button class="tutorial-chapter" type="button" data-tutorial-target="4"><span>5</span><span>Download</span></button>
+          </div>
+
+          <div class="tutorial-copy-actions">
+            <button class="btn primary" id="tutorialBegin" type="button">▶ Play guided tour</button>
+            <button class="btn" id="tutorialSkip" type="button">Go to setup</button>
+          </div>
+        </div>
+
+        <div class="tutorial-player" role="region" aria-label="Captioned tutorial video">
+          <div class="tutorial-screen">
+            <div class="tutorial-window-bar" aria-hidden="true"><i></i><i></i><i></i><span>forecastEvalReport setup</span></div>
+            <div class="tutorial-scenes">
+              <div class="tutorial-scene active" data-tutorial-scene="0">
+                <div class="tour-mini-stepper" aria-hidden="true">
+                  <div class="tour-mini-step current"><span>1</span><em>Report</em></div><div class="tour-mini-step"><span>2</span><em>Files</em></div><div class="tour-mini-step"><span>3</span><em>Crosswalk</em></div><div class="tour-mini-step"><span>4</span><em>Outputs</em></div><div class="tour-mini-step"><span>5</span><em>Download</em></div>
+                </div>
+                <div class="tour-scene-head"><div><small>Step 1 of 5</small><strong>Describe the report</strong></div><span class="tour-ready">Autosaved</span><p>Contact information and model context become the existing report options.</p></div>
+                <div class="tour-form-grid">
+                  <div class="tour-field"><b>Name(s) *</b><span class="tour-value">Forecast Team</span></div>
+                  <div class="tour-field"><b>Email address(es) *</b><span class="tour-value">team@agency.gov</span></div>
+                  <div class="tour-field tour-demo-target"><b>Disease *</b><span class="tour-value select">influenza</span><span class="tour-mini-menu" aria-hidden="true"><span>influenza</span><span>COVID-19</span><span>RSV</span></span><span class="tour-cursor" aria-hidden="true"></span></div>
+                  <div class="tour-field"><b>Forecasting context *</b><span class="tour-value select">Internal</span></div>
+                  <div class="tour-field"><b>Model name or type *</b><span class="tour-value">ARIMA</span></div>
+                  <div class="tour-field"><b>Primary working directory *</b><span class="tour-value">C:/Forecasts/</span></div>
+                </div>
+                <div class="tour-actions"><span class="tour-note">Fields marked * are required.</span><span class="tour-btn primary">Continue to files →</span></div>
+              </div>
+
+              <div class="tutorial-scene" data-tutorial-scene="1">
+                <div class="tour-mini-stepper" aria-hidden="true">
+                  <div class="tour-mini-step done"><span>✓</span><em>Report</em></div><div class="tour-mini-step current"><span>2</span><em>Files</em></div><div class="tour-mini-step"><span>3</span><em>Crosswalk</em></div><div class="tour-mini-step"><span>4</span><em>Outputs</em></div><div class="tour-mini-step"><span>5</span><em>Download</em></div>
+                </div>
+                <div class="tour-scene-head"><div><small>Step 2 of 5</small><strong>Connect the input files</strong></div><span class="tour-ready">4 groups found</span><p>Paste the paths R will use; Browse inspects each CSV locally.</p></div>
+                <div class="tour-file-grid">
+                  <div class="tour-file-card"><header><b>Implementation model</b><span class="tour-file-action tour-demo-target">Browse CSV<span class="tour-cursor" aria-hidden="true"></span></span></header><div class="tour-file-path">C:/Forecasts/implementation.csv</div><div class="tour-file-status tour-swap"><span class="tour-swap-before tour-status-pending">No file inspected</span><span class="tour-swap-after">✓ 12 columns · 4 groups</span></div></div>
+                  <div class="tour-file-card"><header><b>Evaluation model</b><span>Optional</span></header><div class="tour-file-path">C:/Forecasts/evaluation.csv</div><div class="tour-file-status">✓ Testing periods found</div></div>
+                  <div class="tour-file-card"><header><b>Outcome / observed data</b><span>Required</span></header><div class="tour-file-path">C:/Data/admissions.csv</div><div class="tour-file-status">✓ admissions selected</div></div>
+                  <div class="tour-file-card"><header><b>Training data</b><span>Optional</span></header><div class="tour-file-path">C:/Data/training.csv</div><div class="tour-file-status">✓ visits selected</div></div>
+                </div>
+                <div class="tour-group-bar"><span>state</span><span>SC</span><span>influenza</span><span class="tour-btn">+ Add group</span></div>
+              </div>
+
+              <div class="tutorial-scene" data-tutorial-scene="2">
+                <div class="tour-mini-stepper" aria-hidden="true">
+                  <div class="tour-mini-step done"><span>✓</span><em>Report</em></div><div class="tour-mini-step done"><span>✓</span><em>Files</em></div><div class="tour-mini-step current"><span>3</span><em>Crosswalk</em></div><div class="tour-mini-step"><span>4</span><em>Outputs</em></div><div class="tour-mini-step"><span>5</span><em>Download</em></div>
+                </div>
+                <div class="tour-scene-head"><div><small>Step 3 of 5</small><strong>Finish the variables crosswalk</strong></div><span class="tour-ready tour-swap tour-validation-badge"><span class="tour-swap-before">Needs check</span><span class="tour-swap-after">13 rows ready</span></span><p>Search, filter, edit, or add rows using the package's exact schema.</p></div>
+                <div class="tour-xwalk-toolbar"><span class="tour-search">Search location, variable, or definition</span><span class="tour-search">All types ⌄</span><span class="tour-btn tour-demo-target">Validate<span class="tour-cursor" aria-hidden="true"></span></span></div>
+                <div class="tour-table">
+                  <div class="tour-table-head"><span>Type</span><span>Group</span><span>Variable</span><span>Report name</span><span>Status</span></div>
+                  <div class="tour-table-row"><span class="tour-type">source</span><span>state · SC</span><span>ARIMA</span><span>Model forecasts</span><span class="tour-swap"><span class="tour-swap-before tour-status-pending">Check</span><span class="tour-swap-after">Ready</span></span></div>
+                  <div class="tour-table-row"><span class="tour-type">outcome</span><span>state · SC</span><span>admissions</span><span>Weekly admissions</span><span class="tour-swap"><span class="tour-swap-before tour-status-pending">Check</span><span class="tour-swap-after">Ready</span></span></div>
+                  <div class="tour-table-row"><span class="tour-type">training</span><span>state · SC</span><span>visits</span><span>Training visits</span><span class="tour-swap"><span class="tour-swap-before tour-status-pending">Check</span><span class="tour-swap-after">Ready</span></span></div>
+                  <div class="tour-table-row"><span class="tour-type">term</span><span>all groups</span><span>WIS</span><span>Weighted interval score</span><span class="tour-swap"><span class="tour-swap-before tour-status-pending">Check</span><span class="tour-swap-after">Ready</span></span></div>
+                </div>
+                <div class="tour-actions"><span class="tour-btn">+ Source</span><span class="tour-btn">+ Auxiliary variable</span><span class="tour-btn primary">Choose outputs →</span></div>
+              </div>
+
+              <div class="tutorial-scene" data-tutorial-scene="3">
+                <div class="tour-mini-stepper" aria-hidden="true">
+                  <div class="tour-mini-step done"><span>✓</span><em>Report</em></div><div class="tour-mini-step done"><span>✓</span><em>Files</em></div><div class="tour-mini-step done"><span>✓</span><em>Crosswalk</em></div><div class="tour-mini-step current"><span>4</span><em>Outputs</em></div><div class="tour-mini-step"><span>5</span><em>Download</em></div>
+                </div>
+                <div class="tour-scene-head"><div><small>Step 4 of 5</small><strong>Choose what the package should create</strong></div><span class="tour-ready tour-selection-count"><span class="tour-count-before">1 selected</span><span class="tour-count-after">2 selected</span></span><p>Turn on only the user-facing functions needed for this run.</p></div>
+                <div class="tour-workflow-list">
+                  <div class="tour-workflow selected"><span class="tour-check">✓</span><div><b>Interactive forecast evaluation report</b><p>One self-contained report with all available sections.</p></div><span class="tour-function">generate_report()</span><div class="tour-workflow-options"><span>reports/</span><span>Combined</span><span>Quiet</span></div></div>
+                  <div class="tour-workflow"><span class="tour-check"></span><div><b>Standalone forecast plot</b><p>Interactive HTML or static image.</p></div><span class="tour-function">save_forecast_plot()</span></div>
+                  <div class="tour-workflow"><span class="tour-check"></span><div><b>Forecast consistency plot</b><p>Compare recent forecast vintages.</p></div><span class="tour-function">save_consistency_plot()</span></div>
+                  <div class="tour-workflow tour-demo-workflow"><span class="tour-check tour-demo-target"><span class="tour-check-mark">✓</span><span class="tour-cursor" aria-hidden="true"></span></span><div><b>Testing-period evaluation files</b><p>Tidy metrics and an AI-ready summary.</p></div><span class="tour-function">export_testing_evaluation()</span><div class="tour-workflow-options"><span>CSV</span><span>AI-ready Markdown</span></div></div>
+                  <div class="tour-workflow"><span class="tour-check"></span><div><b>Multi-model comparison dashboard</b><p>Compare completed model setups.</p></div><span class="tour-function">generate_comparison_dashboard()</span></div>
+                </div>
+              </div>
+
+              <div class="tutorial-scene" data-tutorial-scene="4">
+                <div class="tour-mini-stepper" aria-hidden="true">
+                  <div class="tour-mini-step done"><span>✓</span><em>Report</em></div><div class="tour-mini-step done"><span>✓</span><em>Files</em></div><div class="tour-mini-step done"><span>✓</span><em>Crosswalk</em></div><div class="tour-mini-step done"><span>✓</span><em>Outputs</em></div><div class="tour-mini-step current"><span>5</span><em>Download</em></div>
+                </div>
+                <div class="tour-scene-head"><div><small>Step 5 of 5</small><strong>Review and download</strong></div><span class="tour-ready">All checks passed</span><p>Confirm the files, preview their contents, and download one portable bundle.</p></div>
+                <div class="tour-review-grid">
+                  <div class="tour-review-stat"><span>Options fields</span><b>11/11</b></div><div class="tour-review-stat"><span>Model groups</span><b>4</b></div><div class="tour-review-stat"><span>Crosswalk rows</span><b>13</b></div><div class="tour-review-stat"><span>Functions</span><b>2</b></div>
+                </div>
+                <div class="tour-validation">✓ Everything is ready. Browser checks match the package schemas.</div>
+                <div class="tour-download-fields">
+                  <div class="tour-download-field"><b>Options file</b><span>report_options.R</span></div><div class="tour-download-field"><b>Crosswalk file</b><span>variables_crosswalk.csv</span></div><div class="tour-download-field"><b>Workflow runner</b><span>run_forecast_report.R</span></div>
+                </div>
+                <div class="tour-actions"><span class="tour-download-toast" aria-hidden="true">✓ Bundle ready</span><span class="tour-note">Includes options, crosswalk, runner, and README.</span><span class="tour-btn primary tour-demo-target tour-download-target">Download setup bundle<span class="tour-cursor" aria-hidden="true"></span></span></div>
+              </div>
+            </div>
+          </div>
+          <div class="tutorial-caption" id="tutorialCaption">Enter the report details once; the assistant places them into the existing options structure.</div>
+
+          <div class="tutorial-controls">
+            <button class="tutorial-control" id="tutorialPrev" type="button" aria-label="Previous tutorial chapter">←</button>
+            <button class="tutorial-control play" id="tutorialPlay" type="button" aria-pressed="false">▶ Play</button>
+            <div class="tutorial-progress" id="tutorialProgress" role="progressbar" aria-label="Tutorial progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+            <span class="tutorial-time" id="tutorialTime">00:00 / 00:30</span>
+            <button class="tutorial-control" id="tutorialNext" type="button" aria-label="Next tutorial chapter">→</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="utility-bar" id="setupWorkspace">
+      <div class="save-status" id="saveStatus" role="status">
+        <span class="save-dot" aria-hidden="true"></span>
+        <span>Draft saved only in this browser</span>
+      </div>
+      <div class="utility-actions">
+        <label class="btn small file-trigger">Load draft JSON<input id="draftImport" type="file" accept="application/json,.json"></label>
+        <label class="btn small file-trigger">Import options .R<input id="optionsImport" type="file" accept=".R,.r,text/plain"></label>
+        <label class="btn small file-trigger">Import crosswalk<input id="crosswalkImport" type="file" accept=".csv,text/csv"></label>
+        <button class="btn small" id="saveDraft" type="button">Save draft</button>
+        <button class="btn small danger" id="resetDraft" type="button">Start over</button>
+      </div>
+    </div>
+
+    <nav class="stepper" aria-label="Setup steps">
+      <button class="step-tab active" type="button" data-step-target="0" aria-current="step"><span class="step-number">1</span><span class="step-label"><strong>Report</strong><span>Who and what</span></span></button>
+      <button class="step-tab" type="button" data-step-target="1"><span class="step-number">2</span><span class="step-label"><strong>Files</strong><span>Inputs and groups</span></span></button>
+      <button class="step-tab" type="button" data-step-target="2"><span class="step-number">3</span><span class="step-label"><strong>Crosswalk</strong><span>Names and definitions</span></span></button>
+      <button class="step-tab" type="button" data-step-target="3"><span class="step-number">4</span><span class="step-label"><strong>Outputs</strong><span>Choose functions</span></span></button>
+      <button class="step-tab" type="button" data-step-target="4"><span class="step-number">5</span><span class="step-label"><strong>Download</strong><span>Review and finish</span></span></button>
+    </nav>
+
+    <section class="step-panel active" data-step="0" aria-labelledby="step1-title">
+      <div class="panel-card">
+        <div class="panel-heading">
+          <div><div class="step-kicker">Step 1 of 5</div><h2 id="step1-title">Describe the report</h2><p>These fields become the existing <code>report_options</code> list. Nothing here changes how the report pipeline runs.</p></div>
+        </div>
+
+        <div class="callout"><strong>Tip:</strong> You can leave and return later. Form values and crosswalk edits are saved locally in this browser; uploaded file contents are never stored or sent anywhere.</div>
+
+        <div class="section">
+          <div class="section-head"><div><h3>Contact information</h3><p>Shown in the report for attribution.</p></div></div>
+          <div class="grid two">
+            <div class="field"><label class="required" for="contactName">Name(s)</label><input id="contactName" data-bind="fields.name" autocomplete="name" placeholder="Jane Doe, John Smith"><span class="help">Separate multiple names with commas.</span></div>
+            <div class="field"><label class="required" for="contactEmail">Email address(es)</label><input id="contactEmail" data-bind="fields.email" autocomplete="email" placeholder="jane@example.org, john@example.org"><span class="help">Separate multiple addresses with commas.</span></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><div><h3>Model and reporting context</h3><p>Select the input format and give the model a clear report-facing name.</p></div></div>
+          <div class="grid three">
+            <div class="field"><label class="required" for="disease">Disease</label><input id="disease" data-bind="fields.disease" list="diseaseChoices" placeholder="influenza"><datalist id="diseaseChoices"><option value="influenza"><option value="covid_19"><option value="RSV"></datalist><span class="help">Known values use canonical report labels automatically.</span></div>
+            <div class="field"><label class="required" for="reason">Forecasting context</label><select id="reason" data-bind="fields.reason"><option value="Internal">Internal</option><option value="Software">Software</option><option value="FluSight">FluSight</option><option value="COVIDHub">COVIDHub</option><option value="RSVHub">RSVHub</option><option value="MetroCast">MetroCast</option><option value="DoD">DoD</option></select><span class="help">Controls the existing model validator.</span></div>
+            <div class="field"><label class="required" for="modelType">Model name or type</label><input id="modelType" data-bind="fields.generalModelType" placeholder="ARIMA"><span class="help">Used in the title and default filenames.</span></div>
+            <div class="field"><label for="populationLabel">Population label</label><input id="populationLabel" data-bind="fields.populationLabel" placeholder="General Population"><span class="help">Optional plain-language audience or cohort.</span></div>
+            <div class="field"><label class="required" for="baseBox">Primary working directory</label><input id="baseBox" data-bind="fields.baseBox" placeholder="C:/Users/USERNAME/Box/"><span class="help">Use the full path expected by R.</span></div>
+            <div class="field"><label for="stateContext">State context</label><select id="stateContext" data-bind="fields.stateContext"><option value="">Not needed / national</option></select><span class="help">Helps disambiguate county and HSA names.</span></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><div><h3>Model descriptions</h3><p>Add one row for each model represented in the files. These appear as plain-language descriptions in the report.</p></div><button class="btn small secondary" id="addModelDescription" type="button">+ Add model</button></div>
+          <div class="model-description-list" id="modelDescriptionList"></div>
+        </div>
+
+        <div class="panel-footer"><span class="inline-note">Fields marked * are required by the current package validator.</span><div class="footer-right"><button class="btn primary" type="button" data-next>Continue to files →</button></div></div>
+      </div>
+    </section>
+
+    <section class="step-panel" data-step="1" aria-labelledby="step2-title">
+      <div class="panel-card">
+        <div class="panel-heading"><div><div class="step-kicker">Step 2 of 5</div><h2 id="step2-title">Connect the input files</h2><p>Enter the paths that R will use. Browsing a CSV lets this page inspect its headers and discover crosswalk groups, but browsers may hide the full path for privacy.</p></div></div>
+
+        <div class="callout warning"><strong>Two parts to each file:</strong> the text box is the path written to the options file; the Browse button reads the CSV locally to help build the crosswalk. If Browse fills only a filename, paste the full path or keep the data file beside the downloaded setup files.</div>
+
+        <div class="section">
+          <div class="file-card-grid">
+            <article class="file-card optional">
+              <h4>Implementation model</h4><p>The operational/current forecast. Its format follows the forecasting context selected in Step 1.</p>
+              <div class="field"><label for="implementationPath">Path used by R</label><div class="path-field"><input id="implementationPath" data-bind="fields.implementationPath" placeholder="C:/path/to/implementation.csv"><label class="btn file-trigger">Browse CSV<input id="implementationUpload" type="file" accept=".csv,text/csv"></label></div></div>
+              <div class="status-box" id="implementationStatus">No CSV inspected yet.</div>
+            </article>
+            <article class="file-card optional">
+              <h4>Evaluation model</h4><p>Historical training/validation/testing forecasts in the package's general evaluation format.</p>
+              <div class="field"><label for="evaluationPath">Path used by R</label><div class="path-field"><input id="evaluationPath" data-bind="fields.evaluationPath" placeholder="C:/path/to/evaluation.csv"><label class="btn file-trigger">Browse CSV<input id="evaluationUpload" type="file" accept=".csv,text/csv"></label></div></div>
+              <div class="status-box" id="evaluationStatus">No CSV inspected yet.</div>
+            </article>
+            <article class="file-card">
+              <h4>Outcome / observed data</h4><p>The target data used as truth when forecasts are evaluated.</p>
+              <div class="field"><label class="required" for="outcomeLabel">Data-source label</label><input id="outcomeLabel" data-bind="fields.outcomeLabel" placeholder="CDC(NHSN)"></div>
+              <div class="field"><label class="required" for="outcomePath">Path used by R</label><div class="path-field"><input id="outcomePath" data-bind="fields.outcomePath" placeholder="C:/path/to/outcome.csv"><label class="btn file-trigger">Browse CSV<input id="outcomeUpload" type="file" accept=".csv,text/csv"></label></div></div>
+              <div class="field"><label class="required" for="outcomeName">Outcome column</label><input id="outcomeName" data-bind="fields.outcomeName" list="outcomeColumns" placeholder="hospitalizations"><datalist id="outcomeColumns"></datalist></div>
+              <div class="grid two">
+                <div class="field"><label class="required" for="outcomeCleanFull">Report-facing name</label><input id="outcomeCleanFull" data-bind="fields.outcomeCleanFull" placeholder="Weekly hospital admissions"></div>
+                <div class="field"><label class="required" for="outcomeCleanAbb">Short name</label><input id="outcomeCleanAbb" data-bind="fields.outcomeCleanAbb" placeholder="Admissions"></div>
+              </div>
+              <div class="field"><label class="required" for="outcomeDefinition">Definition</label><textarea id="outcomeDefinition" data-bind="fields.outcomeDefinition" placeholder="Describe exactly what the outcome measures."></textarea></div>
+              <div class="grid three">
+                <div class="field"><label for="outcomePercent">Convert to percent</label><select id="outcomePercent" data-bind="fields.outcomePercent"><option value="">Not applicable</option><option value="FALSE">No</option><option value="TRUE">Yes</option></select></div>
+                <div class="field"><label for="outcomeBinning">Binning</label><select id="outcomeBinning" data-bind="fields.outcomeBinning"><option value="">Not applicable</option><option value="incident">Incident</option><option value="severity">Severity</option><option value="burden">Burden</option></select></div>
+                <div class="field"><label for="outcomeCohort">Cohort</label><select id="outcomeCohort" data-bind="fields.outcomeCohort"><option value="">Not applicable</option><option value="dx">Diagnosis</option><option value="dx_cond_lab">Diagnosis + lab</option></select></div>
+              </div>
+              <div class="status-box" id="outcomeStatus">No CSV inspected yet.</div>
+            </article>
+            <article class="file-card optional">
+              <h4>Training data</h4><p>Optional. If used, all three training fields below are required.</p>
+              <div class="field"><label for="trainingPath">Path used by R</label><div class="path-field"><input id="trainingPath" data-bind="fields.trainingPath" placeholder="C:/path/to/training.csv"><label class="btn file-trigger">Browse CSV<input id="trainingUpload" type="file" accept=".csv,text/csv"></label></div></div>
+              <div class="grid two">
+                <div class="field"><label for="trainingVariable">Training variable column</label><input id="trainingVariable" data-bind="fields.trainingVariable" list="trainingColumns" placeholder="visits"><datalist id="trainingColumns"></datalist></div>
+                <div class="field"><label for="trainingSource">Training source label</label><input id="trainingSource" data-bind="fields.trainingSource" placeholder="Health System"></div>
+              </div>
+              <div class="field"><label for="trainingDefinition">Training variable definition</label><textarea id="trainingDefinition" data-bind="fields.trainingDefinition" placeholder="Describe the training measure."></textarea></div>
+              <div class="status-box" id="trainingStatus">No CSV inspected yet.</div>
+            </article>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><div><h3>Location and disease groups</h3><p>The package seeds outcome and source rows once per unique <code>spatial_scale + location + disease</code> group. Groups are discovered from inspected model files; you can also add them manually.</p></div><button class="btn small secondary" id="seedCrosswalk" type="button">Build starter crosswalk</button></div>
+          <div class="group-toolbar">
+            <div class="field"><label for="manualScale">Spatial scale</label><input id="manualScale" list="scaleChoices" placeholder="state"><datalist id="scaleChoices"><option value="national"><option value="state"><option value="region"><option value="county"><option value="zcta"><option value="zip"><option value="HSA"><option value="hsa"></datalist></div>
+            <div class="field"><label for="manualLocation">Location</label><input id="manualLocation" placeholder="SC"></div>
+            <div class="field"><label for="manualDisease">Disease</label><input id="manualDisease" placeholder="influenza"></div>
+            <button class="btn" id="addGroup" type="button">+ Add group</button>
+          </div>
+          <div class="mini-table-wrap"><table><thead><tr><th>#</th><th>Spatial scale</th><th>Location</th><th>Disease</th><th>Source</th><th></th></tr></thead><tbody id="groupTableBody"></tbody></table></div>
+        </div>
+
+        <div class="panel-footer"><button class="btn" type="button" data-prev>← Back</button><div class="footer-right"><button class="btn primary" type="button" data-next>Continue to crosswalk →</button></div></div>
+      </div>
+    </section>
+
+    <section class="step-panel" data-step="2" aria-labelledby="step3-title">
+      <div class="panel-card">
+        <div class="panel-heading"><div><div class="step-kicker">Step 3 of 5</div><h2 id="step3-title">Finish the variables crosswalk</h2><p>The starter includes the package's standard glossary plus source, outcome, and optional training rows for every discovered group. Edit any row or add auxiliary variables without touching a spreadsheet.</p></div><div><span class="state-badge state-valid" id="crosswalkCount">0 rows</span></div></div>
+
+        <div class="callout info"><strong>Exact compatibility:</strong> downloads use the same 15 columns and conditional rules enforced by <code>validate_variables_crosswalk()</code>. File existence is the only check deferred to R.</div>
+
+        <div class="crosswalk-shell">
+          <div class="crosswalk-toolbar">
+            <div class="field"><label for="crosswalkSearch">Find a row</label><input id="crosswalkSearch" type="search" placeholder="Search location, variable, source, or definition"></div>
+            <div class="field"><label for="crosswalkTypeFilter">Variable type</label><select id="crosswalkTypeFilter"><option value="">All types</option><option value="data_source">Data source</option><option value="outcome">Outcome</option><option value="training">Training</option><option value="aux_variable">Auxiliary variable</option><option value="general_term">Glossary term</option></select></div>
+            <div class="crosswalk-actions">
+              <button class="btn small" type="button" data-add-row="data_source">+ Source</button>
+              <button class="btn small" type="button" data-add-row="aux_variable">+ Auxiliary variable</button>
+              <button class="btn small" type="button" data-add-row="general_term">+ Glossary term</button>
+              <button class="btn small secondary" id="validateCrosswalk" type="button">Validate</button>
+            </div>
+          </div>
+          <div class="crosswalk-table-wrap">
+            <table class="crosswalk-table">
+              <thead><tr><th>#</th><th>Type</th><th>Group</th><th>Variable</th><th>Report name</th><th>Source / settings</th><th>Definition</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="crosswalkTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel-footer"><button class="btn" type="button" data-prev>← Back</button><div class="footer-right"><button class="btn secondary" id="reseedCrosswalk" type="button">Refresh starter rows</button><button class="btn primary" type="button" data-next>Choose outputs →</button></div></div>
+      </div>
+    </section>
+
+    <section class="step-panel" data-step="3" aria-labelledby="step4-title">
+      <div class="panel-card">
+        <div class="panel-heading"><div><div class="step-kicker">Step 4 of 5</div><h2 id="step4-title">Choose what the package should create</h2><p>Select one or more user-facing functions. The downloaded runner wires them to the same options and crosswalk files; no report or evaluation behavior is replaced.</p></div></div>
+
+        <div class="workflow-list" id="workflowList">
+          <article class="workflow-card" data-workflow-card="report">
+            <label class="workflow-head"><input type="checkbox" data-bind="workflows.report.enabled"><span class="workflow-title"><strong>Interactive forecast evaluation report</strong><span>One self-contained HTML with every available report section.</span></span><span class="function-name">generate_report()</span></label>
+            <div class="workflow-options">
+              <div class="grid three">
+                <div class="field"><label for="reportOutputDir">Output folder</label><input id="reportOutputDir" data-bind="workflows.report.outputDir" placeholder="reports"></div>
+                <div class="field"><label for="reportOutputFile">Output filename</label><input id="reportOutputFile" data-bind="workflows.report.outputFile" placeholder="Automatic package filename"><span class="help">Optional; must end in .html.</span></div>
+                <div class="field"><label for="reportMode">Geography layout</label><select id="reportMode" data-bind="workflows.report.mode"><option value="combined">One report with dropdown</option><option value="split">One report per location</option></select></div>
+                <div class="field span-2" data-report-split><label for="splitFilename">Per-location filename template</label><input id="splitFilename" data-bind="workflows.report.splitFilename" placeholder="{location}/report.html"><span class="help">Optional; use {location} or {location_name}.</span></div>
+                <div class="field"><label for="reportQuiet">Console detail</label><select id="reportQuiet" data-bind="workflows.report.quiet"><option value="true">Quiet</option><option value="false">Show progress</option></select></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="workflow-card" data-workflow-card="forecastPlot">
+            <label class="workflow-head"><input type="checkbox" data-bind="workflows.forecastPlot.enabled"><span class="workflow-title"><strong>Standalone forecast plot</strong><span>Export only the main forecast figure as interactive HTML or a static image.</span></span><span class="function-name">save_forecast_plot()</span></label>
+            <div class="workflow-options"><div class="grid four">
+              <div class="field span-2"><label for="forecastPlotFile">File or output folder</label><input id="forecastPlotFile" data-bind="workflows.forecastPlot.file" placeholder="exports/forecast.html"></div>
+              <div class="field"><label for="forecastPlotFormat">Format</label><select id="forecastPlotFormat" data-bind="workflows.forecastPlot.format"><option value="html">Interactive HTML</option><option value="png">PNG</option><option value="jpeg">JPEG</option><option value="pdf">PDF image</option><option value="tiff">TIFF</option></select></div>
+              <div class="field"><label for="forecastPlotLocation">Location</label><input id="forecastPlotLocation" data-bind="workflows.forecastPlot.location" placeholder="All locations"></div>
+              <div class="field"><label for="forecastPlotWidth">Width (pixels)</label><input id="forecastPlotWidth" data-bind="workflows.forecastPlot.width" type="number" min="1" placeholder="Default"></div>
+              <div class="field"><label for="forecastPlotHeight">Height (pixels)</label><input id="forecastPlotHeight" data-bind="workflows.forecastPlot.height" type="number" min="1" placeholder="Default"></div>
+              <div class="field"><label for="forecastPlotScale">Resolution scale</label><input id="forecastPlotScale" data-bind="workflows.forecastPlot.scale" type="number" min="0.1" step="0.1"></div>
+            </div></div>
+          </article>
+
+          <article class="workflow-card" data-workflow-card="consistencyPlot">
+            <label class="workflow-head"><input type="checkbox" data-bind="workflows.consistencyPlot.enabled"><span class="workflow-title"><strong>Forecast consistency plot</strong><span>Compare recent forecast vintages without rendering the full report.</span></span><span class="function-name">save_consistency_plot()</span></label>
+            <div class="workflow-options"><div class="grid four">
+              <div class="field span-2"><label for="consistencyFile">File or output folder</label><input id="consistencyFile" data-bind="workflows.consistencyPlot.file" placeholder="exports/consistency.html"></div>
+              <div class="field"><label for="consistencyFormat">Format</label><select id="consistencyFormat" data-bind="workflows.consistencyPlot.format"><option value="html">Interactive HTML</option><option value="png">PNG</option><option value="jpeg">JPEG</option><option value="pdf">PDF image</option><option value="tiff">TIFF</option></select></div>
+              <div class="field"><label for="consistencyLocation">Location</label><input id="consistencyLocation" data-bind="workflows.consistencyPlot.location" placeholder="All locations"></div>
+              <div class="field"><label for="consistencyN">Recent forecasts</label><input id="consistencyN" data-bind="workflows.consistencyPlot.nForecasts" type="number" min="1" step="1"></div>
+              <div class="field"><label for="consistencyEvery">Or show every Nth forecast</label><input id="consistencyEvery" data-bind="workflows.consistencyPlot.forecastEvery" type="number" min="1" step="1" placeholder="Off"></div>
+              <div class="field"><label for="consistencyCushion">Drop newest N forecasts</label><input id="consistencyCushion" data-bind="workflows.consistencyPlot.endCushion" type="number" min="1" step="1" placeholder="None"></div>
+            </div></div>
+          </article>
+
+          <article class="workflow-card" data-workflow-card="evaluationExport">
+            <label class="workflow-head"><input type="checkbox" data-bind="workflows.evaluationExport.enabled"><span class="workflow-title"><strong>Testing-period evaluation files</strong><span>Write tidy metrics, an AI-ready summary, or both—without rendering a report.</span></span><span class="function-name">export_testing_evaluation()</span></label>
+            <div class="workflow-options">
+              <div class="grid two"><div class="field"><label for="evaluationOutputDir">Output folder</label><input id="evaluationOutputDir" data-bind="workflows.evaluationExport.outputDir" placeholder="evaluation-results"></div><div class="field"><label for="evaluationPrefix">Filename prefix</label><input id="evaluationPrefix" data-bind="workflows.evaluationExport.filePrefix" placeholder="Automatic package filename"></div></div>
+              <div class="check-grid"><label class="check-line"><input type="checkbox" data-bind="workflows.evaluationExport.saveResults"> Tidy metrics CSV</label><label class="check-line"><input type="checkbox" data-bind="workflows.evaluationExport.aiForm"> AI-ready Markdown summary</label><label class="check-line"><input type="checkbox" data-bind="workflows.evaluationExport.aiRowDetail"> Include row-level tables in Markdown</label></div>
+            </div>
+          </article>
+
+          <article class="workflow-card" data-workflow-card="comparison">
+            <label class="workflow-head"><input type="checkbox" data-bind="workflows.comparison.enabled"><span class="workflow-title"><strong>Multi-model comparison dashboard</strong><span>Use this setup plus one or more completed options files to compare models.</span></span><span class="function-name">generate_comparison_dashboard()</span></label>
+            <div class="workflow-options"><div class="grid two">
+              <div class="field span-2"><label for="comparisonOptions">Additional options-file paths</label><textarea id="comparisonOptions" data-bind="workflows.comparison.additionalOptions" placeholder="C:/models/arima/report_options.R&#10;C:/models/ets/report_options.R"></textarea><span class="help">One path per line. The options file created here is included automatically.</span></div>
+              <div class="field"><label for="comparisonFile">Dashboard file</label><input id="comparisonFile" data-bind="workflows.comparison.outputFile"></div>
+              <div class="field"><label for="comparisonTitle">Dashboard title</label><input id="comparisonTitle" data-bind="workflows.comparison.title"></div>
+              <div class="field"><label for="comparisonEvaluation">Evaluations</label><select id="comparisonEvaluation" data-bind="workflows.comparison.evaluation"><option value="both">Testing + real-time</option><option value="testing">Testing only</option><option value="realtime">Real-time only</option></select></div>
+              <div class="field"><label for="comparisonRows">Detail level</label><select id="comparisonRows" data-bind="workflows.comparison.includeRowMetrics"><option value="true">Summary + row metrics</option><option value="false">Summary metrics only</option></select></div>
+            </div></div>
+          </article>
+        </div>
+
+        <details class="advanced" id="evaluationSettings">
+          <summary>Evaluation tuning (optional)</summary>
+          <div class="advanced-body">
+            <label class="check-line"><input type="checkbox" data-bind="evaluation.custom"> Use customized evaluation settings for selected functions</label>
+            <div id="evaluationFields" class="section" hidden>
+              <div class="field"><span class="field-label">Non-transmission months</span><div class="month-grid" id="monthGrid"></div></div>
+              <div class="grid three" style="margin-top:15px">
+                <div class="field"><label for="seasonStart">Season start</label><input id="seasonStart" data-bind="evaluation.seasonStart" placeholder="August 01"></div>
+                <div class="field"><label for="peakWindow">Peak window (% of max)</label><input id="peakWindow" data-bind="evaluation.peakWindow" type="number" min="0.01" step="0.1"></div>
+                <div class="field"><label for="stableThreshold">Stable-count threshold</label><input id="stableThreshold" data-bind="evaluation.stableThreshold" type="number" min="0" step="0.1"></div>
+                <div class="field"><label for="pctErrorCushion">Bias cushion (percentage points)</label><input id="pctErrorCushion" data-bind="evaluation.pctErrorCushion" type="number" min="0" step="0.1"></div>
+                <div class="field"><label for="timingTolerance">Peak timing tolerance (steps)</label><input id="timingTolerance" data-bind="evaluation.timingTolerance" type="number" min="0" step="1"></div>
+                <div class="field"><label for="magnitudeTolerance">Peak magnitude agreement (0–1)</label><input id="magnitudeTolerance" data-bind="evaluation.magnitudeTolerance" type="number" min="0" max="1" step="0.01"></div>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details class="advanced">
+          <summary>Optional location and population crosswalks</summary>
+          <div class="advanced-body grid two">
+            <div class="field"><label for="locationCrosswalkPath">Location crosswalk path</label><input id="locationCrosswalkPath" data-bind="workflows.shared.locationCrosswalk" placeholder="Leave blank for package lookups"><span class="help">CSV with <code>location</code> and <code>clean_name</code>.</span></div>
+            <div class="field"><label for="populationCrosswalkPath">Population crosswalk path</label><input id="populationCrosswalkPath" data-bind="workflows.shared.populationCrosswalk" placeholder="Leave blank for package defaults"><span class="help">CSV with <code>location</code> and <code>population</code>.</span></div>
+          </div>
+        </details>
+
+        <div class="panel-footer"><button class="btn" type="button" data-prev>← Back</button><div class="footer-right"><button class="btn primary" type="button" data-next>Review files →</button></div></div>
+      </div>
+    </section>
+
+    <section class="step-panel" data-step="4" aria-labelledby="step5-title">
+      <div class="panel-card">
+        <div class="panel-heading"><div><div class="step-kicker">Step 5 of 5</div><h2 id="step5-title">Review and download</h2><p>The bundle keeps the options and crosswalk together and includes a ready-to-run R workflow for the functions selected in Step 4.</p></div></div>
+
+        <div class="review-grid">
+          <div class="review-stat"><span>Options fields</span><strong id="reviewOptions">—</strong></div>
+          <div class="review-stat"><span>Model groups</span><strong id="reviewGroups">—</strong></div>
+          <div class="review-stat"><span>Crosswalk rows</span><strong id="reviewRows">—</strong></div>
+          <div class="review-stat"><span>Selected functions</span><strong id="reviewFunctions">—</strong></div>
+        </div>
+
+        <div id="validationSummary" class="validation-summary" aria-live="polite"></div>
+
+        <div class="section">
+          <div class="section-head"><div><h3>File names</h3><p>Safe defaults are supplied. Relative paths in the generated runner resolve from the downloaded setup folder.</p></div></div>
+          <div class="grid three">
+            <div class="field"><label class="required" for="optionsFilename">Options file</label><input id="optionsFilename" data-bind="downloads.optionsFilename"></div>
+            <div class="field"><label class="required" for="crosswalkFilename">Crosswalk file</label><input id="crosswalkFilename" data-bind="downloads.crosswalkFilename"></div>
+            <div class="field"><label class="required" for="runnerFilename">Workflow runner</label><input id="runnerFilename" data-bind="downloads.runnerFilename"></div>
+          </div>
+        </div>
+
+        <div class="preview-tabs" role="tablist" aria-label="Generated file previews">
+          <button class="preview-tab active" role="tab" aria-selected="true" data-preview="options" type="button">Options .R</button>
+          <button class="preview-tab" role="tab" aria-selected="false" data-preview="crosswalk" type="button">Crosswalk .csv</button>
+          <button class="preview-tab" role="tab" aria-selected="false" data-preview="runner" type="button">Workflow .R</button>
+          <button class="preview-tab" role="tab" aria-selected="false" data-preview="readme" type="button">Read me</button>
+        </div>
+        <pre class="code-preview active" id="previewOptions" tabindex="0"></pre>
+        <pre class="code-preview" id="previewCrosswalk" tabindex="0"></pre>
+        <pre class="code-preview" id="previewRunner" tabindex="0"></pre>
+        <pre class="code-preview" id="previewReadme" tabindex="0"></pre>
+
+        <div class="download-panel">
+          <div><h3>Your setup bundle</h3><p id="downloadMessage">Resolve validation issues above before downloading.</p></div>
+          <div class="download-actions">
+            <button class="btn primary" id="downloadBundle" type="button">Download all (.zip)</button>
+            <button class="btn" id="downloadOptions" type="button">Options</button>
+            <button class="btn" id="downloadCrosswalk" type="button">Crosswalk</button>
+            <button class="btn" id="downloadRunner" type="button">Workflow</button>
+          </div>
+        </div>
+
+        <div class="run-steps" aria-label="How to run the generated workflow">
+          <div class="run-step"><b>1</b>Save the ZIP and extract all files into one folder.</div>
+          <div class="run-step"><b>2</b>Keep relative input files there too, or make sure the entered full paths are correct.</div>
+          <div class="run-step"><b>3</b>Open the workflow <code>.R</code> file in RStudio and click <strong>Source</strong>.</div>
+        </div>
+
+        <div class="panel-footer"><button class="btn" type="button" data-prev>← Back</button><div class="footer-right"><button class="btn secondary" id="runValidationAgain" type="button">Check again</button></div></div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="rowDialog" aria-labelledby="rowDialogTitle">
+    <form id="rowForm" method="dialog">
+      <div class="dialog-head"><h3 id="rowDialogTitle">Edit crosswalk row</h3><button class="dialog-close" type="button" data-dialog-close aria-label="Close">×</button></div>
+      <div class="dialog-body">
+        <input id="rowIndex" type="hidden">
+        <div class="grid three">
+          <div class="field"><label class="required" for="rowType">Variable type</label><select id="rowType"><option value="data_source">Data source</option><option value="aux_variable">Auxiliary variable</option><option value="outcome">Outcome</option><option value="training">Training</option><option value="general_term">Glossary term</option></select></div>
+          <div class="field row-group-field"><label class="required" for="rowGroup">Group</label><select id="rowGroup"></select></div>
+          <div class="field row-new-only"><label for="rowAllGroups">Add scope</label><select id="rowAllGroups"><option value="one">Selected group only</option><option value="all">Every model group</option></select></div>
+          <div class="field"><label class="required" for="rowVariable">Variable / raw name</label><input id="rowVariable"></div>
+          <div class="field"><label class="required" for="rowCleanFull">Full report name</label><input id="rowCleanFull"></div>
+          <div class="field"><label class="required" for="rowCleanAbb">Abbreviated name</label><input id="rowCleanAbb"></div>
+          <div class="field row-source-field"><label class="required" for="rowDataSource">Data source</label><input id="rowDataSource" list="rowSourceChoices"><datalist id="rowSourceChoices"></datalist></div>
+          <div class="field row-aux-field"><label class="required" for="rowRightAxis">Right-hand axis</label><select id="rowRightAxis"><option value="">Choose…</option><option value="FALSE">No</option><option value="TRUE">Yes</option></select></div>
+          <div class="field row-percent-field"><label for="rowConvertPercent">Convert to percent</label><select id="rowConvertPercent"><option value="">Not applicable</option><option value="FALSE">No</option><option value="TRUE">Yes</option></select></div>
+          <div class="field"><label for="rowBinning">Binning</label><select id="rowBinning"><option value="">Not applicable</option><option value="incident">Incident</option><option value="severity">Severity</option><option value="burden">Burden</option></select></div>
+          <div class="field"><label for="rowCohort">Cohort</label><select id="rowCohort"><option value="">Not applicable</option><option value="dx">Diagnosis</option><option value="dx_cond_lab">Diagnosis + lab</option></select></div>
+          <div class="field row-file-field span-2"><label class="required" for="rowFile">Data file path</label><input id="rowFile" placeholder="C:/path/to/data.csv"></div>
+          <div class="field span-all row-definition-field"><label class="required" for="rowDefinition">Definition</label><textarea id="rowDefinition"></textarea></div>
+        </div>
+        <div class="callout warning" id="rowDialogHelp" style="margin-top:16px">Fields change according to the selected variable type.</div>
+      </div>
+      <div class="dialog-footer"><button class="btn" type="button" data-dialog-close>Cancel</button><button class="btn primary" id="saveRow" type="submit">Save row</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+  (() => {
+    "use strict";
+
+    const SCHEMA_VERSION = 1;
+    const STORAGE_KEY = "forecastEvalReport.setupStudio.v1";
+    const CROSSWALK_COLUMNS = [
+      "spatial_scale", "location", "disease", "disease_name_clean",
+      "variable_type", "variable", "clean_name_full", "clean_name_abb",
+      "on_right_axis", "data_source", "convert_percent", "definition",
+      "binning", "cohort", "file"
+    ];
+    const DISEASE_CLEAN = { covid_19: "COVID-19", RSV: "RSV", influenza: "Influenza" };
+    const HUB_DISEASE = { FluSight: "influenza", COVIDHub: "covid_19", RSVHub: "RSV", MetroCast: "influenza" };
+    const METROCAST_STATES = new Set(["colorado", "georgia", "indiana", "maine", "maryland", "massachusetts", "minnesota", "south-carolina", "texas", "utah", "virginia", "north-carolina", "oregon"]);
+    const STATES = [
+      ["AL","Alabama"],["AK","Alaska"],["AZ","Arizona"],["AR","Arkansas"],["CA","California"],["CO","Colorado"],["CT","Connecticut"],["DE","Delaware"],["FL","Florida"],["GA","Georgia"],["HI","Hawaii"],["ID","Idaho"],["IL","Illinois"],["IN","Indiana"],["IA","Iowa"],["KS","Kansas"],["KY","Kentucky"],["LA","Louisiana"],["ME","Maine"],["MD","Maryland"],["MA","Massachusetts"],["MI","Michigan"],["MN","Minnesota"],["MS","Mississippi"],["MO","Missouri"],["MT","Montana"],["NE","Nebraska"],["NV","Nevada"],["NH","New Hampshire"],["NJ","New Jersey"],["NM","New Mexico"],["NY","New York"],["NC","North Carolina"],["ND","North Dakota"],["OH","Ohio"],["OK","Oklahoma"],["OR","Oregon"],["PA","Pennsylvania"],["RI","Rhode Island"],["SC","South Carolina"],["SD","South Dakota"],["TN","Tennessee"],["TX","Texas"],["UT","Utah"],["VT","Vermont"],["VA","Virginia"],["WA","Washington"],["WV","West Virginia"],["WI","Wisconsin"],["WY","Wyoming"],["DC","District of Columbia"],["PR","Puerto Rico"]
+    ];
+    const GLOSSARY = [
+      ["Target Data", "The data source used to represent the outcome measure that the forecast is designed to estimate or predict. Target data typically represent the reference or 'ground truth' and may include surveillance counts, laboratory-confirmed cases, hospitalizations, or other public health indicators used for evaluation and decision-making."],
+      ["Implementation Model", "The finalized, post-training version of a forecasting model. Once trained and validated, the implementation model is applied in an operational setting to generate routine projections without further parameter tuning."],
+      ["Current Projections", "Forward-looking values generated by the implementation model beyond the most recent observed week. Projections represent expected future outcomes under the assumption that recent trends and model conditions continue and are accompanied by uncertainty."],
+      ["Historical Estimates", "Model-generated estimates for past time periods produced after training, validation, and testing have concluded. Historical estimates are used to assess model fit, stability, and alignment with observed data but are not intended for real-time operational decisions."],
+      ["Evaluation Model", "A version of the forecasting model used during the training process to assess performance, uncertainty, and stability using historical data. The evaluation model supports model selection, parameter tuning, and validation and is not used to generate operational projections."],
+      ["Horizon", "The number of time steps into the future for which forecasts are generated from each historical forecast origin when evaluating model performance, uncertainty, and stability."],
+      ["Training Period", "The historical data window over which model parameters are estimated and structural relationships are learned. Data from the training period are used exclusively for model fitting, while data for the subsequent validation and testing periods are held out to evaluate model behavior and performance."],
+      ["Validation Period", "The historical data window reserved for evaluating model behavior after training. The validation period is used to compare candidate models, tune parameters, and assess uncertainty while remaining separate from both the training and testing periods."],
+      ["Testing Period", "The historical data window reserved for final model evaluation after training and validation are complete. The testing period serves to assess how the finalized model performs on unseen data."],
+      ["Auxiliary Variables", "Observed variables and auxiliary datasets incorporated into the model to provide additional information beyond the primary outcome."],
+      ["Auxiliary Variables (CDC Adjusted)", "Observed variables and auxiliary datasets incorporated into the model to provide additional information beyond the primary outcome. CDC-derived variables are population-adjusted to best reflect values at the geographic scale presented."]
+    ];
+
+    const defaults = () => ({
+      schemaVersion: SCHEMA_VERSION,
+      currentStep: 0,
+      fields: {
+        name: "", email: "", disease: "", reason: "Internal", generalModelType: "",
+        populationLabel: "", baseBox: "", stateContext: "",
+        implementationPath: "", evaluationPath: "",
+        outcomeLabel: "", outcomePath: "", outcomeName: "", outcomeCleanFull: "",
+        outcomeCleanAbb: "", outcomeDefinition: "", outcomePercent: "",
+        outcomeBinning: "", outcomeCohort: "",
+        trainingPath: "", trainingVariable: "", trainingSource: "", trainingDefinition: ""
+      },
+      modelDescriptions: [{ model: "", description: "" }],
+      groups: [],
+      crosswalk: [],
+      workflows: {
+        report: { enabled: true, outputDir: "reports", outputFile: "", mode: "combined", splitFilename: "", quiet: "true" },
+        forecastPlot: { enabled: false, file: "exports/forecast.html", format: "html", location: "", width: "", height: "", scale: "1" },
+        consistencyPlot: { enabled: false, file: "exports/consistency.html", format: "html", location: "", nForecasts: "5", forecastEvery: "", endCushion: "" },
+        evaluationExport: { enabled: false, outputDir: "evaluation-results", filePrefix: "", saveResults: true, aiForm: true, aiRowDetail: false },
+        comparison: { enabled: false, additionalOptions: "", outputFile: "forecast-model-comparison.html", title: "Model Summaries", evaluation: "both", includeRowMetrics: "true" },
+        shared: { locationCrosswalk: "", populationCrosswalk: "" }
+      },
+      evaluation: { custom: false, months: [5,6,7], seasonStart: "August 01", peakWindow: "20", stableThreshold: "10", pctErrorCushion: "20", timingTolerance: "0", magnitudeTolerance: "0.80" },
+      downloads: { optionsFilename: "report_options.R", crosswalkFilename: "variables_crosswalk.csv", runnerFilename: "run_forecast_report.R" }
+    });
+
+    let state = loadLocalState();
+    const uploads = { implementation: null, evaluation: null, outcome: null, training: null };
+    let activeStep = Math.max(0, Math.min(4, Number(state.currentStep) || 0));
+    let previewCache = { options: "", crosswalk: "", runner: "", readme: "" };
+    let saveTimer = null;
+
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+    const clean = value => value == null ? "" : String(value).trim();
+    const absent = value => clean(value) === "" || clean(value).toUpperCase() === "NA";
+    const esc = value => String(value == null ? "" : value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    const clone = value => JSON.parse(JSON.stringify(value));
+
+    const TUTORIAL_SCENE_MS = 6000;
+    const TUTORIAL_SCENES = [
+      {
+        title: "Describe the report",
+        description: "Add the report owner, forecasting context, and plain-language model information.",
+        caption: "Watch the pointer choose a disease; each field maps directly into the existing options structure."
+      },
+      {
+        title: "Connect the input files",
+        description: "Point R to each CSV, then inspect files locally to discover location and disease groups.",
+        caption: "Click Browse CSV to inspect a file locally and reveal its columns and model groups."
+      },
+      {
+        title: "Review the crosswalk",
+        description: "Start from package-compatible rows, then edit names and definitions with simple forms.",
+        caption: "Validate checks every row against the package's 15-column crosswalk rules before download."
+      },
+      {
+        title: "Choose the outputs",
+        description: "Select the report, plots, evaluation files, or comparison dashboard that you need.",
+        caption: "Click a checkbox to add testing-period exports; the runner calls only the functions you select."
+      },
+      {
+        title: "Download and run",
+        description: "Download one bundle containing the options, crosswalk, runner, and clear run instructions.",
+        caption: "Download the finished bundle, extract it, then open the runner in RStudio and click Source."
+      }
+    ];
+    const TUTORIAL_TOTAL_MS = TUTORIAL_SCENE_MS * TUTORIAL_SCENES.length;
+    let tutorialIndex = 0;
+    let tutorialElapsed = 0;
+    let tutorialPlaying = false;
+    let tutorialLastTick = 0;
+    let tutorialAnimationFrame = null;
+
+    function formatTutorialTime(milliseconds) {
+      const seconds = Math.max(0, Math.min(Math.ceil(TUTORIAL_TOTAL_MS / 1000), Math.floor(milliseconds / 1000)));
+      return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+    }
+
+    function renderTutorialScene(index) {
+      tutorialIndex = Math.max(0, Math.min(TUTORIAL_SCENES.length - 1, index));
+      const content = TUTORIAL_SCENES[tutorialIndex];
+      $$('[data-tutorial-scene]').forEach((scene, sceneIndex) => {
+        const active = sceneIndex === tutorialIndex;
+        scene.classList.toggle("active", active);
+        scene.setAttribute("aria-hidden", active ? "false" : "true");
+      });
+      $$('[data-tutorial-target]').forEach((button, sceneIndex) => {
+        const active = sceneIndex === tutorialIndex;
+        button.classList.toggle("active", active);
+        if (active) button.setAttribute("aria-current", "step"); else button.removeAttribute("aria-current");
+      });
+      $("#tutorialSceneNumber").textContent = `Chapter ${tutorialIndex + 1} of ${TUTORIAL_SCENES.length}`;
+      $("#tutorialSceneTitle").textContent = content.title;
+      $("#tutorialSceneDescription").textContent = content.description;
+      $("#tutorialCaption").textContent = content.caption;
+    }
+
+    function updateTutorialProgress() {
+      const percent = Math.max(0, Math.min(100, (tutorialElapsed / TUTORIAL_TOTAL_MS) * 100));
+      $("#tutorialProgress span").style.width = `${percent}%`;
+      $("#tutorialProgress").setAttribute("aria-valuenow", String(Math.round(percent)));
+      $("#tutorialTime").textContent = `${formatTutorialTime(tutorialElapsed)} / ${formatTutorialTime(TUTORIAL_TOTAL_MS)}`;
+    }
+
+    function setTutorialPosition(milliseconds) {
+      tutorialElapsed = Math.max(0, Math.min(TUTORIAL_TOTAL_MS, milliseconds));
+      const sceneIndex = Math.min(TUTORIAL_SCENES.length - 1, Math.floor(tutorialElapsed / TUTORIAL_SCENE_MS));
+      if (sceneIndex !== tutorialIndex) renderTutorialScene(sceneIndex);
+      updateTutorialProgress();
+    }
+
+    function updateTutorialButtons() {
+      const play = $("#tutorialPlay");
+      play.textContent = tutorialPlaying ? "❚❚ Pause" : (tutorialElapsed >= TUTORIAL_TOTAL_MS ? "↻ Replay" : "▶ Play");
+      play.setAttribute("aria-pressed", tutorialPlaying ? "true" : "false");
+      $("#tutorialBegin").textContent = tutorialPlaying ? "❚❚ Pause tour" : (tutorialElapsed >= TUTORIAL_TOTAL_MS ? "↻ Replay guided tour" : (tutorialElapsed > 0 ? "▶ Resume guided tour" : "▶ Play guided tour"));
+      $("#tutorialPrev").disabled = tutorialElapsed <= 0;
+    }
+
+    function tutorialTick(now) {
+      if (!tutorialPlaying) return;
+      if (!tutorialLastTick) tutorialLastTick = now;
+      tutorialElapsed += now - tutorialLastTick;
+      tutorialLastTick = now;
+      if (tutorialElapsed >= TUTORIAL_TOTAL_MS) {
+        setTutorialPosition(TUTORIAL_TOTAL_MS);
+        setTutorialPlaying(false);
+        return;
+      }
+      setTutorialPosition(tutorialElapsed);
+      tutorialAnimationFrame = requestAnimationFrame(tutorialTick);
+    }
+
+    function setTutorialPlaying(playing) {
+      tutorialPlaying = Boolean(playing);
+      if (tutorialPlaying && tutorialElapsed >= TUTORIAL_TOTAL_MS) {
+        renderTutorialScene(0);
+        setTutorialPosition(0);
+      }
+      const tutorialShell = $("#tutorial");
+      if (tutorialPlaying) tutorialShell.classList.add("tutorial-started", "is-playing");
+      else tutorialShell.classList.remove("is-playing");
+      if (tutorialAnimationFrame !== null) cancelAnimationFrame(tutorialAnimationFrame);
+      tutorialAnimationFrame = null;
+      tutorialLastTick = 0;
+      updateTutorialButtons();
+      if (tutorialPlaying) tutorialAnimationFrame = requestAnimationFrame(tutorialTick);
+    }
+
+    function goToTutorialChapter(index) {
+      const wasPlaying = tutorialPlaying;
+      const requestedIndex = Math.max(0, Math.min(TUTORIAL_SCENES.length - 1, index));
+      if (requestedIndex === tutorialIndex) {
+        const activeScene = $(`[data-tutorial-scene="${tutorialIndex}"]`);
+        activeScene.classList.remove("active");
+        void activeScene.offsetWidth;
+      }
+      renderTutorialScene(requestedIndex);
+      setTutorialPosition(tutorialIndex * TUTORIAL_SCENE_MS);
+      if (wasPlaying) {
+        tutorialLastTick = performance.now();
+        if (tutorialAnimationFrame !== null) cancelAnimationFrame(tutorialAnimationFrame);
+        tutorialAnimationFrame = requestAnimationFrame(tutorialTick);
+      }
+      updateTutorialButtons();
+    }
+
+    function setTutorialCollapsed(collapsed) {
+      const shell = $("#tutorial");
+      shell.classList.toggle("is-collapsed", collapsed);
+      $("#tutorialToggle").setAttribute("aria-expanded", collapsed ? "false" : "true");
+      $("#tutorialToggle").textContent = collapsed ? "Show guide ↓" : "Hide guide ↑";
+      if (collapsed) setTutorialPlaying(false);
+    }
+
+    function scrollToSetup() {
+      setTutorialPlaying(false);
+      $("#setupWorkspace").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function initializeTutorial() {
+      document.documentElement.style.setProperty("--tutorial-scene-duration", `${TUTORIAL_SCENE_MS}ms`);
+      renderTutorialScene(0);
+      setTutorialPosition(0);
+      updateTutorialButtons();
+
+      $("#watchTutorial").addEventListener("click", () => {
+        setTutorialCollapsed(false);
+        $("#tutorial").scrollIntoView({ behavior: "smooth", block: "start" });
+        setTimeout(() => setTutorialPlaying(true), 80);
+      });
+      $("#jumpToSetup").addEventListener("click", scrollToSetup);
+      $("#tutorialSkip").addEventListener("click", scrollToSetup);
+      $("#tutorialToggle").addEventListener("click", () => setTutorialCollapsed(!$("#tutorial").classList.contains("is-collapsed")));
+      $("#tutorialBegin").addEventListener("click", () => setTutorialPlaying(!tutorialPlaying));
+      $("#tutorialPlay").addEventListener("click", () => setTutorialPlaying(!tutorialPlaying));
+      $("#tutorialPrev").addEventListener("click", () => goToTutorialChapter(tutorialIndex - 1));
+      $("#tutorialNext").addEventListener("click", () => {
+        if (tutorialIndex < TUTORIAL_SCENES.length - 1) goToTutorialChapter(tutorialIndex + 1);
+        else {
+          setTutorialPosition(TUTORIAL_TOTAL_MS);
+          setTutorialPlaying(false);
+        }
+      });
+      $$('[data-tutorial-target]').forEach(button => button.addEventListener("click", () => goToTutorialChapter(Number(button.dataset.tutorialTarget))));
+      document.addEventListener("visibilitychange", () => { if (document.hidden && tutorialPlaying) setTutorialPlaying(false); });
+    }
+
+    function mergeDefaults(target, source) {
+      if (!source || typeof source !== "object" || Array.isArray(source)) return target;
+      Object.keys(source).forEach(key => {
+        if (source[key] && typeof source[key] === "object" && !Array.isArray(source[key]) && target[key] && typeof target[key] === "object" && !Array.isArray(target[key])) {
+          mergeDefaults(target[key], source[key]);
+        } else if (source[key] !== undefined) target[key] = source[key];
+      });
+      return target;
+    }
+
+    function loadLocalState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return defaults();
+        const parsed = JSON.parse(raw);
+        return mergeDefaults(defaults(), parsed);
+      } catch (_) { return defaults(); }
+    }
+
+    function persist() {
+      state.currentStep = activeStep;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        $("#saveStatus span:last-child").textContent = "Draft saved only in this browser";
+        $("#saveStatus .save-dot").style.background = "var(--green)";
+      } catch (_) {
+        $("#saveStatus span:last-child").textContent = "Browser storage is unavailable";
+        $("#saveStatus .save-dot").style.background = "var(--orange)";
+      }
+    }
+
+    function scheduleSave() {
+      $("#saveStatus span:last-child").textContent = "Saving draft…";
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(persist, 220);
+    }
+
+    function getPath(obj, path) { return path.split(".").reduce((v, key) => v == null ? undefined : v[key], obj); }
+    function setPath(obj, path, value) {
+      const keys = path.split(".");
+      const last = keys.pop();
+      const parent = keys.reduce((v, key) => v[key] || (v[key] = {}), obj);
+      parent[last] = value;
+    }
+
+    function bindInputs() {
+      $$('[data-bind]').forEach(el => {
+        const value = getPath(state, el.dataset.bind);
+        if (el.type === "checkbox") el.checked = Boolean(value);
+        else el.value = value == null ? "" : value;
+        el.addEventListener("change", onBoundInput);
+        if (!["checkbox","file","select-one"].includes(el.type)) el.addEventListener("input", onBoundInput);
+      });
+    }
+
+    function onBoundInput(event) {
+      const el = event.currentTarget;
+      const value = el.type === "checkbox" ? el.checked : el.value;
+      setPath(state, el.dataset.bind, value);
+      if (el.dataset.bind === "fields.generalModelType") syncFirstModelName();
+      if (["fields.reason","fields.disease"].includes(el.dataset.bind)) refreshUploadedModelGroups();
+      if (el.dataset.bind.startsWith("workflows.") || el.dataset.bind.startsWith("evaluation.")) renderWorkflowState();
+      if (el.dataset.bind.startsWith("downloads.")) renderReview();
+      if (el.dataset.bind.startsWith("fields.outcome") || el.dataset.bind.startsWith("fields.training")) markCrosswalkStale();
+      scheduleSave();
+    }
+
+    function initializeStateSelector() {
+      const select = $("#stateContext");
+      STATES.forEach(([abbr, name]) => {
+        const option = document.createElement("option");
+        option.value = abbr;
+        option.textContent = `${name} (${abbr})`;
+        select.appendChild(option);
+      });
+    }
+
+    function initializeMonths() {
+      const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const root = $("#monthGrid");
+      root.innerHTML = monthNames.map((name, index) => `<label class="month-pill"><input type="checkbox" value="${index + 1}" ${state.evaluation.months.includes(index + 1) ? "checked" : ""}> ${name}</label>`).join("");
+      root.onchange = () => {
+        state.evaluation.months = $$('#monthGrid input:checked').map(el => Number(el.value));
+        scheduleSave();
+      };
+    }
+
+    function syncAllBoundInputs() {
+      $$('[data-bind]').forEach(el => {
+        const value = getPath(state, el.dataset.bind);
+        if (el.type === "checkbox") el.checked = Boolean(value);
+        else el.value = value == null ? "" : value;
+      });
+      initializeMonths();
+    }
+
+    function showStep(index, scroll = true) {
+      activeStep = Math.max(0, Math.min(4, index));
+      $$('.step-panel').forEach((panel, i) => panel.classList.toggle("active", i === activeStep));
+      $$('.step-tab').forEach((tab, i) => {
+        tab.classList.toggle("active", i === activeStep);
+        tab.classList.toggle("done", i < activeStep);
+        if (i === activeStep) tab.setAttribute("aria-current", "step"); else tab.removeAttribute("aria-current");
+      });
+      if (activeStep === 4) renderReview();
+      scheduleSave();
+      if (scroll) window.scrollTo({ top: document.querySelector(".stepper").offsetTop - 10, behavior: "smooth" });
+      const heading = $(`.step-panel[data-step="${activeStep}"] h2`);
+      if (heading && scroll) heading.setAttribute("tabindex", "-1"), heading.focus({ preventScroll: true });
+    }
+
+    function validateStep(index) {
+      if (index === 0) {
+        const required = [
+          ["#contactName", state.fields.name, "Add the report contact name."],
+          ["#contactEmail", state.fields.email, "Add the report contact email."],
+          ["#disease", state.fields.disease, "Add the disease."],
+          ["#modelType", state.fields.generalModelType, "Add the model name or type."],
+          ["#baseBox", state.fields.baseBox, "Add the primary working directory."]
+        ];
+        const missing = required.filter(([,value]) => absent(value));
+        $$('.invalid').forEach(el => el.classList.remove("invalid"));
+        missing.forEach(([selector]) => $(selector).classList.add("invalid"));
+        const badDescriptions = state.modelDescriptions.length === 0 || state.modelDescriptions.some(row => absent(row.model) || absent(row.description));
+        if (missing.length || badDescriptions) {
+          toast(missing[0]?.[2] || "Complete every model name and description before continuing.", true);
+          return false;
+        }
+      }
+      if (index === 1) {
+        const errors = validateOptions().filter(x => x.scope === "files" || x.scope === "groups");
+        if (errors.length) { toast(errors[0].message, true); return false; }
+        if (!state.crosswalk.length) buildStarterCrosswalk(false);
+      }
+      if (index === 2) {
+        const errors = validateCrosswalkRows();
+        if (errors.length) { toast(`${errors.length} crosswalk issue${errors.length === 1 ? "" : "s"}; first: ${errors[0].message}`, true); renderCrosswalk(); return false; }
+      }
+      if (index === 3) {
+        const errors = validateWorkflows();
+        if (errors.length) { toast(errors[0].message, true); return false; }
+      }
+      return true;
+    }
+
+    function toast(message, isError = false) {
+      const el = document.createElement("div");
+      el.className = `toast${isError ? " error" : ""}`;
+      el.textContent = message;
+      $("#toastRegion").appendChild(el);
+      setTimeout(() => el.remove(), 4800);
+    }
+
+    function renderModelDescriptions() {
+      const root = $("#modelDescriptionList");
+      if (!state.modelDescriptions.length) state.modelDescriptions.push({ model: state.fields.generalModelType || "", description: "" });
+      root.innerHTML = "";
+      state.modelDescriptions.forEach((row, index) => {
+        const wrap = document.createElement("div");
+        wrap.className = "model-description-row";
+        wrap.innerHTML = `<input aria-label="Model ${index + 1} name" placeholder="Model name" value="${esc(row.model)}"><textarea aria-label="Model ${index + 1} description" placeholder="Plain-language model description">${esc(row.description)}</textarea><button class="btn icon danger" type="button" aria-label="Remove model ${index + 1}">×</button>`;
+        const [model, description, remove] = wrap.children;
+        model.addEventListener("input", () => { state.modelDescriptions[index].model = model.value; state.modelDescriptions[index]._auto = false; scheduleSave(); });
+        description.addEventListener("input", () => { state.modelDescriptions[index].description = description.value; scheduleSave(); });
+        remove.addEventListener("click", () => { state.modelDescriptions.splice(index, 1); renderModelDescriptions(); scheduleSave(); });
+        root.appendChild(wrap);
+      });
+    }
+
+    function syncFirstModelName() {
+      if (state.modelDescriptions.length === 1 && (absent(state.modelDescriptions[0].model) || state.modelDescriptions[0]._auto)) {
+        state.modelDescriptions[0].model = state.fields.generalModelType;
+        state.modelDescriptions[0]._auto = true;
+        renderModelDescriptions();
+      }
+    }
+
+    function parseCsv(text, headerOnly = false) {
+      const rows = [];
+      let row = [], cell = "", quoted = false;
+      const value = text.replace(/^\uFEFF/, "");
+      for (let i = 0; i < value.length; i++) {
+        const ch = value[i];
+        if (quoted) {
+          if (ch === '"' && value[i + 1] === '"') { cell += '"'; i++; }
+          else if (ch === '"') quoted = false;
+          else cell += ch;
+        } else if (ch === '"' && cell.length === 0) quoted = true;
+        else if (ch === ",") { row.push(cell); cell = ""; }
+        else if (ch === "\n" || ch === "\r") {
+          if (ch === "\r" && value[i + 1] === "\n") i++;
+          row.push(cell); cell = "";
+          if (row.some(v => v !== "")) rows.push(row);
+          row = [];
+          if (headerOnly && rows.length) break;
+        } else cell += ch;
+      }
+      if (!headerOnly && (cell.length || row.length)) { row.push(cell); if (row.some(v => v !== "")) rows.push(row); }
+      if (quoted) throw new Error("The CSV ends inside a quoted field.");
+      if (!rows.length) throw new Error("The CSV is empty.");
+      const headers = rows.shift().map(v => clean(v));
+      if (headers.some(v => !v)) throw new Error("The CSV contains an empty column name.");
+      const malformed = rows.findIndex(values => values.length !== headers.length);
+      if (malformed >= 0) throw new Error(`CSV row ${malformed + 2} has ${rows[malformed].length} cells; expected ${headers.length}.`);
+      const records = rows.map(values => Object.fromEntries(headers.map((header, i) => [header, values[i] == null ? "" : values[i]])));
+      return { headers, records };
+    }
+
+    function filePathHint(file) {
+      const exposed = clean(file.path || file.webkitRelativePath);
+      return exposed || file.name;
+    }
+
+    async function inspectFile(kind, file) {
+      const status = $(`#${kind}Status`);
+      status.className = "status-box";
+      status.textContent = `Reading ${file.name} locally…`;
+      try {
+        const text = await file.text();
+        const parsed = parseCsv(text, ["outcome","training"].includes(kind));
+        const records = ["implementation","evaluation"].includes(kind)
+          ? compactGroupRecords(parsed.records || [])
+          : [];
+        uploads[kind] = { name: file.name, headers: parsed.headers, records, recordCount: (parsed.records || []).length };
+        const pathKey = `${kind}Path`;
+        if (pathKey in state.fields && absent(state.fields[pathKey])) {
+          state.fields[pathKey] = filePathHint(file);
+          $(`[data-bind="fields.${pathKey}"]`).value = state.fields[pathKey];
+        }
+        if (kind === "outcome") populateColumnList("outcomeColumns", parsed.headers, "outcomeName");
+        if (kind === "training") populateColumnList("trainingColumns", parsed.headers, "trainingVariable");
+        if (["implementation","evaluation"].includes(kind)) {
+          const groups = deriveGroups(kind, parsed.headers, records);
+          uploads[kind].groups = groups;
+          mergeGroups(groups.map(g => ({ ...g, source: kind })));
+          status.textContent = `✓ ${file.name}: ${parsed.headers.length} columns, ${parsed.records.length.toLocaleString()} rows, ${groups.length} unique group${groups.length === 1 ? "" : "s"}.`;
+        } else status.textContent = `✓ ${file.name}: ${parsed.headers.length} columns found.`;
+        status.classList.add("good");
+        scheduleSave();
+      } catch (error) {
+        uploads[kind] = null;
+        status.textContent = `Could not inspect this file: ${error.message}`;
+        status.classList.add("bad");
+      }
+    }
+
+    function populateColumnList(listId, headers, fieldKey) {
+      const list = $(`#${listId}`);
+      list.innerHTML = headers.map(h => `<option value="${esc(h)}"></option>`).join("");
+      if (absent(state.fields[fieldKey])) {
+        const common = new Set(["date","week","location","location_general","disease","population","data_source"]);
+        const suggestion = headers.find(h => !common.has(h.toLowerCase()));
+        if (suggestion) {
+          state.fields[fieldKey] = suggestion;
+          $(`[data-bind="fields.${fieldKey}"]`).value = suggestion;
+        }
+      }
+    }
+
+    function compactGroupRecords(records) {
+      const compact = new Map();
+      records.forEach(record => {
+        const candidate = {
+          location_general: record.location_general || "",
+          location: record.location || "",
+          disease: record.disease || ""
+        };
+        const key = [candidate.location_general,candidate.location,candidate.disease].join("|");
+        if (!compact.has(key)) compact.set(key, candidate);
+      });
+      return Array.from(compact.values());
+    }
+
+    function deriveGroups(kind, headers, records) {
+      const need = kind === "evaluation" || ["Internal","Software"].includes(state.fields.reason)
+        ? ["location_general","location","disease"] : ["location"];
+      const missing = need.filter(name => !headers.includes(name));
+      if (missing.length) throw new Error(`Missing required grouping column${missing.length > 1 ? "s" : ""}: ${missing.join(", ")}.`);
+      const groups = [];
+      const seen = new Set();
+      records.forEach(record => {
+        let spatialScale, location, disease;
+        if (kind === "evaluation" || ["Internal","Software"].includes(state.fields.reason)) {
+          spatialScale = clean(record.location_general);
+          location = clean(record.location);
+          disease = clean(record.disease);
+        } else {
+          location = clean(record.location);
+          disease = HUB_DISEASE[state.fields.reason] || clean(state.fields.disease);
+          if (state.fields.reason === "MetroCast") spatialScale = METROCAST_STATES.has(location) ? "state" : "hsa";
+          else spatialScale = location === "US" ? "national" : "state";
+        }
+        if (!spatialScale || !location || !disease) return;
+        const key = [spatialScale, location, disease].join("|");
+        if (!seen.has(key)) { seen.add(key); groups.push({ spatialScale, location, disease }); }
+      });
+      return groups.sort(groupSort);
+    }
+
+    function groupSort(a, b) { return [a.spatialScale,a.location,a.disease].join("|").localeCompare([b.spatialScale,b.location,b.disease].join("|")); }
+    function groupKey(group) { return [group.spatialScale, group.location, group.disease].map(clean).join("|"); }
+    function rowGroupKey(row) { return [row.spatial_scale, row.location, row.disease].map(clean).join("|"); }
+
+    function mergeGroups(groups) {
+      const map = new Map(state.groups.map(g => [groupKey(g), g]));
+      groups.forEach(group => {
+        const key = groupKey(group);
+        if (!map.has(key)) map.set(key, group);
+        else if (group.source && map.get(key).source !== group.source) map.get(key).source = "both model files";
+      });
+      state.groups = Array.from(map.values()).sort(groupSort);
+      renderGroups();
+      markCrosswalkStale();
+    }
+
+    function refreshUploadedModelGroups() {
+      const retained = state.groups.filter(g => g.source === "manual");
+      state.groups = retained;
+      ["implementation","evaluation"].forEach(kind => {
+        const upload = uploads[kind];
+        if (upload) {
+          try {
+            const groups = deriveGroups(kind, upload.headers, upload.records);
+            upload.groups = groups;
+            mergeGroups(groups.map(g => ({ ...g, source: kind })));
+            const status = $(`#${kind}Status`);
+            status.textContent = `✓ ${upload.name}: ${upload.headers.length} columns, ${upload.recordCount.toLocaleString()} rows, ${groups.length} unique group${groups.length === 1 ? "" : "s"}.`;
+            status.className = "status-box good";
+          } catch (error) {
+            const status = $(`#${kind}Status`);
+            status.textContent = `Could not derive groups: ${error.message}`;
+            status.className = "status-box bad";
+          }
+        }
+      });
+      renderGroups();
+      scheduleSave();
+    }
+
+    function renderGroups() {
+      const body = $("#groupTableBody");
+      if (!state.groups.length) {
+        body.innerHTML = '<tr class="empty-row"><td colspan="6">No groups yet. Inspect a model CSV or add one manually.</td></tr>';
+        return;
+      }
+      body.innerHTML = state.groups.map((group, index) => `<tr><td class="row-index">${index + 1}</td><td>${esc(group.spatialScale)}</td><td>${esc(group.location)}</td><td>${esc(group.disease)}</td><td class="cell-muted">${esc(group.source || "manual")}</td><td><button class="btn icon small danger" type="button" data-remove-group="${index}" aria-label="Remove group ${index + 1}">×</button></td></tr>`).join("");
+      $$('[data-remove-group]').forEach(button => button.addEventListener("click", () => {
+        state.groups.splice(Number(button.dataset.removeGroup), 1);
+        renderGroups(); markCrosswalkStale(); scheduleSave();
+      }));
+    }
+
+    function blankRow() { return Object.fromEntries(CROSSWALK_COLUMNS.map(column => [column, ""])); }
+    function cleanDiseaseName(disease) { return DISEASE_CLEAN[disease] || disease; }
+    function crosswalkRowKey(row) { return [row.spatial_scale,row.location,row.disease,row.variable_type,row.variable].map(clean).join("|"); }
+
+    function buildStarterRows() {
+      const rows = GLOSSARY.map(([term, definition]) => ({ ...blankRow(), variable_type: "general_term", variable: term, clean_name_full: term, clean_name_abb: term, definition }));
+      const hasTraining = [state.fields.trainingPath,state.fields.trainingVariable,state.fields.trainingSource].every(v => !absent(v));
+      state.groups.forEach(group => {
+        const context = { spatial_scale: group.spatialScale, location: group.location, disease: group.disease, disease_name_clean: cleanDiseaseName(group.disease) };
+        rows.push({ ...blankRow(), ...context, variable_type: "data_source", variable: state.fields.outcomeLabel, clean_name_full: state.fields.outcomeLabel, clean_name_abb: state.fields.outcomeLabel });
+        rows.push({ ...blankRow(), ...context, variable_type: "outcome", variable: state.fields.outcomeName, clean_name_full: state.fields.outcomeCleanFull || state.fields.outcomeName, clean_name_abb: state.fields.outcomeCleanAbb || state.fields.outcomeName, data_source: state.fields.outcomeLabel, convert_percent: state.fields.outcomePercent, definition: state.fields.outcomeDefinition, binning: state.fields.outcomeBinning, cohort: state.fields.outcomeCohort, file: state.fields.outcomePath });
+        if (hasTraining) {
+          if (clean(state.fields.trainingSource) !== clean(state.fields.outcomeLabel)) rows.push({ ...blankRow(), ...context, variable_type: "data_source", variable: state.fields.trainingSource, clean_name_full: state.fields.trainingSource, clean_name_abb: state.fields.trainingSource });
+          rows.push({ ...blankRow(), ...context, variable_type: "training", variable: state.fields.trainingVariable, clean_name_full: state.fields.trainingVariable, clean_name_abb: state.fields.trainingVariable, data_source: state.fields.trainingSource, definition: state.fields.trainingDefinition, file: state.fields.trainingPath });
+        }
+      });
+      return rows;
+    }
+
+    function buildStarterCrosswalk(notify = true) {
+      if (!state.groups.length) { toast("Add or discover at least one model group first.", true); return false; }
+      const existing = new Map(state.crosswalk.map(row => [crosswalkRowKey(row), row]));
+      const starter = buildStarterRows().map(row => {
+        const prior = existing.get(crosswalkRowKey(row));
+        if (!prior) return row;
+        // Step 2 remains the source of truth for outcome/training metadata.
+        // Preserve only edits that have no equivalent field in that step.
+        if (row.variable_type === "general_term") return { ...row, clean_name_full: prior.clean_name_full, clean_name_abb: prior.clean_name_abb, definition: prior.definition };
+        if (row.variable_type === "data_source") return { ...row, clean_name_full: prior.clean_name_full, clean_name_abb: prior.clean_name_abb };
+        return row;
+      });
+      const starterKeys = new Set(starter.map(crosswalkRowKey));
+      const custom = state.crosswalk.filter(row => !starterKeys.has(crosswalkRowKey(row)) && !row._starter);
+      state.crosswalk = [...starter.map(row => ({ ...row, _starter: true })), ...custom.map(row => ({ ...row, _starter: false }))];
+      state._crosswalkStale = false;
+      renderCrosswalk();
+      scheduleSave();
+      if (notify) toast(`Starter crosswalk is ready with ${state.crosswalk.length} rows.`);
+      return true;
+    }
+
+    function markCrosswalkStale() {
+      if (state.crosswalk.length) state._crosswalkStale = true;
+      scheduleSave();
+    }
+
+    function validateCrosswalkRow(row, index, allRows = state.crosswalk) {
+      const issues = [];
+      const type = clean(row.variable_type);
+      const general = type === "general_term";
+      const add = (field, message) => issues.push({ scope: "crosswalk", row: index, field, message: `Row ${index + 1}: ${message}` });
+      if (!["data_source","aux_variable","outcome","general_term","training"].includes(type)) add("variable_type", "choose a valid variable type.");
+      ["spatial_scale","location","disease","disease_name_clean"].forEach(field => {
+        if (general && !absent(row[field])) add(field, `${field} must be blank for a glossary term.`);
+        if (!general && absent(row[field])) add(field, `${field} is required.`);
+      });
+      if (DISEASE_CLEAN[row.disease] && row.disease_name_clean !== DISEASE_CLEAN[row.disease]) add("disease_name_clean", `use ${DISEASE_CLEAN[row.disease]} as the clean disease name.`);
+      ["variable","clean_name_full","clean_name_abb"].forEach(field => { if (absent(row[field])) add(field, `${field} is required.`); });
+      if (["outcome","aux_variable","general_term","training"].includes(type) && (absent(row.definition) || /^USER:/i.test(clean(row.definition)))) add("definition", "add a complete definition.");
+      if (type === "aux_variable") {
+        if (!['TRUE','FALSE'].includes(String(row.on_right_axis).toUpperCase())) add("on_right_axis", "choose whether the auxiliary variable uses the right axis.");
+        if (!['TRUE','FALSE'].includes(String(row.convert_percent).toUpperCase())) add("convert_percent", "choose whether the auxiliary variable converts to percent.");
+      } else if (!absent(row.on_right_axis)) add("on_right_axis", "right-axis setting is only allowed for auxiliary variables.");
+      if (!["aux_variable","outcome"].includes(type) && !absent(row.convert_percent)) add("convert_percent", "percent conversion is only allowed for auxiliary variables or outcomes.");
+      if (!absent(row.binning) && !["incident","severity","burden"].includes(row.binning)) add("binning", "choose incident, severity, burden, or blank.");
+      if (!absent(row.cohort) && !["dx","dx_cond_lab"].includes(row.cohort)) add("cohort", "choose dx, dx_cond_lab, or blank.");
+      const sourced = ["aux_variable","outcome","training"].includes(type);
+      if (sourced && absent(row.data_source)) add("data_source", "a data source is required.");
+      if (!sourced && !absent(row.data_source)) add("data_source", "data source must be blank for this row type.");
+      if (sourced && absent(row.file)) add("file", "a data file path is required.");
+      if (!sourced && !absent(row.file)) add("file", "file must be blank for this row type.");
+      if (sourced && !absent(row.data_source)) {
+        const found = allRows.some(candidate => candidate.variable_type === "data_source" && rowGroupKey(candidate) === rowGroupKey(row) && clean(candidate.variable) === clean(row.data_source));
+        if (!found) add("data_source", `source “${row.data_source}” has no matching data-source row in this group.`);
+      }
+      return issues;
+    }
+
+    function validateCrosswalkRows() {
+      const errors = state.crosswalk.flatMap((row, index) => validateCrosswalkRow(row, index));
+      if (state._crosswalkStale) errors.unshift({ scope: "crosswalk", message: "Report inputs or model groups changed. Use “Refresh starter rows” before downloading." });
+      const seen = new Map();
+      state.crosswalk.forEach((row, index) => {
+        const key = crosswalkRowKey(row);
+        if (seen.has(key)) errors.push({ scope: "crosswalk", row: index, field: "variable", message: `Row ${index + 1}: duplicates row ${seen.get(key) + 1} for the same group, type, and variable.` });
+        else seen.set(key, index);
+      });
+      if (!state.crosswalk.length) errors.push({ scope: "crosswalk", message: "Build the variables crosswalk." });
+      return errors;
+    }
+
+    function renderCrosswalk() {
+      const query = clean($("#crosswalkSearch")?.value).toLowerCase();
+      const typeFilter = $("#crosswalkTypeFilter")?.value || "";
+      const issues = validateCrosswalkRows();
+      const badRows = new Set(issues.filter(x => Number.isInteger(x.row)).map(x => x.row));
+      const body = $("#crosswalkTableBody");
+      if (!body) return;
+      const visible = state.crosswalk.map((row, index) => ({ row, index })).filter(({row}) => {
+        if (typeFilter && row.variable_type !== typeFilter) return false;
+        if (!query) return true;
+        return CROSSWALK_COLUMNS.some(column => clean(row[column]).toLowerCase().includes(query));
+      });
+      if (!visible.length) body.innerHTML = `<tr class="empty-row"><td colspan="9">${state.crosswalk.length ? "No rows match this filter." : "Build the starter crosswalk in Step 2."}</td></tr>`;
+      else body.innerHTML = visible.map(({row,index}) => {
+        const group = row.variable_type === "general_term" ? "Global glossary" : `${esc(row.spatial_scale)} · ${esc(row.location)}<br><span class="cell-muted">${esc(row.disease)}</span>`;
+        const settings = [row.data_source && `Source: ${row.data_source}`, row.on_right_axis && `Right axis: ${row.on_right_axis}`, row.convert_percent && `Percent: ${row.convert_percent}`].filter(Boolean).join(" · ");
+        return `<tr><td class="row-index">${index + 1}</td><td><span class="type-badge type-${esc(row.variable_type)}">${esc(typeLabel(row.variable_type))}</span></td><td>${group}</td><td><strong>${esc(row.variable)}</strong><br><span class="cell-muted">${esc(row.clean_name_abb)}</span></td><td>${esc(row.clean_name_full)}</td><td>${settings ? esc(settings) : '<span class="cell-muted">—</span>'}</td><td><span class="definition-cell">${esc(row.definition || "—")}</span></td><td><span class="state-badge ${badRows.has(index) ? "state-invalid" : "state-valid"}">${badRows.has(index) ? "Needs attention" : "Ready"}</span></td><td><button class="btn small" type="button" data-edit-row="${index}">Edit</button> <button class="btn icon small danger" type="button" data-delete-row="${index}" aria-label="Delete row ${index + 1}">×</button></td></tr>`;
+      }).join("");
+      $("#crosswalkCount").textContent = `${state.crosswalk.length} row${state.crosswalk.length === 1 ? "" : "s"}`;
+      $("#crosswalkCount").className = `state-badge ${issues.length ? "state-invalid" : "state-valid"}`;
+      $$('[data-edit-row]', body).forEach(button => button.addEventListener("click", () => openRowDialog(null, Number(button.dataset.editRow))));
+      $$('[data-delete-row]', body).forEach(button => button.addEventListener("click", () => {
+        const index = Number(button.dataset.deleteRow);
+        if (confirm(`Delete crosswalk row ${index + 1} (${state.crosswalk[index].variable})?`)) {
+          state.crosswalk.splice(index, 1); renderCrosswalk(); scheduleSave();
+        }
+      }));
+    }
+
+    function typeLabel(type) { return ({data_source:"Data source",aux_variable:"Auxiliary",outcome:"Outcome",general_term:"Glossary",training:"Training"})[type] || type || "Unknown"; }
+
+    function openRowDialog(type, index = -1) {
+      if (index < 0 && type !== "general_term" && !state.groups.length) { toast("Add a model group before adding this row.", true); return; }
+      const editing = index >= 0;
+      const row = editing ? state.crosswalk[index] : { ...blankRow(), variable_type: type || "aux_variable" };
+      $("#rowIndex").value = editing ? String(index) : "";
+      $("#rowDialogTitle").textContent = editing ? `Edit row ${index + 1}` : `Add ${typeLabel(row.variable_type).toLowerCase()} row`;
+      $("#rowType").value = row.variable_type;
+      renderRowGroupOptions(rowGroupKey(row));
+      $("#rowAllGroups").value = "one";
+      $("#rowVariable").value = row.variable || "";
+      $("#rowCleanFull").value = row.clean_name_full || "";
+      $("#rowCleanAbb").value = row.clean_name_abb || "";
+      $("#rowDataSource").value = row.data_source || "";
+      $("#rowRightAxis").value = normalizedBoolean(row.on_right_axis);
+      $("#rowConvertPercent").value = normalizedBoolean(row.convert_percent);
+      $("#rowDefinition").value = row.definition || "";
+      $("#rowBinning").value = row.binning || "";
+      $("#rowCohort").value = row.cohort || "";
+      $("#rowFile").value = row.file || "";
+      $$('.row-new-only').forEach(el => el.hidden = editing);
+      updateRowDialogFields();
+      updateRowSourceChoices();
+      $("#rowDialog").showModal();
+    }
+
+    function normalizedBoolean(value) {
+      const upper = clean(value).toUpperCase();
+      return ["TRUE","T"].includes(upper) ? "TRUE" : ["FALSE","F"].includes(upper) ? "FALSE" : "";
+    }
+
+    function renderRowGroupOptions(selected = "") {
+      const select = $("#rowGroup");
+      select.innerHTML = state.groups.map(group => `<option value="${esc(groupKey(group))}" ${groupKey(group) === selected ? "selected" : ""}>${esc(group.spatialScale)} · ${esc(group.location)} · ${esc(group.disease)}</option>`).join("");
+    }
+
+    function updateRowDialogFields() {
+      const type = $("#rowType").value;
+      const general = type === "general_term";
+      $$('.row-group-field').forEach(el => el.hidden = general);
+      $$('.row-source-field').forEach(el => el.hidden = !["aux_variable","outcome","training"].includes(type));
+      $$('.row-aux-field').forEach(el => el.hidden = type !== "aux_variable");
+      $$('.row-percent-field').forEach(el => el.hidden = !["aux_variable","outcome"].includes(type));
+      $$('.row-file-field').forEach(el => el.hidden = !["aux_variable","outcome","training"].includes(type));
+      $$('.row-definition-field').forEach(el => el.hidden = type === "data_source");
+      if (type !== "aux_variable") $("#rowRightAxis").value = "";
+      if (!["aux_variable","outcome"].includes(type)) $("#rowConvertPercent").value = "";
+      if (!["aux_variable","outcome","training"].includes(type)) { $("#rowDataSource").value = ""; $("#rowFile").value = ""; }
+      $("#rowDialogHelp").textContent = general ? "Glossary terms are global, so location and disease stay blank." : type === "data_source" ? "A data-source row names a source for this group; source, file, and definition stay blank." : "This row must point to a matching data-source row in the same group.";
+      updateRowSourceChoices();
+    }
+
+    function updateRowSourceChoices() {
+      const selectedGroup = $("#rowGroup").value;
+      const sources = state.crosswalk.filter(row => row.variable_type === "data_source" && rowGroupKey(row) === selectedGroup).map(row => row.variable);
+      $("#rowSourceChoices").innerHTML = [...new Set(sources)].map(source => `<option value="${esc(source)}"></option>`).join("");
+    }
+
+    function saveDialogRow(event) {
+      event.preventDefault();
+      const type = $("#rowType").value;
+      const indexText = $("#rowIndex").value;
+      const editing = indexText !== "";
+      const targetGroups = type === "general_term" ? [null] : (!editing && $("#rowAllGroups").value === "all" ? state.groups : [groupFromKey($("#rowGroup").value)]);
+      const template = {
+        variable_type: type,
+        variable: clean($("#rowVariable").value),
+        clean_name_full: clean($("#rowCleanFull").value),
+        clean_name_abb: clean($("#rowCleanAbb").value),
+        data_source: clean($("#rowDataSource").value),
+        on_right_axis: $("#rowRightAxis").value,
+        convert_percent: $("#rowConvertPercent").value,
+        definition: clean($("#rowDefinition").value),
+        binning: $("#rowBinning").value,
+        cohort: $("#rowCohort").value,
+        file: clean($("#rowFile").value),
+        _starter: false
+      };
+      const rows = targetGroups.map(group => ({ ...blankRow(), ...(group ? { spatial_scale: group.spatialScale, location: group.location, disease: group.disease, disease_name_clean: cleanDiseaseName(group.disease) } : {}), ...template }));
+      const provisional = editing ? state.crosswalk.map((row, i) => i === Number(indexText) ? rows[0] : row) : [...state.crosswalk, ...rows];
+      const rowIssues = rows.flatMap((row, i) => validateCrosswalkRow(row, editing ? Number(indexText) : state.crosswalk.length + i, provisional));
+      if (rowIssues.length) { toast(rowIssues[0].message, true); return; }
+      if (editing) state.crosswalk[Number(indexText)] = rows[0]; else state.crosswalk.push(...rows);
+      $("#rowDialog").close();
+      renderCrosswalk(); scheduleSave(); toast(`${editing ? "Updated" : "Added"} ${rows.length} crosswalk row${rows.length === 1 ? "" : "s"}.`);
+    }
+
+    function groupFromKey(key) {
+      const found = state.groups.find(group => groupKey(group) === key);
+      if (found) return found;
+      const [spatialScale, location, disease] = key.split("|");
+      return { spatialScale, location, disease };
+    }
+
+    function validateOptions() {
+      const errors = [];
+      const add = (scope, message) => errors.push({ scope, message });
+      [["name","Contact name"],["email","Contact email"],["disease","Disease"],["generalModelType","Model name/type"],["baseBox","Primary working directory"],["outcomeLabel","Outcome data-source label"],["outcomePath","Outcome data path"],["outcomeName","Outcome column"],["outcomeCleanFull","Outcome report name"],["outcomeCleanAbb","Outcome short name"],["outcomeDefinition","Outcome definition"]].forEach(([field,label]) => { if (absent(state.fields[field])) add(["outcomeLabel","outcomePath","outcomeName","outcomeCleanFull","outcomeCleanAbb","outcomeDefinition"].includes(field) ? "files" : "report", `${label} is required.`); });
+      if (absent(state.fields.implementationPath) && absent(state.fields.evaluationPath)) add("files", "Provide at least one implementation or evaluation model path.");
+      const training = [state.fields.trainingPath,state.fields.trainingVariable,state.fields.trainingSource];
+      if (training.some(v => !absent(v)) && training.some(absent)) add("files", "Training path, variable, and source must be all completed or all blank.");
+      if (!state.groups.length) add("groups", "Inspect a model CSV or add at least one location/disease group manually.");
+      if (!state.modelDescriptions.length || state.modelDescriptions.some(row => absent(row.model) || absent(row.description))) add("report", "Every model description needs both a model name and description.");
+      return errors;
+    }
+
+    function validateWorkflows() {
+      const errors = [];
+      const enabled = Object.entries(state.workflows).filter(([name,value]) => name !== "shared" && value.enabled);
+      if (!enabled.length) errors.push({ scope: "workflows", message: "Select at least one package output." });
+      if (state.workflows.report.enabled) {
+        if (absent(state.workflows.report.outputDir)) errors.push({ scope: "workflows", message: "Choose an output folder for the report." });
+        if (!absent(state.workflows.report.outputFile) && !/\.html?$/i.test(clean(state.workflows.report.outputFile))) errors.push({ scope: "workflows", message: "The report output filename must end in .html or .htm." });
+        if (state.workflows.report.mode === "split" && !absent(state.workflows.report.splitFilename) && (!/\{location(?:_name)?\}/.test(state.workflows.report.splitFilename) || !/\.html?$/i.test(state.workflows.report.splitFilename))) errors.push({ scope: "workflows", message: "A split filename needs {location} or {location_name} and an .html extension." });
+      }
+      if (state.workflows.evaluationExport.enabled) {
+        if (absent(state.workflows.evaluationExport.outputDir)) errors.push({ scope: "workflows", message: "Choose an output folder for testing-period exports." });
+        if (absent(state.fields.evaluationPath)) errors.push({ scope: "workflows", message: "Testing-period exports require an evaluation model path." });
+        if (!state.workflows.evaluationExport.saveResults && !state.workflows.evaluationExport.aiForm) errors.push({ scope: "workflows", message: "Select a CSV, Markdown summary, or both for the testing export." });
+      }
+      if (state.workflows.forecastPlot.enabled && absent(state.workflows.forecastPlot.file)) errors.push({ scope: "workflows", message: "Choose a file or output folder for the standalone forecast plot." });
+      if (state.workflows.forecastPlot.enabled) {
+        const w = state.workflows.forecastPlot;
+        if (!Number.isFinite(Number(w.scale)) || Number(w.scale) <= 0) errors.push({ scope: "workflows", message: "Forecast plot resolution scale must be a positive number." });
+        [[w.width,"Forecast plot width"],[w.height,"Forecast plot height"]].forEach(([value,label]) => { if (!absent(value) && (!Number.isFinite(Number(value)) || Number(value) <= 0)) errors.push({ scope: "workflows", message: `${label} must be a positive number.` }); });
+      }
+      if (state.workflows.consistencyPlot.enabled) {
+        const w = state.workflows.consistencyPlot;
+        if (absent(state.workflows.consistencyPlot.file)) errors.push({ scope: "workflows", message: "Choose a file or output folder for the consistency plot." });
+        if (absent(state.fields.implementationPath)) errors.push({ scope: "workflows", message: "The consistency plot requires an implementation model so forecast vintages can be archived and compared." });
+        [[w.nForecasts,"Recent forecasts"],[w.forecastEvery,"Forecast stride"],[w.endCushion,"Newest-forecast cushion"]].forEach(([value,label], index) => {
+          if ((index === 0 || !absent(value)) && (!Number.isInteger(Number(value)) || Number(value) < 1)) errors.push({ scope: "workflows", message: `${label} must be a positive whole number.` });
+        });
+      }
+      if (state.workflows.comparison.enabled) {
+        const paths = splitLines(state.workflows.comparison.additionalOptions);
+        if (!paths.length) errors.push({ scope: "workflows", message: "The comparison dashboard needs at least one additional completed options file." });
+        if (!/\.html?$/i.test(clean(state.workflows.comparison.outputFile))) errors.push({ scope: "workflows", message: "The comparison dashboard filename must end in .html or .htm." });
+        if (absent(state.workflows.comparison.title)) errors.push({ scope: "workflows", message: "Add a title for the comparison dashboard." });
+      }
+      if (state.evaluation.custom) {
+        const numeric = [["peakWindow",0,Infinity],["stableThreshold",0,Infinity],["pctErrorCushion",0,Infinity],["timingTolerance",0,Infinity],["magnitudeTolerance",0,1]];
+        numeric.forEach(([field,min,max]) => { const value = Number(state.evaluation[field]); if (!Number.isFinite(value) || value < min || value > max) errors.push({ scope: "workflows", message: `Evaluation setting ${field} must be between ${min} and ${max === Infinity ? "a positive limit" : max}.` }); });
+        if (Number(state.evaluation.peakWindow) <= 0) errors.push({ scope: "workflows", message: "Peak window must be greater than zero." });
+        if (!Number.isInteger(Number(state.evaluation.timingTolerance))) errors.push({ scope: "workflows", message: "Peak timing tolerance must be a whole number of time steps." });
+        const seasonMatch = clean(state.evaluation.seasonStart).match(/^([A-Za-z]+)\s+([0-3]?\d)$/);
+        const validMonths = new Set(["january","february","march","april","may","june","july","august","september","october","november","december","jan","feb","mar","apr","jun","jul","aug","sep","sept","oct","nov","dec"]);
+        if (!seasonMatch || !validMonths.has((seasonMatch?.[1] || "").toLowerCase()) || Number(seasonMatch?.[2]) < 1 || Number(seasonMatch?.[2]) > 31) errors.push({ scope: "workflows", message: "Season start must be a real month and day, such as “August 01”." });
+      }
+      return errors;
+    }
+
+    function validateDownloads() {
+      const errors = [];
+      const checks = [[state.downloads.optionsFilename,/\.R$/i,"Options filename must end in .R."],[state.downloads.crosswalkFilename,/\.csv$/i,"Crosswalk filename must end in .csv."],[state.downloads.runnerFilename,/\.R$/i,"Workflow filename must end in .R."]];
+      checks.forEach(([value,pattern,message]) => { if (absent(value) || !pattern.test(clean(value)) || /[<>:"/\\|?*]/.test(clean(value))) errors.push({ scope: "downloads", message }); });
+      return errors;
+    }
+
+    function allValidation() { return [...validateOptions(), ...validateCrosswalkRows(), ...validateWorkflows(), ...validateDownloads()]; }
+
+    function renderWorkflowState() {
+      $$('[data-workflow-card]').forEach(card => card.classList.toggle("enabled", Boolean(state.workflows[card.dataset.workflowCard]?.enabled)));
+      $$('[data-report-split]').forEach(el => el.hidden = state.workflows.report.mode !== "split");
+      $("#evaluationFields").hidden = !state.evaluation.custom;
+      scheduleSave();
+    }
+
+    function splitLines(value) { return String(value || "").split(/\r?\n/).map(clean).filter(Boolean); }
+
+    function rString(value, path = false) {
+      let text = String(value == null ? "" : value);
+      if (path) text = text.replace(/\\/g, "/");
+      return `"${text.replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/\r?\n/g,"\\n")}"`;
+    }
+    function rValue(value, path = false) { return absent(value) ? "NA" : rString(value, path); }
+    function rBool(value) { return value === true || String(value).toLowerCase() === "true" ? "TRUE" : "FALSE"; }
+    function rOptionalArg(name, value, path = false) { return absent(value) ? null : `${name} = ${rString(value, path)}`; }
+
+    function generateOptions() {
+      const models = state.modelDescriptions.map(row => rString(row.model)).join(", ");
+      const descriptions = state.modelDescriptions.map(row => rString(row.description)).join(",\n      ");
+      return `# Generated by the forecastEvalReport setup assistant\n# This file preserves the package's existing report_options contract.\n\n.fer_options_dir <- local({\n  source_file <- tryCatch(sys.frame(1)$ofile, error = function(e) NULL)\n  if(is.null(source_file) || !nzchar(source_file)) getwd() else\n    dirname(normalizePath(source_file, winslash = "/", mustWork = FALSE))\n})\n\nreport_options <- list(\n  name  = ${rValue(state.fields.name)},\n  email = ${rValue(state.fields.email)},\n\n  disease            = ${rValue(state.fields.disease)},\n  reason             = ${rValue(state.fields.reason)},\n  general.model.type = ${rValue(state.fields.generalModelType)},\n  population.label   = ${rValue(state.fields.populationLabel)},\n  base.box            = ${rValue(state.fields.baseBox, true)},\n\n  implementation.model.file = ${rValue(state.fields.implementationPath, true)},\n  evaluation.model.file     = ${rValue(state.fields.evaluationPath, true)},\n\n  outcome.data.label = ${rValue(state.fields.outcomeLabel)},\n  outcome.data       = ${rValue(state.fields.outcomePath, true)},\n  outcome.name       = ${rValue(state.fields.outcomeName)},\n\n  training.data.file    = ${rValue(state.fields.trainingPath, true)},\n  training.variable.name = ${rValue(state.fields.trainingVariable)},\n  training_data_source   = ${rValue(state.fields.trainingSource)},\n\n  model.descriptions = data.frame(\n    model = c(${models}),\n    description = c(\n      ${descriptions}\n    ),\n    stringsAsFactors = FALSE\n  ),\n\n  # Kept beside this options file so the bundle can be moved as one folder.\n  variables.crosswalk.file = file.path(.fer_options_dir, ${rString(state.downloads.crosswalkFilename)}),\n  state.context             = ${rValue(state.fields.stateContext)}\n)\n\nrm(.fer_options_dir)\n`;
+    }
+
+    function csvCell(value) {
+      if (absent(value)) return "NA";
+      return `"${String(value).replace(/"/g, '""')}"`;
+    }
+
+    function generateCrosswalk() {
+      const header = CROSSWALK_COLUMNS.map(v => `"${v}"`).join(",");
+      const lines = state.crosswalk.map(row => CROSSWALK_COLUMNS.map(column => csvCell(row[column])).join(","));
+      return [header, ...lines].join("\r\n") + "\r\n";
+    }
+
+    function commonRunnerArgs() {
+      // Optional crosswalk overrides are written into report_options so every
+      // package entry point sees the same values, including plot wrappers that
+      // do not accept these as direct function arguments.
+      return [];
+    }
+
+    function callBlock(fun, args, assignment = null) {
+      const body = args.filter(Boolean).map(arg => `  ${arg}`).join(",\n");
+      return `${assignment ? assignment + " <- " : ""}forecastEvalReport::${fun}(\n${body}\n)`;
+    }
+
+    function generateRunner() {
+      const blocks = [];
+      if (state.workflows.report.enabled) {
+        const w = state.workflows.report;
+        const args = [`options_file = options_file`, `output_dir = ${rString(w.outputDir, true)}`, rOptionalArg("output_file", w.outputFile), `quiet = ${rBool(w.quiet)}`, `eval_config = eval_config`];
+        if (w.mode === "split") { args.push("split_by_location = TRUE"); if (!absent(w.splitFilename)) args.push(`split_filename = ${rString(w.splitFilename, true)}`); }
+        args.push(...commonRunnerArgs());
+        blocks.push(`# Interactive evaluation report\n${callBlock("generate_report", args, "report_paths")}`);
+      }
+      if (state.workflows.forecastPlot.enabled) {
+        const w = state.workflows.forecastPlot;
+        const args = ["options_file = options_file", `file = ${rString(w.file, true)}`, `format = ${rString(w.format)}`, rOptionalArg("location", w.location), rOptionalArg("width", w.width), rOptionalArg("height", w.height), `scale = ${Number(w.scale) || 1}`, "eval_config = eval_config", ...commonRunnerArgs()];
+        if (!absent(w.width)) args[4] = `width = ${Number(w.width)}`;
+        if (!absent(w.height)) args[5] = `height = ${Number(w.height)}`;
+        blocks.push(`# Standalone forecast plot\n${callBlock("save_forecast_plot", args, "forecast_plot_paths")}`);
+      }
+      if (state.workflows.consistencyPlot.enabled) {
+        const w = state.workflows.consistencyPlot;
+        const args = ["options_file = options_file", `file = ${rString(w.file, true)}`, `format = ${rString(w.format)}`, rOptionalArg("location", w.location), `n_forecasts = ${Math.max(1, Number(w.nForecasts) || 5)}L`, absent(w.forecastEvery) ? null : `forecast_every = ${Math.max(1, Number(w.forecastEvery))}L`, absent(w.endCushion) ? null : `end_cushion = ${Math.max(1, Number(w.endCushion))}L`, "eval_config = eval_config", ...commonRunnerArgs()];
+        blocks.push(`# Forecast consistency plot\n${callBlock("save_consistency_plot", args, "consistency_plot_paths")}`);
+      }
+      if (state.workflows.evaluationExport.enabled) {
+        const w = state.workflows.evaluationExport;
+        const args = ["options_file = options_file", `output_dir = ${rString(w.outputDir, true)}`, `ai_form = ${rBool(w.aiForm)}`, `save_results = ${rBool(w.saveResults)}`, `ai_row_detail = ${rBool(w.aiRowDetail)}`, "eval_config = eval_config", rOptionalArg("file_prefix", w.filePrefix)];
+        blocks.push(`# Testing-period metrics and/or AI summary\n${callBlock("export_testing_evaluation", args, "evaluation_results")}`);
+      }
+      if (state.workflows.comparison.enabled) {
+        const w = state.workflows.comparison;
+        const options = ["options_file", ...splitLines(w.additionalOptions).map(path => rString(path, true))].join(",\n    ");
+        const args = [`options_files = c(\n    ${options}\n  )`, `output_file = ${rString(w.outputFile, true)}`, `title = ${rString(w.title)}`, `evaluation = ${rString(w.evaluation)}`, "eval_config = eval_config", `include_row_metrics = ${rBool(w.includeRowMetrics)}`];
+        blocks.push(`# Multi-model comparison dashboard\n${callBlock("generate_comparison_dashboard", args, "comparison_dashboard")}`);
+      }
+      const evalCode = state.evaluation.custom ? `forecastEvalReport::create_evaluation_config(\n  non_transmission_months = c(${state.evaluation.months.join(", ")}),\n  season_start_day_month  = ${rString(state.evaluation.seasonStart)},\n  peak_window             = ${Number(state.evaluation.peakWindow)},\n  stable_threshold        = ${Number(state.evaluation.stableThreshold)},\n  pct_error_cushion       = ${Number(state.evaluation.pctErrorCushion)},\n  timing_tol_steps        = ${Math.max(0, Number(state.evaluation.timingTolerance))}L,\n  mag_tol                 = ${Number(state.evaluation.magnitudeTolerance)}\n)` : "NULL  # Package defaults";
+      return `# Generated by the forecastEvalReport setup assistant\n+# Open this file in RStudio and click Source. No edits are required.\n+\n+if(!requireNamespace("forecastEvalReport", quietly = TRUE)){\n+  stop("Install forecastEvalReport before running this workflow.", call. = FALSE)\n+}\n+\n+# Resolve this bundle's folder whether run with Rscript or sourced in RStudio.\n+.fer_script_path <- tryCatch(normalizePath(sys.frame(1)$ofile, winslash = "/", mustWork = FALSE), error = function(e) NA_character_)\n+if(is.na(.fer_script_path) || !nzchar(.fer_script_path)){\n+  .fer_file_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)\n+  .fer_script_path <- if(length(.fer_file_arg)) sub("^--file=", "", .fer_file_arg[[1]]) else NA_character_\n+}\n+.fer_setup_dir <- if(is.na(.fer_script_path)) getwd() else dirname(.fer_script_path)\n+.fer_old_wd <- setwd(.fer_setup_dir)\n+on.exit(setwd(.fer_old_wd), add = TRUE)\n+\n+options_file <- file.path(.fer_setup_dir, ${rString(state.downloads.optionsFilename)})\n+crosswalk_file <- file.path(.fer_setup_dir, ${rString(state.downloads.crosswalkFilename)})\n+\n+# Check the completed crosswalk before starting longer work.\n+forecastEvalReport::validate_variables_crosswalk(crosswalk_file, verbose = TRUE)\n+\n+eval_config <- ${evalCode}\n+\n+${blocks.join("\n\n")}\n+\n+message("\\n✓ Selected forecastEvalReport workflow finished.")\n`;
+    }
+
+    function generateReadme() {
+      const selected = Object.entries(state.workflows).filter(([name,value]) => name !== "shared" && value.enabled).map(([name]) => ({report:"Interactive HTML report",forecastPlot:"Standalone forecast plot",consistencyPlot:"Forecast consistency plot",evaluationExport:"Testing-period evaluation exports",comparison:"Multi-model comparison dashboard"})[name]);
+      return `forecastEvalReport setup bundle\n================================\n\nCreated with the standalone setup assistant.\n\nFILES\n-----\n${state.downloads.optionsFilename}\n  The report_options list expected by the existing package pipeline.\n\n${state.downloads.crosswalkFilename}\n  The complete 15-column variables crosswalk.\n\n${state.downloads.runnerFilename}\n  A ready-to-run workflow for the selected package functions.\n\nSELECTED OUTPUTS\n----------------\n${selected.map(v => `- ${v}`).join("\n")}\n\nHOW TO RUN\n----------\n1. Extract all files into one folder.\n2. Confirm any full paths entered in the assistant still point to your CSV files.\n3. Open ${state.downloads.runnerFilename} in RStudio.\n4. Click Source.\n\nThe runner sets its working directory to this folder, validates the crosswalk,\nand then calls the existing forecastEvalReport functions. It does not replace or\nmodify the package pipeline.\n\nPRIVACY\n-------\nThe setup assistant operates entirely in your browser. It does not transmit file\ncontents, paths, contact details, or crosswalk data over the internet.\n`;
+    }
+
+    function generateOptionsBundleFile() {
+      const original = generateOptions();
+      const oldLine = `  state.context             = ${rValue(state.fields.stateContext)}\n`;
+      const replacement = `  state.context             = ${rValue(state.fields.stateContext)},\n\n  # Optional overrides already supported by the existing report pipeline.\n  location.crosswalk   = ${rValue(state.workflows.shared.locationCrosswalk, true)},\n  population.crosswalk = ${rValue(state.workflows.shared.populationCrosswalk, true)}\n`;
+      return original.replace(oldLine, replacement);
+    }
+
+    function generateRunnerBundleFile() {
+      // Remove patch-marker prefixes from the generated template and keep the
+      // runner's working directory at the bundle so relative paths are stable.
+      return generateRunner()
+        .split("\n")
+        .map(line => line.startsWith("+") ? line.slice(1) : line)
+        .join("\n")
+        .replace(
+          ".fer_old_wd <- setwd(.fer_setup_dir)\non.exit(setwd(.fer_old_wd), add = TRUE)\n",
+          "setwd(.fer_setup_dir)\n"
+        )
+        .replace("non_transmission_months = c(),", "non_transmission_months = integer(0),");
+    }
+
+    function renderReview() {
+      const errors = allValidation();
+      const selectedCount = Object.entries(state.workflows).filter(([name,value]) => name !== "shared" && value.enabled).length;
+      const requiredValues = [state.fields.name,state.fields.email,state.fields.disease,state.fields.generalModelType,state.fields.baseBox,state.fields.outcomeLabel,state.fields.outcomePath,state.fields.outcomeName,state.fields.outcomeCleanFull,state.fields.outcomeCleanAbb,state.fields.outcomeDefinition];
+      $("#reviewOptions").textContent = `${requiredValues.filter(v => !absent(v)).length}/${requiredValues.length} ready`;
+      $("#reviewGroups").textContent = String(state.groups.length);
+      $("#reviewRows").textContent = String(state.crosswalk.length);
+      $("#reviewFunctions").textContent = String(selectedCount);
+      const summary = $("#validationSummary");
+      if (!errors.length) summary.innerHTML = '<div class="callout"><strong>Everything is ready.</strong> The browser checks match the current options and crosswalk schemas. R will make the final file-existence and model-format checks when the workflow runs.</div>';
+      else {
+        const shown = errors.slice(0, 12);
+        summary.innerHTML = `<div class="callout error"><strong>${errors.length} issue${errors.length === 1 ? "" : "s"} to resolve before download.</strong><ul>${shown.map(error => `<li>${esc(error.message)}</li>`).join("")}${errors.length > shown.length ? `<li>…and ${errors.length - shown.length} more.</li>` : ""}</ul></div>`;
+      }
+      previewCache = { options: generateOptionsBundleFile(), crosswalk: generateCrosswalk(), runner: generateRunnerBundleFile(), readme: generateReadme() };
+      $("#previewOptions").textContent = previewCache.options;
+      const crosswalkLines = previewCache.crosswalk.split(/\r?\n/);
+      $("#previewCrosswalk").textContent = crosswalkLines.length > 35 ? `${crosswalkLines.slice(0,35).join("\n")}\n… ${crosswalkLines.length - 35} more rows in the download` : previewCache.crosswalk;
+      $("#previewRunner").textContent = previewCache.runner;
+      $("#previewReadme").textContent = previewCache.readme;
+      const disabled = errors.length > 0;
+      ["#downloadBundle","#downloadOptions","#downloadCrosswalk","#downloadRunner"].forEach(selector => $(selector).disabled = disabled);
+      $("#downloadMessage").textContent = disabled ? "Resolve validation issues above before downloading." : "Ready: options, crosswalk, workflow runner, and a short read-me.";
+    }
+
+    function downloadBlob(filename, content, type = "text/plain;charset=utf-8") {
+      const blob = content instanceof Blob ? content : new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url; link.download = filename; document.body.appendChild(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    }
+
+    function crc32(bytes) {
+      let crc = 0xffffffff;
+      for (const byte of bytes) crc = (crc >>> 8) ^ CRC_TABLE[(crc ^ byte) & 0xff];
+      return (crc ^ 0xffffffff) >>> 0;
+    }
+    const CRC_TABLE = (() => {
+      const table = new Uint32Array(256);
+      for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? 0xedb88320 ^ (c >>> 1) : c >>> 1; table[n] = c >>> 0; }
+      return table;
+    })();
+    function u16(value) { return new Uint8Array([value & 255, (value >>> 8) & 255]); }
+    function u32(value) { return new Uint8Array([value & 255, (value >>> 8) & 255, (value >>> 16) & 255, (value >>> 24) & 255]); }
+    function concatBytes(parts) { const size = parts.reduce((sum,p) => sum + p.length, 0); const out = new Uint8Array(size); let at = 0; parts.forEach(p => { out.set(p, at); at += p.length; }); return out; }
+    function dosDateTime(date = new Date()) { const year = Math.max(1980, date.getFullYear()); return { time: (date.getHours() << 11) | (date.getMinutes() << 5) | (date.getSeconds() >> 1), date: ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate() }; }
+
+    function makeZip(files) {
+      const encoder = new TextEncoder();
+      const localParts = [], centralParts = [];
+      let offset = 0;
+      const stamp = dosDateTime();
+      files.forEach(file => {
+        const name = encoder.encode(file.name);
+        const data = typeof file.content === "string" ? encoder.encode(file.content) : file.content;
+        const crc = crc32(data);
+        const local = concatBytes([u32(0x04034b50),u16(20),u16(0x0800),u16(0),u16(stamp.time),u16(stamp.date),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data]);
+        localParts.push(local);
+        centralParts.push(concatBytes([u32(0x02014b50),u16(20),u16(20),u16(0x0800),u16(0),u16(stamp.time),u16(stamp.date),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),name]));
+        offset += local.length;
+      });
+      const central = concatBytes(centralParts);
+      const end = concatBytes([u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),u32(central.length),u32(offset),u16(0)]);
+      return new Blob([...localParts, central, end], { type: "application/zip" });
+    }
+
+    function safeBundleName() {
+      const bits = [state.fields.name,state.fields.disease,state.fields.generalModelType].map(value => clean(value).replace(/[^A-Za-z0-9._-]+/g,"_").replace(/^_+|_+$/g,"")).filter(Boolean);
+      return `${bits.join("-") || "forecast-report"}-setup.zip`;
+    }
+
+    function saveDraftJson() {
+      const copy = clone(state);
+      copy.savedAt = new Date().toISOString();
+      downloadBlob("forecast-report-setup-draft.json", JSON.stringify(copy, null, 2), "application/json;charset=utf-8");
+    }
+
+    async function importDraft(file) {
+      try {
+        const parsed = JSON.parse(await file.text());
+        if (!parsed || typeof parsed !== "object") throw new Error("Not a setup draft.");
+        state = mergeDefaults(defaults(), parsed);
+        activeStep = Math.max(0, Math.min(4, Number(state.currentStep) || 0));
+        syncAllBoundInputs(); renderAll(); persist(); showStep(activeStep, false); toast("Draft loaded.");
+      } catch (error) { toast(`Could not load draft: ${error.message}`, true); }
+    }
+
+    function parseRScalar(text, name) {
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const match = text.match(new RegExp(`(?:^|\\n)\\s*${escaped}\\s*=\\s*(NA|"(?:\\\\.|[^"\\\\])*"|'(?:\\\\.|[^'\\\\])*')\\s*,?`, "m"));
+      if (!match || match[1] === "NA") return "";
+      const literal = match[1];
+      return literal.slice(1,-1).replace(/\\n/g,"\n").replace(/\\([\\"'])/g,"$1");
+    }
+
+    function parseRVector(block, name) {
+      const match = block.match(new RegExp(`${name}\\s*=\\s*c\\(([\\s\\S]*?)\\)\\s*,?`));
+      if (!match) return [];
+      const values = [];
+      const re = /"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'/g;
+      let item;
+      while ((item = re.exec(match[1]))) values.push((item[1] ?? item[2]).replace(/\\n/g,"\n").replace(/\\([\\"'])/g,"$1"));
+      return values;
+    }
+
+    async function importOptions(file) {
+      try {
+        const text = await file.text();
+        if (!/report_options\s*<-\s*list\s*\(/.test(text)) throw new Error("No report_options list was found.");
+        const mapping = { name:"name", email:"email", disease:"disease", reason:"reason", "general.model.type":"generalModelType", "population.label":"populationLabel", "base.box":"baseBox", "implementation.model.file":"implementationPath", "evaluation.model.file":"evaluationPath", "outcome.data.label":"outcomeLabel", "outcome.data":"outcomePath", "outcome.name":"outcomeName", "training.data.file":"trainingPath", "training.variable.name":"trainingVariable", training_data_source:"trainingSource", "state.context":"stateContext" };
+        Object.entries(mapping).forEach(([rName,key]) => { const value = parseRScalar(text,rName); if (value !== "" || /\bNA\b/.test(text)) state.fields[key] = value; });
+        const modelBlock = text.match(/model\.descriptions\s*=\s*data\.frame\s*\(([\s\S]*?)\)\s*,\s*(?:variables\.crosswalk\.file|state\.context)/);
+        if (modelBlock) {
+          const models = parseRVector(modelBlock[1], "model");
+          const descriptions = parseRVector(modelBlock[1], "description");
+          if (models.length) state.modelDescriptions = models.map((model,index) => ({ model, description: descriptions[index] || "" }));
+          else {
+            const model = parseRScalar(modelBlock[1], "model"), description = parseRScalar(modelBlock[1], "description");
+            if (model || description) state.modelDescriptions = [{model,description}];
+          }
+        }
+        syncAllBoundInputs(); renderAll(); scheduleSave(); toast("Options imported. Browser parsing is intentionally safe; review paths and model descriptions.");
+      } catch (error) { toast(`Could not import options: ${error.message}`, true); }
+    }
+
+    async function importCrosswalk(file) {
+      try {
+        const parsed = parseCsv(await file.text());
+        const missing = CROSSWALK_COLUMNS.filter(column => !parsed.headers.includes(column));
+        const extra = parsed.headers.filter(column => !CROSSWALK_COLUMNS.includes(column));
+        if (missing.length || extra.length) throw new Error(`${missing.length ? `Missing: ${missing.join(", ")}. ` : ""}${extra.length ? `Unexpected: ${extra.join(", ")}.` : ""}`);
+        state.crosswalk = parsed.records.map(record => ({ ...blankRow(), ...Object.fromEntries(CROSSWALK_COLUMNS.map(column => [column, absent(record[column]) ? "" : record[column]])), _starter: false }));
+        const groupMap = new Map(state.groups.map(group => [groupKey(group), group]));
+        state.crosswalk.filter(row => row.variable_type !== "general_term").forEach(row => {
+          const group = { spatialScale: row.spatial_scale, location: row.location, disease: row.disease, source: "imported crosswalk" };
+          if (!groupMap.has(groupKey(group))) groupMap.set(groupKey(group), group);
+        });
+        state.groups = Array.from(groupMap.values()).sort(groupSort);
+        state._crosswalkStale = false;
+        renderGroups(); renderCrosswalk(); scheduleSave(); toast(`Imported ${state.crosswalk.length} crosswalk rows.`);
+      } catch (error) { toast(`Could not import crosswalk: ${error.message}`, true); }
+    }
+
+    function renderAll() {
+      renderModelDescriptions(); renderGroups(); renderCrosswalk(); renderWorkflowState();
+    }
+
+    function attachEvents() {
+      $$('.step-tab').forEach(button => button.addEventListener("click", () => showStep(Number(button.dataset.stepTarget))));
+      $$('[data-next]').forEach(button => button.addEventListener("click", () => { if (validateStep(activeStep)) showStep(activeStep + 1); }));
+      $$('[data-prev]').forEach(button => button.addEventListener("click", () => showStep(activeStep - 1)));
+      $("#addModelDescription").addEventListener("click", () => { state.modelDescriptions.push({model:"",description:""}); renderModelDescriptions(); scheduleSave(); });
+      ["implementation","evaluation","outcome","training"].forEach(kind => $(`#${kind}Upload`).addEventListener("change", event => { const file = event.target.files[0]; if (file) inspectFile(kind,file); }));
+      $("#addGroup").addEventListener("click", () => {
+        const group = { spatialScale: clean($("#manualScale").value), location: clean($("#manualLocation").value), disease: clean($("#manualDisease").value || state.fields.disease), source: "manual" };
+        if (!group.spatialScale || !group.location || !group.disease) { toast("Spatial scale, location, and disease are all required for a group.", true); return; }
+        mergeGroups([group]); $("#manualLocation").value = ""; scheduleSave();
+      });
+      $("#seedCrosswalk").addEventListener("click", () => buildStarterCrosswalk());
+      $("#reseedCrosswalk").addEventListener("click", () => buildStarterCrosswalk());
+      $("#crosswalkSearch").addEventListener("input", renderCrosswalk);
+      $("#crosswalkTypeFilter").addEventListener("change", renderCrosswalk);
+      $$('[data-add-row]').forEach(button => button.addEventListener("click", () => openRowDialog(button.dataset.addRow)));
+      $("#validateCrosswalk").addEventListener("click", () => { const errors = validateCrosswalkRows(); renderCrosswalk(); toast(errors.length ? `${errors.length} issue${errors.length === 1 ? "" : "s"}; first: ${errors[0].message}` : "Crosswalk passes all browser checks.", errors.length > 0); });
+      $("#rowType").addEventListener("change", updateRowDialogFields);
+      $("#rowGroup").addEventListener("change", updateRowSourceChoices);
+      $("#rowForm").addEventListener("submit", saveDialogRow);
+      $$('[data-dialog-close]').forEach(button => button.addEventListener("click", () => $("#rowDialog").close()));
+      $$('.preview-tab').forEach(button => button.addEventListener("click", () => {
+        $$('.preview-tab').forEach(tab => { tab.classList.toggle("active", tab === button); tab.setAttribute("aria-selected", tab === button ? "true" : "false"); });
+        $$('.code-preview').forEach(preview => preview.classList.remove("active"));
+        $(`#preview${button.dataset.preview[0].toUpperCase()}${button.dataset.preview.slice(1)}`).classList.add("active");
+      }));
+      $("#saveDraft").addEventListener("click", saveDraftJson);
+      $("#draftImport").addEventListener("change", event => event.target.files[0] && importDraft(event.target.files[0]));
+      $("#optionsImport").addEventListener("change", event => event.target.files[0] && importOptions(event.target.files[0]));
+      $("#crosswalkImport").addEventListener("change", event => event.target.files[0] && importCrosswalk(event.target.files[0]));
+      $("#resetDraft").addEventListener("click", () => {
+        if (!confirm("Start over and erase the setup draft stored in this browser? Downloaded files will not be affected.")) return;
+        localStorage.removeItem(STORAGE_KEY); state = defaults(); activeStep = 0; syncAllBoundInputs(); renderAll(); showStep(0); toast("Started a new setup.");
+      });
+      $("#runValidationAgain").addEventListener("click", () => { renderReview(); const count = allValidation().length; toast(count ? `${count} issue${count === 1 ? "" : "s"} remain.` : "Everything is ready to download.", count > 0); });
+      $("#downloadOptions").addEventListener("click", () => downloadBlob(state.downloads.optionsFilename, previewCache.options, "text/plain;charset=utf-8"));
+      $("#downloadCrosswalk").addEventListener("click", () => downloadBlob(state.downloads.crosswalkFilename, previewCache.crosswalk, "text/csv;charset=utf-8"));
+      $("#downloadRunner").addEventListener("click", () => downloadBlob(state.downloads.runnerFilename, previewCache.runner, "text/plain;charset=utf-8"));
+      $("#downloadBundle").addEventListener("click", () => {
+        renderReview(); if (allValidation().length) return;
+        const zip = makeZip([{name:state.downloads.optionsFilename,content:previewCache.options},{name:state.downloads.crosswalkFilename,content:previewCache.crosswalk},{name:state.downloads.runnerFilename,content:previewCache.runner},{name:"README.txt",content:previewCache.readme}]);
+        downloadBlob(safeBundleName(), zip, "application/zip");
+      });
+      window.addEventListener("beforeunload", persist);
+    }
+
+    initializeTutorial();
+    initializeStateSelector();
+    initializeMonths();
+    bindInputs();
+    attachEvents();
+    renderAll();
+    showStep(activeStep, false);
+  })();
+  </script>
+</body>
+</html>
