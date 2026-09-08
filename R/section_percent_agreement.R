@@ -1,7 +1,7 @@
-#' Render the Percent Agreement drop-down section
+#' Render the Percent Accuracy drop-down section
 #'
-#' Builds the full Percent Agreement accordion for the testing-period block:
-#' an intro, the "Percent Agreement Over Time" figure (one panel per location,
+#' Builds the full Percent Accuracy accordion for the testing-period block:
+#' an intro, the "Percent Accuracy Over Time" figure (one panel per location,
 #' switched by a geography dropdown), a synced Median (Range) summary table by
 #' forecast horizon, and a Detailed Methods accordion. Renders nothing when no
 #' testing data is present, matching every other testing-period section.
@@ -25,6 +25,9 @@
 #' @param eval_config Evaluation config from `create_evaluation_config()`. Only
 #'   `non_transmission_months` is used here (to phrase the methods text). When
 #'   `NULL`, defaults are used.
+#' @param population_crosswalk Optional custom population rows from
+#'   `generate_report()`. These extend the built-in population crosswalk for
+#'   population-adjusted trend calls.
 #'
 #' @return Rendered HTML via [htmltools::tagList()], or `invisible(NULL)` when
 #'   no testing data is available.
@@ -35,14 +38,15 @@ section_percent_agreement <- function(percentAgreement.data,
                                       eval_meta,
                                       outcome             = NULL,
                                       variables_crosswalk = NULL,
-                                      eval_config         = NULL) {
+                                      eval_config         = NULL,
+                                      population_crosswalk = NULL) {
 
 #------------------------------------------------------------------------------#
 # Testing data must be present -------------------------------------------------
 #------------------------------------------------------------------------------#
 # About: This section checks to make sure the testing data and percent         #
 # agreement data is available prior to running the remainder of the script. If #
-# the testing data or percent agreement metrics are not available the script   #
+# the testing data or percent accuracy metrics are not available the script   #
 # does not run.                                                                #
 #------------------------------------------------------------------------------#
 
@@ -59,7 +63,7 @@ section_percent_agreement <- function(percentAgreement.data,
   ###############################################
   if(!has_testing) return(invisible(NULL))
 
-  # Rendering nothing when no percent agreement metrics are
+  # Rendering nothing when no percent accuracy metrics are
   if(is.null(percentAgreement.data) ||
      !is.data.frame(percentAgreement.data) ||
      nrow(percentAgreement.data) == 0) return(invisible(NULL))
@@ -241,11 +245,47 @@ section_percent_agreement <- function(percentAgreement.data,
   interactive <- n_loc > 1
 
 #------------------------------------------------------------------------------#
+# Trend- and phase-specific Percent Accuracy ---------------------------------
+#------------------------------------------------------------------------------#
+# About: This calculation keeps the existing Percent Accuracy metric as the   #
+# displayed value, while grouping it by observed trend label and observed      #
+# Ascension, Peak, and Decline phase.                                           #
+#------------------------------------------------------------------------------#
+
+  trend_phase_error <- NULL
+  trend_phase_result <- tryCatch(
+    trendPhasePerformanceCalculation(
+      percentAgreement.data = percentAgreement.data,
+      population = population_crosswalk,
+      eval_config = eval_config,
+      week_days = if(!is.null(eval_meta$time_step)) eval_meta$time_step else 7
+    ),
+    error = function(e){
+      trend_phase_error <<- paste0(
+        "The trend/phase table could not be calculated: ", conditionMessage(e)
+      )
+      message(
+        "Trend/Phase-Specific Performance could not be calculated and will ",
+        "show a diagnostic note. Reason: ", conditionMessage(e)
+      )
+      list(summary = data.frame(), data = data.frame())
+    }
+  )
+
+  trend_phase_accordion <- build_trend_phase_performance(
+    performance_summary = trend_phase_result$summary,
+    location_codes = loc_codes,
+    location_labels = loc_labels,
+    phase_data = trend_phase_result$data,
+    status_message = trend_phase_error
+  )
+
+#------------------------------------------------------------------------------#
 # Intro paragraph --------------------------------------------------------------
 #------------------------------------------------------------------------------#
 # About: This section creates the introduction paragraph to show for the %     #
 # agreement drop down. Essentially, its goal is to provide a brief into to     #
-# what the user should expect to see in the percent agreement drop down.       #
+# what the user should expect to see in the percent accuracy drop down.       #
 #------------------------------------------------------------------------------#
 
   #######################################
@@ -253,9 +293,9 @@ section_percent_agreement <- function(percentAgreement.data,
   #######################################
   intro_html <- htmltools::HTML('
   <p style="font-size: 15px; line-height: 1.8; color: #444; margin: 0 0 1rem 0;">
-    Percent agreement measures how closely forecasted values align with observed
+    Percent accuracy measures how closely forecasted values align with observed
     counts, ranging from 0% to 100% where <strong>higher</strong> values indicate
-    <strong>stronger</strong> agreement. The figure and table below summarize agreement
+    <strong>greater</strong> accuracy. The figure and table below summarize accuracy
     over time across the overall median and for all forecast horizons.
   </p>
   ')
@@ -265,7 +305,7 @@ section_percent_agreement <- function(percentAgreement.data,
 #------------------------------------------------------------------------------#
 # About: This section creates the navigation call out. The goal of this        #
 # section is to provide clear instructions for users as they navigate the      #
-# percent agreement drop down.                                                 #
+# percent accuracy drop down.                                                 #
 #------------------------------------------------------------------------------#
 
   ####################################
@@ -281,9 +321,9 @@ section_percent_agreement <- function(percentAgreement.data,
         To Navigate
       </span>
       <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0;">
-        The solid black line shows the <strong>overall median percent agreement</strong>
+        The solid black line shows the <strong>overall median percent accuracy</strong>
         over time; click a horizon in the legend to overlay individual horizon lines.', no_eval_sentence, '
-        In the table, columns show median agreement and range by horizon, with an
+        In the table, columns show median accuracy and range by horizon, with an
         overall summary in purple.
       </p>
     </div>
@@ -294,16 +334,16 @@ section_percent_agreement <- function(percentAgreement.data,
 # Section header ---------------------------------------------------------------
 #------------------------------------------------------------------------------#
 # About: This section creates the section header for above the figure. It is   #
-# to make it clear that we show the percent agreement over time and by         #
+# to make it clear that we show the percent accuracy over time and by         #
 # forecast horizon.                                                            #
 #------------------------------------------------------------------------------#
 
   ##############################################
-  # Creating the header percent agreement plot #
+  # Creating the header percent accuracy plot #
   ##############################################
   header_html <- htmltools::tagList(
     htmltools::div(style = "margin-top: 1.5em;"),
-    htmltools::tags$h3(htmltools::tags$strong("Percent Agreement Over Time by Forecast Horizon")),
+    htmltools::tags$h3(htmltools::tags$strong("Percent Accuracy Over Time by Forecast Horizon")),
     htmltools::div(style = "margin-top: 2em;")
   )
 
@@ -473,7 +513,7 @@ section_percent_agreement <- function(percentAgreement.data,
 # Building the location x horizon table (Median + Range) -----------------------
 #------------------------------------------------------------------------------#
 # About: This section builds the table that shows the median and range of      #
-# row level percent agreement values. This is only computed for the rows/dates #
+# row level percent accuracy values. This is only computed for the rows/dates #
 # that fall within the transmission season. Any empty location and horizon     #
 # groups render a dash instead of crashing on an empty vector.                 #
 #------------------------------------------------------------------------------#
@@ -716,7 +756,7 @@ section_percent_agreement <- function(percentAgreement.data,
 # Detailed Methods accordion (config-aware, Median/Range) ----------------------
 #------------------------------------------------------------------------------#
 # About: This section creates the detailed metrics section that shows in the   #
-# drop down for percent agreement. This is essentially to ensure that the user #
+# drop down for percent accuracy. This is essentially to ensure that the user #
 # knows exactly how the metrics they seeing are calculated.                    #
 #------------------------------------------------------------------------------#
 
@@ -731,13 +771,13 @@ section_percent_agreement <- function(percentAgreement.data,
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
       Target end dates falling in the non-transmission season (<strong>', nt_label, '</strong>)
       are excluded from all summary statistics. During this period low and highly variable
-      counts can distort agreement metrics. Row-level values are retained in the data for
+      counts can distort accuracy metrics. Row-level values are retained in the data for
       visual continuity in plots but are not included in any median or range calculations.
     </p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
       <strong>Example:</strong> A forecast whose target end date falls within the
       non-transmission window (', nt_label, ') will appear in the time series plot but
-      will not contribute to the reported median percent agreement for any horizon or the
+      will not contribute to the reported median percent accuracy for any horizon or the
       overall summary.
     </p>
 
@@ -749,24 +789,70 @@ section_percent_agreement <- function(percentAgreement.data,
   #######################################
   }else{''}
 
+  ##############################################
+  # Trend and epidemic phase explanation block #
+  ##############################################
+  trend_phase_methods_block <- paste0('
+    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">
+      Trend and Phase Breakdown
+    </p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
+      This table uses the same row-level <strong>Percent Accuracy</strong>
+      calculation described above. Trend and phase labels simply divide those
+      Percent Accuracy values into clinically meaningful parts of the observed
+      epidemic curve; they do not replace Percent Accuracy with a different
+      accuracy formula.
+    </p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
+      <strong>Observed trend:</strong> Counts are first converted to rates per
+      100,000 population, then compared with the preceding target week. Within
+      each location, the distribution of observed week-to-week rate changes
+      supplies the cut points for <strong>Large Increase</strong>,
+      <strong>Increase</strong>, <strong>Stable</strong>,
+      <strong>Decrease</strong>, and <strong>Large Decrease</strong>. A raw
+      weekly change smaller than <strong>', eval_config$stable_threshold,
+      '</strong> counts is treated as Stable so very small count changes are not
+      overstated.
+    </p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
+      <strong>Observed phase:</strong> For each location and season, the Peak is
+      the continuous set of observed weeks surrounding the seasonal maximum
+      that remain within <strong>', eval_config$peak_window,
+      '%</strong> of that maximum. Weeks before the Peak are labeled
+      <strong>Ascension</strong>; weeks after it are labeled
+      <strong>Decline</strong>. The phases are determined only from observed
+      target-date data and therefore do not change by forecast horizon.
+    </p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
+      Each table cell reports the <strong>median Percent Accuracy</strong> and
+      its <strong>range</strong> for rows with that observed trend and phase.
+      Selecting a horizon limits the calculation to that forecast horizon;
+      <strong>Overall</strong> pools all eligible forecast-target pairs across
+      horizons. The displayed <em>n</em> is the number of pairs contributing to
+      the cell. A dash means no eligible rows were available.
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
+  ')
+
   ###############################################################
-  # Creating the remainder of the methods for percent agreement #
+  # Creating the remainder of the methods for percent accuracy #
   ###############################################################
   methods_html <- htmltools::HTML(paste0('
   <div style="font-family: sans-serif; padding: 0.5rem 0;">
 
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
       The following definitions describe the methods used to calculate and summarize
-      percent agreement between forecasted and observed values, providing a transparent
+      percent accuracy between forecasted and observed values, providing a transparent
       and interpretable measure of how closely model predictions align with observed
       counts across forecast horizons and locations.
     </p>
 
     <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
 
-    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Row-Level Percent Agreement</p>
+    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Row-Level Percent Accuracy</p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
-      Percent agreement is calculated at the individual forecast level as the ratio of
+      Percent accuracy is calculated at the individual forecast level as the ratio of
       the smaller value to the larger value between the forecasted and observed counts,
       expressed as a percentage. This symmetric measure is bounded between 0% and 100%,
       where 100% indicates a perfect match. Rows where the observed count is missing or
@@ -775,26 +861,26 @@ section_percent_agreement <- function(percentAgreement.data,
     <div id="eq-pa-row" style="text-align: center; margin: 0.75rem 0 1rem;"></div>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
       <strong>Example:</strong> If the model forecasted 450 ', outcome, ' and 500 were
-      observed, percent agreement is (450 / 500) &times; 100 = 90%. If the model
-      forecasted 600 and 500 were observed, percent agreement is (500 / 600) &times;
+      observed, percent accuracy is (450 / 500) &times; 100 = 90%. If the model
+      forecasted 600 and 500 were observed, percent accuracy is (500 / 600) &times;
       100 = 83.3%. The direction of the error does not affect the result.
     </p>
 
     <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
-', transmission_filter_block, '
+', transmission_filter_block, trend_phase_methods_block, '
     <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Horizon-Level Summaries</p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
-      Row-level percent agreement values are grouped by <strong>forecast horizon and
+      Row-level percent accuracy values are grouped by <strong>forecast horizon and
       location</strong>. Within each group, the <strong>median</strong> and
       <strong>range</strong> (minimum and maximum) are computed across all
       transmission-season rows. These summaries capture how forecast accuracy changes as
       the prediction window extends — shorter horizons are generally expected to show
-      higher agreement than longer ones.
+      higher accuracy than longer ones.
     </p>
     <div id="eq-pa-horizon" style="text-align: center; margin: 0.75rem 0 1rem;"></div>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
       <strong>Example:</strong> If horizon 1 forecasts across all transmission-season
-      weeks have a median percent agreement of 88% (range: 70% – 98%), the model is
+      weeks have a median percent accuracy of 88% (range: 70% – 98%), the model is
       typically within 12% of the observed count one week ahead.
     </p>
 
@@ -803,7 +889,7 @@ section_percent_agreement <- function(percentAgreement.data,
     <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Overall Summary</p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
       An overall summary collapses across all horizons within each location, computing
-      the <strong>median</strong> and <strong>range</strong> of percent agreement across
+      the <strong>median</strong> and <strong>range</strong> of percent accuracy across
       all transmission-season rows regardless of horizon. This provides a single
       high-level benchmark of forecast performance for each location.
     </p>
@@ -820,7 +906,7 @@ section_percent_agreement <- function(percentAgreement.data,
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script>
     katex.render(
-      "\\\\text{Percent Agreement} = \\\\frac{\\\\min(\\\\text{Forecasted},\\\\, \\\\text{Observed})}{\\\\max(\\\\text{Forecasted},\\\\, \\\\text{Observed})} \\\\times 100",
+      "\\\\text{Percent Accuracy} = \\\\frac{\\\\min(\\\\text{Forecasted},\\\\, \\\\text{Observed})}{\\\\max(\\\\text{Forecasted},\\\\, \\\\text{Observed})} \\\\times 100",
       document.getElementById("eq-pa-row"),
       { throwOnError: false, displayMode: true }
     );
@@ -842,7 +928,7 @@ section_percent_agreement <- function(percentAgreement.data,
   ###################################################
   methods_accordion <- htmltools::tags$details(
     class = "accordion",
-    htmltools::tags$summary(htmltools::tags$strong("Detailed Methods (Percent Agreement)")),
+    htmltools::tags$summary(htmltools::tags$strong("Detailed Methods (Percent Accuracy)")),
     htmltools::div(class = "accordion-body", methods_html)
   )
 
@@ -891,8 +977,8 @@ section_percent_agreement <- function(percentAgreement.data,
     ########################################
     compare_body <- htmltools::HTML(paste0('
     <p style="font-size: 14px; line-height: 1.6; color: #444; margin: 0 0 1rem 0;">
-      Compare percent agreement across all locations at once. The table starts sorted from
-      best to worst by overall median agreement; click any column to re-sort, or use the
+      Compare percent accuracy across all locations at once. The table starts sorted from
+      best to worst by overall median accuracy; click any column to re-sort, or use the
       search box to find a specific location.
     </p>
 
@@ -986,17 +1072,17 @@ section_percent_agreement <- function(percentAgreement.data,
 #------------------------------------------------------------------------------#
 # Assembling the full drop-down ------------------------------------------------
 #------------------------------------------------------------------------------#
-# About: This section assembles the full drop down for percent agreement,      #
+# About: This section assembles the full drop down for percent accuracy,      #
 # including the text, headers, table, and figures. This is returned to the     #
 # main report script.                                                          #
 #------------------------------------------------------------------------------#
 
   #########################################
-  # Assembling HTML for percent agreement #
+  # Assembling HTML for percent accuracy #
   #########################################
   htmltools::tags$details(
     class = "accordion",
-    htmltools::tags$summary(htmltools::tags$strong("Percent Agreement")),
+    htmltools::tags$summary(htmltools::tags$strong("Percent Accuracy")),
     htmltools::div(
       class = "accordion-body",
       intro_html,
@@ -1006,6 +1092,7 @@ section_percent_agreement <- function(percentAgreement.data,
       plot_block,
       table_html,
       compare_accordion,
+      trend_phase_accordion,
       methods_accordion
     )
   )

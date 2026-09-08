@@ -285,6 +285,37 @@ section_forecast_consistency <- function(impl_meta,
   )
 
   #------------------------------------------------------------------------------#
+  # Final user-crosswalk overlay -------------------------------------------------
+  #------------------------------------------------------------------------------#
+  # About: Apply the user mapping once more to the completed multi-location map  #
+  # so dropdown labels and y-axis geography text cannot fall back to raw codes   #
+  # after the built-in location-resolution chain. Unlisted locations retain the #
+  # display name already resolved above.                                         #
+  #------------------------------------------------------------------------------#
+
+  user_location_crosswalk <- config$location_crosswalk
+
+  if(!is.null(user_location_crosswalk) &&
+     length(user_location_crosswalk) > 0 &&
+     !is.null(names(user_location_crosswalk))){
+
+    # Matching raw archive/model codes to the user crosswalk
+    crosswalk_index <- match(
+      trimws(as.character(names(locations))),
+      trimws(as.character(names(user_location_crosswalk)))
+    )
+
+    # Locations covered by the user crosswalk
+    matched_locations <- !is.na(crosswalk_index)
+
+    # Replacing the final display labels used by the dropdown and y-axis
+    locations[matched_locations] <- unname(
+      user_location_crosswalk[crosswalk_index[matched_locations]]
+    )
+
+  }
+
+  #------------------------------------------------------------------------------#
   # Single-geography export filter -----------------------------------------------
   #------------------------------------------------------------------------------#
   # About: An export builds one geography. The request may arrive as a display   #

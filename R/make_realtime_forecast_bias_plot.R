@@ -20,13 +20,16 @@
 #'   per location by the calling section.
 #' @param outcome Character label for the outcome, used in the right-axis
 #'   title, the Raw Counts axis title, and the hover tooltips.
+#' @param raw_only Logical. When `TRUE`, render the plot directly in Raw Counts
+#'   mode and do not permit switching to percentage bias.
 #'
 #' @return A Plotly htmlwidget with the Bias (%) / Raw Counts toggle and the
 #'   fullscreen button attached.
 #'
 #' @keywords internal
 #' @noRd
-make_realtime_forecast_bias_plot <- function(data, loc, outcome) {
+make_realtime_forecast_bias_plot <- function(data, loc, outcome,
+                                             raw_only = FALSE) {
 
 #------------------------------------------------------------------------------#
 # Preparing the input data for the plot ----------------------------------------
@@ -380,9 +383,13 @@ make_realtime_forecast_bias_plot <- function(data, loc, outcome) {
   ) * 1.1
 
   ############################################
-  # Unique plot ID derived from the location #
+  # Unique real-time plot ID derived from the location #
   ############################################
-  plot_id <- paste0("biasPlot_", gsub("[^A-Za-z0-9]", "_", loc))
+  # The testing-period bias plot uses biasPlot_<location>. Reusing that ID here
+  # makes the real-time onRender callback find the testing toggle first and
+  # skip creating its own Bias (%) / Raw Counts controls. Keep the real-time
+  # widgets in a separate ID namespace.
+  plot_id <- paste0("rtBiasPlot_", gsub("[^A-Za-z0-9]", "_", loc))
 
 #------------------------------------------------------------------------------#
 # Building the plotly figure ---------------------------------------------------
@@ -498,7 +505,7 @@ make_realtime_forecast_bias_plot <- function(data, loc, outcome) {
     ))
 
     # Show all horizons by default
-    h_pct_visible <- TRUE
+    h_pct_visible <- !isTRUE(raw_only)
 
     # Single usable point renders as markers; otherwise a dashed line
     h_mode <- if (sum(!is.na(h_data$pct_error)) <= 1) "markers" else "lines"
@@ -574,7 +581,7 @@ make_realtime_forecast_bias_plot <- function(data, loc, outcome) {
         mode          = h_mode_raw,
         name          = paste0("Horizon ", h),
         yaxis         = "y",
-        visible       = FALSE,
+        visible       = isTRUE(raw_only),
         connectgaps   = FALSE,
         legendgroup   = paste0("h_", h),
         showlegend    = TRUE,
@@ -614,7 +621,7 @@ make_realtime_forecast_bias_plot <- function(data, loc, outcome) {
         mode          = "lines",
         name          = "Overall Median Forecast Bias",
         yaxis         = "y",
-        visible       = TRUE,
+        visible       = !isTRUE(raw_only),
         connectgaps   = FALSE,
         legendgroup   = "overall",
         showlegend    = TRUE,
@@ -636,7 +643,7 @@ make_realtime_forecast_bias_plot <- function(data, loc, outcome) {
         mode          = "lines",
         name          = "Overall Median Forecast Bias",
         yaxis         = "y",
-        visible       = FALSE,
+        visible       = isTRUE(raw_only),
         connectgaps   = FALSE,
         legendgroup   = "overall",
         showlegend    = TRUE,
@@ -681,15 +688,16 @@ make_realtime_forecast_bias_plot <- function(data, loc, outcome) {
         )
       ),
       yaxis       = list(
-        title      = "Forecast Bias (%)",
+        title      = if(isTRUE(raw_only)) outcome else "Forecast Bias (%)",
         titlefont  = list(size = 16),
         showgrid   = TRUE,
         gridcolor  = "#f0f0f0",
         zeroline   = FALSE,
         automargin = TRUE,
-        range      = list(-y1_pct_abs, y1_pct_abs),
+        range      = if(isTRUE(raw_only)) list(-y1_raw_sym, y1_raw_sym) else
+                       list(-y1_pct_abs, y1_pct_abs),
         tickfont   = list(size = 12),
-        ticksuffix = "%"
+        ticksuffix = if(isTRUE(raw_only)) "" else "%"
       ),
       yaxis2      = list(
         visible    = FALSE,
@@ -751,7 +759,8 @@ make_realtime_forecast_bias_plot <- function(data, loc, outcome) {
       var plotId       = "', plot_id, '";
       var nHorizons    = ', n_horizons, ';
       var hasMedian    = ', has_median_js, ';
-      var currentMode  = "pct";
+      var rawOnly      = ', if(isTRUE(raw_only)) 'true' else 'false', ';
+      var currentMode  = rawOnly ? "raw" : "pct";
       var observedShown = false;
       var yPctAbs      = ', y1_pct_abs, ';
       var y2PctMax     = ', y2_max, ';
@@ -780,7 +789,8 @@ make_realtime_forecast_bias_plot <- function(data, loc, outcome) {
       // horizon toggled in the legend persists across the Bias(%) / Raw toggle.
       var horizonShown = [];
       for (var hSeed = 0; hSeed < nHorizons; hSeed++) {
-        var hv0 = gd.data[hPctStart + hSeed].visible;
+        var seedIdx = rawOnly ? hRawStart + hSeed : hPctStart + hSeed;
+        var hv0 = gd.data[seedIdx].visible;
         horizonShown.push(hv0 === true || hv0 === undefined);
       }
 
@@ -788,7 +798,8 @@ make_realtime_forecast_bias_plot <- function(data, loc, outcome) {
       // median also persists across the Bias(%) / Raw toggle.
       var medianShown = true;
       if (hasMedian) {
-        var mv0 = gd.data[overallPctIdx].visible;
+        var medianSeedIdx = rawOnly ? overallRawIdx : overallPctIdx;
+        var mv0 = gd.data[medianSeedIdx].visible;
         medianShown = mv0 === true || mv0 === undefined;
       }
 
@@ -834,57 +845,13 @@ make_realtime_forecast_bias_plot <- function(data, loc, outcome) {
         }
       });
 
-      setTimeout(function() {
-
-        var wrapper = el.closest(".fs-wrap") || el.parentElement;
-        wrapper.style.position = "relative";
-
-        if (document.getElementById(plotId + "_toggleBtns")) return;
-
-        var btnContainer = document.createElement("div");
-        btnContainer.id  = plotId + "_toggleBtns";
-        btnContainer.style.cssText = [
-          "position:absolute",
-          "top:-35px",
-          "right:20px",
-          "z-index:9999",
-          "display:inline-flex",
-          "border:1px solid #ddd",
-          "border-radius:6px",
-          "overflow:hidden"
-        ].join(";");
-
-        var btnPct = document.createElement("button");
-        btnPct.id  = plotId + "_btnPct";
-        btnPct.textContent = "Bias (%)";
-        btnPct.style.cssText = [
-          "padding:5px 12px",
-          "font-size:12px",
-          "font-weight:600",
-          "border:none",
-          "cursor:pointer",
-          "background:#522D80",
-          "color:#fff"
-        ].join(";");
-
-        var btnRaw = document.createElement("button");
-        btnRaw.id  = plotId + "_btnRaw";
-        btnRaw.textContent = "Raw Counts";
-        btnRaw.style.cssText = [
-          "padding:5px 12px",
-          "font-size:12px",
-          "font-weight:600",
-          "border:none",
-          "cursor:pointer",
-          "background:transparent",
-          "color:#555"
-        ].join(";");
-
-        btnContainer.appendChild(btnPct);
-        btnContainer.appendChild(btnRaw);
-        wrapper.appendChild(btnContainer);
-
-        function setMode(mode) {
+      // The visible Bias (%) / Raw Counts buttons are rendered by
+      // section_realtime_forecast_bias(), rather than being created here on a
+      // timer. Register the mode setter on the Plotly element so that
+      // one stable section-level control can drive whichever location panel is
+      // active.
+      function setMode(mode) {
+          if (rawOnly) mode = "raw";
           currentMode = mode;
 
           var n      = gd.data.length;
@@ -944,21 +911,18 @@ make_realtime_forecast_bias_plot <- function(data, loc, outcome) {
             });
           });
 
-          btnPct.style.background = mode === "pct" ? "#522D80" : "transparent";
-          btnPct.style.color      = mode === "pct" ? "#fff"    : "#555";
-          btnRaw.style.background = mode === "raw" ? "#522D80" : "transparent";
-          btnRaw.style.color      = mode === "raw" ? "#fff"    : "#555";
-
           if (typeof setRtBiasTableMode === "function") {
             setRtBiasTableMode(mode);
           }
+      }
 
-        }
+      gd.__setRtBiasMode = setMode;
 
-        btnPct.addEventListener("click", function() { setMode("pct"); });
-        btnRaw.addEventListener("click", function() { setMode("raw"); });
-
-      }, 100);
+      // If another location already changed the shared mode, bring this plot
+      // into that mode as soon as its render hook is ready.
+      if (rawOnly || window.rtBiasMode === "raw") {
+        setTimeout(function() { setMode("raw"); }, 0);
+      }
     }
   ')))
 

@@ -627,21 +627,21 @@ section_peak_phase <- function(peakPhase.data,
           <div class="sum-th-sub" style="color:#9B85C8;font-size:13px;">(Predicted vs Observed Week)</div>
         </th>
         <th class="sum-th" style="border-right:1px solid #e0e0e0;">
-          <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Peak-to-Peak Magnitude</div>
+          <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Peak-to-Peak Intensity</div>
           <div class="sum-th-sub" style="color:#9B85C8;font-size:13px;">
             <span class="peak-mag-raw-cell">(Predicted Peak &minus; Observed Peak)</span>
             <span class="peak-mag-rel-cell" style="display:none;">(% Accuracy)</span>
           </div>
         </th>
         <th class="sum-th" style="border-right:1px solid #e0e0e0;">
-          <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Magnitude at Predicted Peak</div>
+          <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Intensity at Predicted Peak</div>
           <div class="sum-th-sub" style="color:#9B85C8;font-size:13px;">
             <span class="peak-mag-raw-cell">(Predicted Peak &minus; Observed That Week)</span>
             <span class="peak-mag-rel-cell" style="display:none;">(% Accuracy)</span>
           </div>
         </th>
         <th class="sum-th" style="border-right:none;">
-          <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Magnitude at Observed Peak</div>
+          <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Intensity at Observed Peak</div>
           <div class="sum-th-sub" style="color:#9B85C8;font-size:13px;">
             <span class="peak-mag-raw-cell">(Forecast That Week &minus; Observed Peak)</span>
             <span class="peak-mag-rel-cell" style="display:none;">(% Accuracy)</span>
@@ -670,12 +670,12 @@ section_peak_phase <- function(peakPhase.data,
 <div style="font-family:sans-serif;padding:0.5rem 0;margin-top:-0.25rem;">
   <p style="font-size:12px;color:#888;line-height:1.6;margin:0;font-style:italic;">
     <strong>Peak Timing</strong> compares the week the forecast placed the peak with the true peak week
-    &mdash; negative is early, positive is late. The three magnitude columns all compare heights, differing
-    only in which week anchors the comparison: <strong>Peak-to-Peak Magnitude</strong> is the predicted peak
-    height against the observed peak height (dates aside); <strong>Magnitude at Predicted Peak</strong> is
-    that predicted peak against what was actually observed that same week; and <strong>Magnitude at Observed
+    &mdash; negative is early, positive is late. The three intensity columns all compare heights, differing
+    only in which week anchors the comparison: <strong>Peak-to-Peak Intensity</strong> is the predicted peak
+    height against the observed peak height (dates aside); <strong>Intensity at Predicted Peak</strong> is
+    that predicted peak against what was actually observed that same week; and <strong>Intensity at Observed
     Peak</strong> is the forecast for the true peak week against the observed peak. Use the
-    <strong>Raw / Relative (%)</strong> toggle to switch the magnitude columns between the count
+    <strong>Raw / Relative (%)</strong> toggle to switch the intensity columns between the count
     difference and a percent-accuracy score. For a single season each row shows one value; for Overall
     each row shows the mean with its min&ndash;max range beneath.', fn_marks, '
   </p>
@@ -864,19 +864,19 @@ section_peak_phase <- function(peakPhase.data,
               <div ', sub_st, '>Mean Abs. Weeks Off (Range)</div>
             </th>
             <th class="sum-th" onclick="sortPeakCompare(2, \'num\')" style="border-right:1px solid #e0e0e0;">
-              <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Peak-to-Peak Magnitude', arrow, '</div>
+              <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Peak-to-Peak Intensity', arrow, '</div>
               <div ', sub_st, '>
                 <span class="peak-mag-raw-cell">Mean (Range)</span>
                 <span class="peak-mag-rel-cell" style="display:none;">Avg. % Accuracy (Range)</span></div>
             </th>
             <th class="sum-th" onclick="sortPeakCompare(3, \'num\')" style="border-right:1px solid #e0e0e0;">
-              <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Magnitude at Predicted Peak', arrow, '</div>
+              <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Intensity at Predicted Peak', arrow, '</div>
               <div ', sub_st, '>
                 <span class="peak-mag-raw-cell">Mean (Range)</span>
                 <span class="peak-mag-rel-cell" style="display:none;">Avg. % Accuracy (Range)</span></div>
             </th>
             <th class="sum-th" onclick="sortPeakCompare(4, \'num\')" style="border-right:none;">
-              <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Magnitude at Observed Peak', arrow, '</div>
+              <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Intensity at Observed Peak', arrow, '</div>
               <div ', sub_st, '>
                 <span class="peak-mag-raw-cell">Mean (Range)</span>
                 <span class="peak-mag-rel-cell" style="display:none;">Avg. % Accuracy (Range)</span></div>
@@ -927,8 +927,8 @@ section_peak_phase <- function(peakPhase.data,
       <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0;">
         Three linked views of how each forecast horizon captured the peak. Use the
         <strong>arrows or dots</strong> to page between <strong>Peak Timing &amp; Peak-to-Peak
-        Magnitude</strong>, <strong>Magnitude at Predicted Peak</strong>, and
-        <strong>Magnitude at Observed Peak</strong>. The solid black line is the observed
+        Intensity</strong>, <strong>Intensity at Predicted Peak</strong>, and
+        <strong>Intensity at Observed Peak</strong>. The solid black line is the observed
         outcome; each coloured line is one <strong>forecast horizon</strong> (lighter = longer
         lead). <strong>Hover</strong> a forecast peak to preview its gap, or <strong>click</strong>
         it for the full metric breakdown in a draggable box; use the <strong>legend</strong> to
@@ -962,7 +962,7 @@ section_peak_phase <- function(peakPhase.data,
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
       Every measure below compares the forecast with what was actually observed. For each
       location and season there is one observed peak, and each forecast horizon has its own
-      predicted peak. Timing is measured in weeks; the three magnitude measures are reported
+      predicted peak. Timing is measured in weeks; the three intensity measures are reported
       both as a raw count difference and as a percent accuracy.
     </p>
 
@@ -993,21 +993,21 @@ section_peak_phase <- function(peakPhase.data,
 
     <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
 
-    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Peak-to-Peak Magnitude</p>
+    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Peak-to-Peak Intensity</p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
       How close the two peak heights were, ignoring timing. A positive number means the forecast
       overshot the true peak.
     </p>
     <div id="eq-p2p" style="text-align: center; margin: 0.75rem 0 1.5rem;"></div>
 
-    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Magnitude at Predicted Peak</p>
+    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Intensity at Predicted Peak</p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
       How the predicted peak compared with what was actually observed in that same week &mdash;
       the week the forecast placed its peak.
     </p>
     <div id="eq-samewk" style="text-align: center; margin: 0.75rem 0 1.5rem;"></div>
 
-    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Magnitude at Observed Peak</p>
+    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Intensity at Observed Peak</p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
       What the forecast said for the true peak week, compared with the actual peak. This is
       defined only when a forecast targeted that week.
@@ -1018,7 +1018,7 @@ section_peak_phase <- function(peakPhase.data,
 
     <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Percent Accuracy</p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
-      Each magnitude is also reported as a percent accuracy: the ratio of the smaller value to
+      Each intensity is also reported as a percent accuracy: the ratio of the smaller value to
       the larger value between the forecast and observed counts, as a percentage. It is bounded
       between 0% and 100%, where 100% is a perfect match, and it does not depend on the direction
       of the miss.
@@ -1036,7 +1036,7 @@ section_peak_phase <- function(peakPhase.data,
       Every measure is calculated separately for each horizon. When results are combined across
       horizons or seasons (as in the location comparison), <strong>timing</strong> is averaged as
       the mean number of weeks off <em>regardless of direction</em>, so being early one time and
-      late another cannot cancel out; the magnitude accuracies are averaged directly. A
+      late another cannot cancel out; the intensity accuracies are averaged directly. A
       smallest-to-largest range is shown next to each average.
     </p>
 
@@ -1049,13 +1049,13 @@ section_peak_phase <- function(peakPhase.data,
       "\\\\text{Peak Timing} = \\\\text{Predicted Peak Week} - \\\\text{Observed Peak Week}",
       document.getElementById("eq-timing"), { throwOnError: false, displayMode: true });
     katex.render(
-      "\\\\text{Peak-to-Peak Magnitude} = \\\\text{Predicted Peak Value} - \\\\text{Observed Peak Value}",
+      "\\\\text{Peak-to-Peak Intensity} = \\\\text{Predicted Peak Value} - \\\\text{Observed Peak Value}",
       document.getElementById("eq-p2p"), { throwOnError: false, displayMode: true });
     katex.render(
-      "\\\\text{Magnitude at Predicted Peak} = \\\\text{Predicted Peak Value} - \\\\text{Observed Value That Week}",
+      "\\\\text{Intensity at Predicted Peak} = \\\\text{Predicted Peak Value} - \\\\text{Observed Value That Week}",
       document.getElementById("eq-samewk"), { throwOnError: false, displayMode: true });
     katex.render(
-      "\\\\text{Magnitude at Observed Peak} = \\\\text{Forecast at True Peak Week} - \\\\text{Observed Peak Value}",
+      "\\\\text{Intensity at Observed Peak} = \\\\text{Forecast at True Peak Week} - \\\\text{Observed Peak Value}",
       document.getElementById("eq-peakwk"), { throwOnError: false, displayMode: true });
     katex.render(
       "\\\\text{Percent Accuracy} = \\\\frac{\\\\min(\\\\text{Forecasted},\\\\, \\\\text{Observed})}{\\\\max(\\\\text{Forecasted},\\\\, \\\\text{Observed})} \\\\times 100",
@@ -1065,7 +1065,7 @@ section_peak_phase <- function(peakPhase.data,
 
   methods_accordion <- htmltools::tags$details(
     class = "accordion",
-    htmltools::tags$summary(htmltools::tags$strong("Detailed Methods (Peak Timing & Magnitude)")),
+    htmltools::tags$summary(htmltools::tags$strong("Detailed Methods (Peak Timing & Intensity)")),
     htmltools::div(class = "accordion-body", methods_html)
   )
 
@@ -1076,7 +1076,7 @@ section_peak_phase <- function(peakPhase.data,
 
   htmltools::tags$details(
     class = "accordion",
-    htmltools::tags$summary(htmltools::tags$strong("Forecasted Peak Performance (Timing & Magnitude)")),
+    htmltools::tags$summary(htmltools::tags$strong("Forecasted Peak Performance (Timing & Intensity)")),
     htmltools::div(
       class = "accordion-body",
       intro_html,

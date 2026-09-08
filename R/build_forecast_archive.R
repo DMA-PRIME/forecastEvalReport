@@ -15,8 +15,9 @@
 #' @param max_forecasts Integer. Maximum number of most-recent forecasts to
 #'   keep. Default 5.
 #'
-#' @return A data frame with columns `file_path` (character) and
-#'   `reference_date` (Date), ordered oldest -> newest, or `NULL` when no
+#' @return A data frame with columns `file_path` (the preferred file for
+#'   backwards compatibility), `file_paths` (all files for that forecast date),
+#'   and `reference_date` (Date), ordered oldest -> newest, or `NULL` when no
 #'   forecast files can be located.
 #'
 #' @keywords internal
@@ -37,12 +38,23 @@ build_forecast_archive <- function(impl_meta, max_forecasts = 5L){
   # Resolve the Forecasts/ directory   #
   ######################################
   forecast_dir <- dirname(impl_meta$forecast_path[1])
-  if(!dir.exists(forecast_dir)) return(empty_result)
+  if(!dir.exists(forecast_dir)) return(NULL)
 
   if(length(impl_meta[["locations"]]) > 1){
 
-    # Multiple locations: forecasts are saved as Forecast-<date>.csv
-    files <- list.files(forecast_dir, pattern = "\\.csv$", full.names = TRUE)
+    ####################################################################
+    # Multiple locations: Pull combined and split forecast files       #
+    ####################################################################
+    # Some archives contain Forecast-<date>.csv, some contain only the  #
+    # split Forecast-<Location>-<date>.csv files, and some contain both. #
+    # Keep all formats here; they are grouped into one logical forecast #
+    # per reference date below.                                        #
+    files <- list.files(
+      forecast_dir,
+      pattern    = "^Forecast-.*\\.csv$",
+      full.names = TRUE,
+      ignore.case = TRUE
+    )
 
   }else{
 
@@ -80,7 +92,7 @@ build_forecast_archive <- function(impl_meta, max_forecasts = 5L){
   }, character(1))
 
   ######################################
-  # Assemble + order + keep last N     #
+  # Assemble + group + keep last N     #
   ######################################
   archive <- data.frame(
     file_path        = files,
@@ -91,7 +103,27 @@ build_forecast_archive <- function(impl_meta, max_forecasts = 5L){
   archive <- archive[!is.na(archive$reference_date), , drop = FALSE]
   if(nrow(archive) == 0) return(NULL)
 
-  archive <- archive[order(archive$reference_date), , drop = FALSE]
+  # One forecast date may be represented by one combined file, several split
+  # files, or both. Group those paths so the consistency legend exposes only
+  # one control per logical forecast date. Combined files are placed first so
+  # they win de-duplication when both representations overlap.
+  date_keys <- sort(unique(as.character(archive$reference_date)))
+  file_groups <- lapply(date_keys, function(key){
+    paths <- archive$file_path[as.character(archive$reference_date) == key]
+    combined <- grepl(
+      "^Forecast-[0-9]{4}-[0-9]{2}-[0-9]{2}\\.csv$",
+      basename(paths), ignore.case = TRUE
+    )
+    c(paths[combined], paths[!combined])
+  })
+
+  archive <- data.frame(
+    file_path        = vapply(file_groups, function(x) x[1], character(1)),
+    reference_date   = anytime::anydate(date_keys),
+    stringsAsFactors = FALSE
+  )
+  archive$file_paths <- I(file_groups)
+  archive <- archive[c("file_path", "file_paths", "reference_date")]
 
   if(nrow(archive) > max_forecasts){
     archive <- archive[(nrow(archive) - max_forecasts + 1L):nrow(archive), ,

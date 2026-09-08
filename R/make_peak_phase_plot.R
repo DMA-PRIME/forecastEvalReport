@@ -2,10 +2,10 @@
 #'
 #' Builds a self-contained SVG/JS widget showing, for the selected
 #' location x season, three plots the viewer can page through:
-#'   1. Peak Timing & Peak-to-Peak Magnitude (two-armed crosshair),
-#'   2. Magnitude at Predicted Peak (vertical gap to the observed curve that
+#'   1. Peak Timing & Peak-to-Peak Intensity (two-armed crosshair),
+#'   2. Intensity at Predicted Peak (vertical gap to the observed curve that
 #'      same week),
-#'   3. Magnitude at Observed Peak (vertical gap at the true peak week).
+#'   3. Intensity at Observed Peak (vertical gap at the true peak week).
 #' Each plot shows the observed curve, one forecast line + one dot per horizon,
 #' and isolates a horizon's crosshair on hover. `window.peakGraphRedraw(label,
 #' season)` repoints it from the section dropdowns.
@@ -163,9 +163,9 @@ make_peak_phase_plot <- function(data, loc, training.data.label = NULL,
   var keys=Object.keys(DATA);
   var MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   var PLOTS=[
-    {t:"Peak Timing & Peak-to-Peak Magnitude", hint:"Hover a forecast peak to preview its gaps; Click it for all metrics."},
-    {t:"Magnitude at Predicted Peak", hint:"Hover a forecast peak to preview the same-week gap; Click it for all metrics."},
-    {t:"Magnitude at Observed Peak", hint:"Hover a dot to preview the peak-week gap; Click it for all metrics."}
+    {t:"Peak Timing & Peak-to-Peak Intensity", hint:"Hover a forecast peak to preview its gaps; Click it for all metrics."},
+    {t:"Intensity at Predicted Peak", hint:"Hover a forecast peak to preview the same-week gap; Click it for all metrics."},
+    {t:"Intensity at Observed Peak", hint:"Hover a dot to preview the peak-week gap; Click it for all metrics."}
   ];
   var state={ key:keys[0], plot:0, hidden:{}, hideObs:false };
   var W=720,H=340,mL=64,mR=18,mT=26,mB=48;
@@ -411,14 +411,14 @@ make_peak_phase_plot <- function(data, loc, training.data.label = NULL,
       if(P===0){
         rows = row("Observed peak", fI(d.obsPeak.v)) + row("Forecasted peak", fI(h.ppV))
              + row("Timing", h.tLab || (fS(h.timing)+" wk"))
-             + row("Magnitude", fS(h.magOff)) + row("% Accuracy (Magnitude)", pcnt(h.magAcc));
+             + row("Intensity", fS(h.magOff)) + row("% Accuracy (Intensity)", pcnt(h.magAcc));
       } else if(P===1){
         rows = row("Observed (that week)", fI(h.oap)) + row("Forecasted peak", fI(h.ppV))
-             + row("Magnitude", fS(h.sdOff)) + row("% Accuracy (Magnitude)", pcnt(h.sdAcc));
+             + row("Intensity", fS(h.sdOff)) + row("% Accuracy (Intensity)", pcnt(h.sdAcc));
       } else {
         rows = h.pwEx
           ? row("Observed peak", fI(d.obsPeak.v)) + row("Forecast (peak week)", fI(h.pwV))
-            + row("Magnitude", fS(h.pwOff)) + row("% Accuracy (Magnitude)", pcnt(h.pwAcc))
+            + row("Intensity", fS(h.pwOff)) + row("% Accuracy (Intensity)", pcnt(h.pwAcc))
           : `<div>No forecast targeted the true peak week at this horizon.</div>`;
       }
       floatEl.innerHTML =

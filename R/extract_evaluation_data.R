@@ -706,17 +706,44 @@ extract_evaluation_data <- function(evaluation_model,
       max(as.numeric(validation_data$horizon), na.rm = TRUE)
     )
 
+    # Validation rows may have a blank / NA / non-numeric horizon column. In
+    # that case max() returns -Inf, and subtracting the horizon adjustment below
+    # produces an Inf end date. A missing horizon means no date adjustment.
+    if(!is.finite(max_horizon)) max_horizon <- 0
+
+    ############################################
+    # Resolving finite validation date bounds  #
+    ############################################
+    min_validation_ted <- suppressWarnings(
+      min(validation_data$target_end_date, na.rm = TRUE)
+    )
+
+    max_validation_ted <- suppressWarnings(
+      max(validation_data$target_end_date, na.rm = TRUE)
+    )
+
     # Extracting the validation subset
     output$validation_data  <- validation_data
 
-    # Extracting the validation start date
-    output$validation_start <- min(validation_data$target_end_date,
-                                   na.rm = TRUE) - (time_step - 1L)
+    # Extracting the validation start date. All-missing target dates return
+    # NULL rather than allowing min() to store an infinite date.
+    output$validation_start <- if(
+      is.finite(as.numeric(min_validation_ted))
+    ){
+      min_validation_ted - (time_step - 1L)
+    }else{
+      NULL
+    }
 
-    # Extracting the validation end date
-    output$validation_end   <- max(validation_data$target_end_date,
-                                   na.rm = TRUE) -
-      (time_step * max_horizon) + time_step
+    # Extracting the validation end date. All-missing target dates return NULL
+    # so the report table cannot display Inf as a period boundary.
+    output$validation_end <- if(
+      is.finite(as.numeric(max_validation_ted))
+    ){
+      max_validation_ted - (time_step * max_horizon) + time_step
+    }else{
+      NULL
+    }
 
     # Message to show to users
     message("\u2713 Validation data: ", nrow(validation_data), " rows.")

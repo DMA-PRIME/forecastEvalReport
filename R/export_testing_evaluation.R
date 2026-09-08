@@ -37,6 +37,11 @@
 #'   and model type in the options file.
 #' @param quiet Logical. When `TRUE` (default), suppresses the progress
 #'   messages emitted while the pipeline runs.
+#' @param return_context Logical. When `TRUE`, the invisible return value also
+#'   includes the validated configuration, model data, metadata, variables
+#'   crosswalk, and assembled master data used to produce the scores. Defaults
+#'   to `FALSE`. This is primarily used by package workflows that need to reuse
+#'   the verified report data without repeating the complete preparation step.
 #'
 #' @return Invisibly, a named list with `testing_eval` (the raw bundle from
 #'   `build_testing_evaluation()`), `results` (the tidy long-format data
@@ -50,7 +55,8 @@ export_testing_evaluation <- function(options_file,
                                        ai_row_detail = FALSE,
                                        eval_config  = NULL,
                                        file_prefix  = NULL,
-                                       quiet        = TRUE) {
+                                       quiet        = TRUE,
+                                       return_context = FALSE) {
 
 #------------------------------------------------------------------------------#
 # Validating the function inputs -----------------------------------------------
@@ -1033,10 +1039,30 @@ export_testing_evaluation <- function(options_file,
   ###################################################
   # Return the bundle, results, and paths invisibly #
   ###################################################
-  invisible(list(
+  output <- list(
     testing_eval = testing_eval,
     results      = results,
     paths        = list(ai_form = md_written, results = csv_written)
-  ))
+  )
+
+  ########################################################
+  # Optionally returning the validated preparation data  #
+  ########################################################
+  if(isTRUE(return_context)){
+
+    output$context <- list(
+      config               = config,
+      implementation_model = implementation_model,
+      evaluation_model     = evaluation_model,
+      variables_crosswalk  = variables_crosswalk,
+      impl_meta            = impl_meta,
+      eval_meta            = eval_meta,
+      master_data          = master_data
+    )
+
+  }
+
+  # Returning the requested result bundle
+  invisible(output)
 
 }

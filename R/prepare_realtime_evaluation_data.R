@@ -97,8 +97,18 @@ prepare_realtime_evaluation_data <- function(impl_meta,
   ##################################
   if(length(impl_meta[["locations"]]) > 1){
 
-    # Multiple locations: forecasts are saved as Forecast-<date>.csv
-    files <- list.files(forecast_dir, pattern = "\\.csv$", full.names = TRUE)
+    ####################################################################
+    # Multiple locations: Pull combined and split forecast files       #
+    ####################################################################
+    # Historical archives may contain combined files, split-location   #
+    # files, or both. Pull all forecast CSVs and prefer combined files  #
+    # during the forecast-key de-duplication below.                     #
+    files <- list.files(
+      forecast_dir,
+      pattern    = "^Forecast-.*\\.csv$",
+      full.names = TRUE,
+      ignore.case = TRUE
+    )
 
   ###################################
   # Running if single location file #
@@ -128,6 +138,14 @@ prepare_realtime_evaluation_data <- function(impl_meta,
   # Error occurred: Return empty data frame #
   ###########################################
   if(length(files) == 0) return(empty_result)
+
+  # Combined files first: if the same forecast row also appears in a split
+  # file, the combined representation is retained by the key de-duplication.
+  is_combined <- grepl(
+    "^Forecast-[0-9]{4}-[0-9]{2}-[0-9]{2}\\.csv$",
+    basename(files), ignore.case = TRUE
+  )
+  files <- c(files[is_combined], files[!is_combined])
 
   ###############################################
   # Location crosswalk (raw code -> display)  #
@@ -261,10 +279,9 @@ prepare_realtime_evaluation_data <- function(impl_meta,
   ###############################################
   # About: A re-run or a stale file left in the archive can repeat a forecast  #
   # row, which would double-count it in every downstream average. Exact        #
-  # duplicates are dropped silently. If two rows share the same forecast key   #
-  # (location/reference_date/target_end_date/horizon/output_type_id) but carry #
-  # different values, that is a genuine conflict in the archive -- it is       #
-  # surfaced as a warning and the first occurrence is kept.                    #
+  # duplicates are dropped silently. Combined files were ordered before split #
+  # files, so the first occurrence is the preferred combined representation.  #
+  # Remaining key conflicts are reported and the first occurrence is kept.     #
   ###############################################
   raw <- raw[!duplicated(raw), , drop = FALSE]
 
@@ -354,16 +371,30 @@ prepare_realtime_evaluation_data <- function(impl_meta,
   # Map raw location -> display name            #
   ###############################################
   if(!is.null(locations)){
-    raw$location_display <- unname(locations[raw$location])
+
+    # Match on trimmed character keys. Forecast CSV readers can preserve
+    # harmless surrounding whitespace, while the validated crosswalk removes
+    # it; an exact named-vector lookup would otherwise miss that location.
+    location_names <- trimws(as.character(names(locations)))
+    location_index <- match(
+      trimws(as.character(raw$location)),
+      location_names
+    )
+    raw$location_display <- unname(locations[location_index])
     raw$location_display[is.na(raw$location_display)] <-
       raw$location[is.na(raw$location_display)]
   }else{
     raw$location_display <- raw$location
   }
 
-  # Forecast-side join key: canonicalize from the raw code (most reliable),
-  # falling back to the display label where the code did not resolve.
-  raw$location_canonical <- canonicalize_location(raw$location)
+  # Forecast-side join key: use the normalized display name. assemble_report_data()
+  # applies the same user location crosswalk to the truth rows, so joining from
+  # the raw forecast code here (for example "1" versus "Region One") makes
+  # every Observed value NA and causes the entire real-time section to vanish.
+  # With no user mapping, location_display is the original raw value, preserving
+  # the previous behavior. canonicalize_location() still reconciles built-in
+  # FIPS, abbreviation, and state-name variants.
+  raw$location_canonical <- canonicalize_location(raw$location_display)
 
   ###############################################
   # Observed (truth) values from master_data    #

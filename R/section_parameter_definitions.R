@@ -1,14 +1,16 @@
-#' Render the auxiliary variable definitions accordion
+#' Render the auxiliary variable information accordion
 #'
 #' Produces a collapsible accordion containing definitions for the auxiliary
 #' variables used in the model. Each row shows the variable's clean name, its
-#' data source clean name, and its definition. The entire accordion (header,
+#' data source clean name, and the transformations applied to it. The entire
+#' accordion (header,
 #' intro text, table, and close) is rendered by this single function. When no
 #' auxiliary variables are present, nothing is rendered so the section is
 #' cleanly omitted.
 #'
 #' This version reads everything from the validated `variables_crosswalk`:
-#' the `aux_variable` rows supply the parameter clean name and definition,
+#' the `aux_variable` rows supply the parameter clean name and the
+#' transformation text held in the crosswalk's `definition` column,
 #' and the data source clean name is resolved via `get_aux_source_labels()`.
 #'
 #' Rendered as its own section function (via `cat()` with `results='asis'`) so
@@ -55,7 +57,7 @@ section_parameter_definitions <- function(variables_crosswalk) {
 # Building the definitions data frame ------------------------------------------
 #------------------------------------------------------------------------------#
 # About: This section determines the parameter clean name, data source clean   #
-# name and definition for each auxiliary variable row using the usser-provided #
+# name and transformations for each auxiliary row using the user-provided      #
 # entries in the variable cross walk file. Rows are de-duplicated by           #
 # parameter and data source so repeated entries collapse.                      #
 #------------------------------------------------------------------------------#
@@ -83,9 +85,9 @@ section_parameter_definitions <- function(variables_crosswalk) {
     character(1)
   )
 
-  ##############################
-  # Extracting the definitions #
-  ##############################
+  ##################################
+  # Extracting the transformations #
+  ##################################
 
   # Changing definition to character
   definition <- as.character(aux_rows$definition)
@@ -100,9 +102,9 @@ section_parameter_definitions <- function(variables_crosswalk) {
   # Creating the final data table to show #
   #########################################
   defs <- data.frame(
-    Parameter      = param_name,
-    `Data Source`  = data_source_name,
-    Definition     = definition,
+    Parameter        = param_name,
+    `Data Source`    = data_source_name,
+    Transformations  = definition,
     stringsAsFactors = FALSE,
     check.names      = FALSE
   )
@@ -112,6 +114,12 @@ section_parameter_definitions <- function(variables_crosswalk) {
 
   # Order alphabetically by Parameter for a stable, readable table
   defs <- defs[order(defs$Parameter), , drop = FALSE]
+
+  # Dropping the row names
+  # Subsetting and reordering above leave the original row numbers behind. Once
+  # they are no longer the default 1:n sequence, knitr::kable() treats them as
+  # meaningful and prints them as an unlabeled first column.
+  rownames(defs) <- NULL
 
   # Guard if no definitions are provided
   if(nrow(defs) == 0) return(invisible(NULL))
@@ -130,7 +138,7 @@ section_parameter_definitions <- function(variables_crosswalk) {
   table_html <- knitr::kable(
     defs,
     format    = "html",
-    col.names = c("Parameter", "Data Source", "Definition"),
+    col.names = c("Parameter", "Data Source", "Transformations"),
     align     = c("l", "l", "l"),
     escape    = TRUE
   )
@@ -155,12 +163,12 @@ section_parameter_definitions <- function(variables_crosswalk) {
 
   cat(paste0(
     '<details class="accordion">',
-    '<summary><strong>Auxiliary Variable Definitions</strong></summary>',
+    '<summary><strong>Auxiliary Variable Information</strong></summary>',
     '<div class="accordion-body">',
 
-    '<p>This section contains the definitions of auxiliary variables used in ',
-    'the model. The definitions below describe how each variable is defined ',
-    'for analytic use.</p>',
+    '<p>This section contains the auxiliary variables used in the model. The ',
+    'transformations below describe how each variable is prepared for ',
+    'analytic use.</p>',
 
     table_html,
 

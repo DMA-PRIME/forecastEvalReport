@@ -15,8 +15,9 @@
 #'
 #' @param loc_display Character. Normalized display name (master_data + labels).
 #' @param raw_loc Character. Raw location code (forecast-file filtering).
-#' @param archive Data frame from `build_forecast_archive()` with `file_path`
-#'   and `reference_date`, ordered oldest -> newest.
+#' @param archive Data frame from `build_forecast_archive()` with `file_path`,
+#'   optional grouped `file_paths`, and `reference_date`, ordered oldest ->
+#'   newest.
 #' @param master_data Assembled master data frame.
 #' @param implementation_model Validated implementation model data frame.
 #' @param impl_meta Metadata list from `extract_implementation_data()`.
@@ -262,10 +263,24 @@ make_forecast_consistency_plot <- function(loc_display,
 
   for(r in seq_len(nrow(archive))){
 
-    raw <- tryCatch(
-      utils::read.csv(archive$file_path[r], stringsAsFactors = FALSE),
-      error = function(e) NULL
-    )
+    # A logical forecast date can be one combined CSV, several split-location
+    # CSVs, or both. Read every file in the date group so older forecasts still
+    # appear for each location even when no combined historical file exists.
+    paths <- if("file_paths" %in% names(archive) &&
+               length(archive$file_paths[[r]]) > 0){
+      unlist(archive$file_paths[[r]], use.names = FALSE)
+    }else{
+      archive$file_path[r]
+    }
+
+    raw_pieces <- lapply(paths, function(fp){
+      tryCatch(
+        utils::read.csv(fp, stringsAsFactors = FALSE),
+        error = function(e) NULL
+      )
+    })
+    raw_pieces <- raw_pieces[!vapply(raw_pieces, is.null, logical(1))]
+    raw <- if(length(raw_pieces) > 0) dplyr::bind_rows(raw_pieces) else NULL
     if(is.null(raw) || nrow(raw) == 0) next
 
     # Normalize key columns
@@ -276,9 +291,34 @@ make_forecast_consistency_plot <- function(loc_display,
 
     if(is_pct) raw$value <- round(raw$value * 100, 3)
 
-    # Filter to this location (raw code)
-    raw <- raw[!is.na(raw$location) & raw$location == raw_loc, ]
+    # Filter to this location. Archived files can carry either the raw code or
+    # the display label, depending on whether they came from a combined or a
+    # split report run, so accept both and also consult the configured map.
+    raw_location <- trimws(as.character(raw$location))
+    loc_candidates <- unique(trimws(as.character(c(raw_loc, loc_display))))
+    keep_location <- !is.na(raw$location) & raw_location %in% loc_candidates
+
+    if(!is.null(config$location_crosswalk) &&
+       length(config$location_crosswalk) > 0){
+      mapped_location <- unname(config$location_crosswalk[raw_location])
+      keep_location <- keep_location |
+        (!is.na(mapped_location) & mapped_location %in% loc_candidates)
+    }
+
+    raw <- raw[keep_location, , drop = FALSE]
     if(nrow(raw) == 0) next
+
+    # Combined files are ordered before split files by the archive builder.
+    # Remove overlap using the forecast identity (location is omitted because
+    # this frame has already been reduced to one logical location).
+    key_cols <- intersect(
+      c("reference_date", "target_end_date", "horizon", "output_type",
+        "output_type_id", "target"),
+      names(raw)
+    )
+    if(length(key_cols) > 0){
+      raw <- raw[!duplicated(raw[key_cols]), , drop = FALSE]
+    }
 
     pull_q <- function(q){
       d <- raw[!is.na(raw$output_type_id) &
@@ -439,7 +479,9 @@ make_forecast_consistency_plot <- function(loc_display,
     outcome       = outcome_display,
     disease       = disease_display,
     geography     = loc_display,
-    spatial.scale = spatial_scale
+    spatial.scale = spatial_scale,
+    axis_font_size = font_size,
+    plot_height    = plot_styles$plot_height
   )
 
   # Right (auxiliary) y-axis. In a static export, autorange it so aux traces

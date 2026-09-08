@@ -1,7 +1,8 @@
 #' Render the traditional metrics section
 #'
 #' Builds the testing-period "traditional metrics" drop-down: a table of the
-#' weighted interval score (WIS), median absolute error (MAE), and 50% / 95%
+#' weighted interval score (WIS), median absolute error (MAE), WIS directional
+#' components, and 50% / 80% / 95%
 #' interval coverage, summarized per location over the transmission-season
 #' testing rows. For multiple locations the table is sortable and searchable
 #' (one row per location, all shown at once); for a single location a single
@@ -20,6 +21,8 @@
 #'   crosswalk's outcome rows, then `eval_meta$outcome`.
 #' @param variables_crosswalk Validated crosswalk data frame, or `NULL`.
 #' @param eval_config Evaluation config list from `create_evaluation_config()`.
+#' @param population_crosswalk Optional population lookup used by the observed
+#'   trend calls in the trend/phase-specific table.
 #'
 #' @return An htmltools `tags$details` object (rendered HTML), or
 #'   `invisible(NULL)` when no testing data is available.
@@ -30,7 +33,8 @@ section_traditional_metrics <- function(traditional.data,
                                         eval_meta,
                                         outcome             = NULL,
                                         variables_crosswalk = NULL,
-                                        eval_config         = NULL) {
+                                        eval_config         = NULL,
+                                        population_crosswalk = NULL) {
 
 #------------------------------------------------------------------------------#
 # Guard: testing data must be present ------------------------------------------
@@ -108,6 +112,279 @@ section_traditional_metrics <- function(traditional.data,
   interactive <- n_loc > 1   # sorting / search only make sense for >1 location
 
 #------------------------------------------------------------------------------#
+# Non-transmission month label for the Detailed Methods -------------------------
+#------------------------------------------------------------------------------#
+# About: Mirrors the Percent Accuracy section. The Transmission Season Filter  #
+# block in Detailed Methods is only shown when non-transmission months are     #
+# configured and actually appear among the target end dates in the data.       #
+#------------------------------------------------------------------------------#
+
+  # Pulling the non-transmission months
+  nt <- sort(unique(eval_config$non_transmission_months))
+
+  # Creating the label: No Months Provided
+  nt_label <- if(length(nt) == 0){"none"
+
+  # Creating the label: One Continuous Span of Months
+  }else if(identical(as.integer(nt), as.integer(min(nt):max(nt)))){
+
+    # Creating the label
+    paste0(month.name[min(nt)], " \u2013 ", month.name[max(nt)])
+
+  # Creating the label: Multiple Months Provided
+  }else{paste(month.name[nt], collapse = ", ")}
+
+  # Pulling months included in data
+  data_months <- if("target_end_date" %in% names(traditional.data)){
+    unique(as.integer(format(as.Date(traditional.data$target_end_date), "%m")))
+  }else{
+    integer(0)
+  }
+
+  # Checking whether any no-transmission months are included in the data
+  show_no_eval <- length(nt) > 0 && any(nt %in% data_months)
+
+#------------------------------------------------------------------------------#
+# Metric availability ----------------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: A metric column is only rendered when at least one location has a     #
+# non-NA value for it in a scope the table can display (overall or season).    #
+# Metrics that were never computed (e.g., WIS-based scores for median-only     #
+# forecasts) are dropped from the table entirely, and the descriptive text     #
+# below adapts to describe only the metrics actually shown.                    #
+#------------------------------------------------------------------------------#
+
+  ############################################
+  # Checking each metric family for any data #
+  ############################################
+  has_any_value <- function(prefix){
+
+    # Broadcast columns belonging to this metric family that the table shows
+    cols <- intersect(paste0(prefix, c("_Overall", "_Season")),
+                      names(traditional.data))
+
+    # Unavailable when no columns exist or every value is NA
+    length(cols) > 0 &&
+      any(!is.na(unlist(traditional.data[cols], use.names = FALSE)))
+
+  }
+
+  #####################################################
+  # Full metric order and which of them will be shown #
+  #####################################################
+  metric_keys      <- c("WIS", "MAE", "Under", "Over", "Cov50", "Cov80", "Cov95")
+  metric_available <- vapply(metric_keys, has_any_value, logical(1))
+
+  # Defensive fallback: if nothing is available, keep the full layout so the
+  # table still renders with dashes rather than as a location-only table
+  if(!any(metric_available)) metric_available[] <- TRUE
+
+  # Metrics that will appear as columns, in display order
+  shown_metrics <- metric_keys[metric_available]
+
+  ######################################
+  # Display attributes for each metric #
+  ######################################
+  metric_meta <- list(
+    WIS   = list(attr = "wis",   header = "Average WIS",          sub = "Lower Is Better"),
+    MAE   = list(attr = "mae",   header = "Average MAE",          sub = "Lower Is Better"),
+    Under = list(attr = "under", header = "Underprediction",      sub = "Lower Is Better"),
+    Over  = list(attr = "over",  header = "Overprediction",       sub = "Lower Is Better"),
+    Cov50 = list(attr = "cov50", header = "Average Coverage 50%", sub = "Target 50%"),
+    Cov80 = list(attr = "cov80", header = "Average Coverage 80%", sub = "Target 80%"),
+    Cov95 = list(attr = "cov95", header = "Average Coverage 95%", sub = "Target 95%")
+  )
+
+  # Coverage metrics are stored as proportions and displayed as percentages
+  is_coverage <- function(key) key %in% c("Cov50", "Cov80", "Cov95")
+
+  # JS metric keys (wis, mae, ...) for the columns shown, passed to the
+  # nested trend/phase accordion so its metric selector matches this table
+  available_metric_attrs <- unname(vapply(shown_metrics, function(k){
+    metric_meta[[k]]$attr
+  }, character(1)))
+
+  #####################################################
+  # Human-readable list of the metric columns shown   #
+  #####################################################
+  metric_phrase_parts <- c(
+    if(metric_available[["WIS"]]) "the <strong>weighted interval score (WIS)</strong>",
+    if(metric_available[["MAE"]]) "<strong>median absolute error (MAE)</strong>",
+    if(metric_available[["Under"]] || metric_available[["Over"]])
+      paste0("<strong>WIS ",
+             paste(c(if(metric_available[["Under"]]) "underprediction",
+                     if(metric_available[["Over"]])  "overprediction"),
+                   collapse = " and "),
+             if(metric_available[["Under"]] && metric_available[["Over"]])
+               " components</strong>" else " component</strong>"),
+    if(any(metric_available[c("Cov50", "Cov80", "Cov95")]))
+      paste0("<strong>",
+             paste(c(if(metric_available[["Cov50"]]) "50%",
+                     if(metric_available[["Cov80"]]) "80%",
+                     if(metric_available[["Cov95"]]) "95%"),
+                   collapse = " / "),
+             " interval coverage</strong>")
+  )
+
+  # Joining the parts into a natural-language list
+  metric_list_text <- if(length(metric_phrase_parts) == 1){
+    metric_phrase_parts
+  }else if(length(metric_phrase_parts) == 2){
+    paste(metric_phrase_parts, collapse = " and ")
+  }else{
+    paste0(paste(metric_phrase_parts[-length(metric_phrase_parts)],
+                 collapse = ", "),
+           ", and ", metric_phrase_parts[length(metric_phrase_parts)])
+  }
+
+  ############################################
+  # Guidance sentences for the table intros  #
+  ############################################
+  accuracy_sentence <- if(metric_available[["WIS"]] && metric_available[["MAE"]]){
+    "Lower average WIS and MAE indicate better point and probabilistic accuracy."
+  }else if(metric_available[["MAE"]]){
+    "Lower average MAE indicates better point-forecast accuracy."
+  }else if(metric_available[["WIS"]]){
+    "Lower average WIS indicates better probabilistic accuracy."
+  }else{
+    ""
+  }
+
+  direction_sentence <- if(metric_available[["Under"]] && metric_available[["Over"]]){
+    "Smaller underprediction and overprediction components are better."
+  }else if(metric_available[["Under"]]){
+    "A smaller underprediction component is better."
+  }else if(metric_available[["Over"]]){
+    "A smaller overprediction component is better."
+  }else{
+    ""
+  }
+
+  cov_levels_shown <- c(if(metric_available[["Cov50"]]) "50%",
+                        if(metric_available[["Cov80"]]) "80%",
+                        if(metric_available[["Cov95"]]) "95%")
+  coverage_sentence <- if(length(cov_levels_shown) > 0){
+    paste0("Coverage closer to its nominal level (",
+           paste(cov_levels_shown, collapse = ", "),
+           ") indicates better-calibrated intervals.")
+  }else{
+    ""
+  }
+
+  # Note shown only when at least one metric column has been dropped
+  omitted_note <- if(!all(metric_available)){
+    paste0("Metrics that could not be computed for these forecasts (for ",
+           "example, interval-based scores when forecasts include only a ",
+           "median) are not shown.")
+  }else{
+    ""
+  }
+
+  # Long labels used by the Detailed Methods omission note
+  metric_long_labels <- c(
+    WIS   = "average weighted interval score (WIS)",
+    MAE   = "average absolute error of the median (MAE)",
+    Under = "WIS underprediction component",
+    Over  = "WIS overprediction component",
+    Cov50 = "50% interval coverage",
+    Cov80 = "80% interval coverage",
+    Cov95 = "95% interval coverage"
+  )
+  omitted_list_text <- paste(
+    metric_long_labels[metric_keys[!metric_available]], collapse = ", ")
+
+  ##########################################
+  # Default sort column (metric cols = 1+) #
+  ##########################################
+  sort_key   <- if(metric_available[["MAE"]]) "MAE" else shown_metrics[1]
+  sort_index <- match(sort_key, shown_metrics)
+  sort_label <- metric_meta[[sort_key]]$header
+
+  ############################################
+  # Header cells for the sortable table      #
+  ############################################
+  metric_headers_sortable <- paste0(vapply(seq_along(shown_metrics), function(j){
+    key  <- shown_metrics[j]
+    meta <- metric_meta[[key]]
+    last <- j == length(shown_metrics)
+    paste0(
+      '<th class="sum-th" onclick="sortTradCompare(', j, ', \'num\')" ',
+      'style="font-size:12px;',
+      if(!last) 'border-right:1px solid #e0e0e0;' else '', '">',
+      '<div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">',
+      meta$header, ' <span style="font-size:10px;">&#8597;</span></div>',
+      '<div class="sum-th-sub" style="color:#C9B8E8;">', meta$sub, '</div></th>'
+    )
+  }, character(1)), collapse = "")
+
+  ############################################
+  # Header cells for the single-location one #
+  ############################################
+  metric_headers_static <- paste0(vapply(seq_along(shown_metrics), function(j){
+    key  <- shown_metrics[j]
+    meta <- metric_meta[[key]]
+    last <- j == length(shown_metrics)
+    paste0(
+      '<th class="sum-th" style="font-size:12px;',
+      if(!last) 'border-right:1px solid #e0e0e0;' else '', '">',
+      meta$header,
+      '<div class="sum-th-sub" style="color:#C9B8E8;">', meta$sub, '</div></th>'
+    )
+  }, character(1)), collapse = "")
+
+#------------------------------------------------------------------------------#
+# Calculating trend- and phase-specific traditional metrics -------------------#
+#------------------------------------------------------------------------------#
+
+  trend_phase_error <- NULL
+  trend_phase_result <- tryCatch(
+    trendPhaseTraditionalCalculation(
+      traditional.data = traditional.data,
+      population = population_crosswalk,
+      eval_config = eval_config,
+      week_days = if(!is.null(eval_meta$time_step)) eval_meta$time_step else 7
+    ),
+    error = function(e){
+      trend_phase_error <<- paste0(
+        "The trend/phase table could not be calculated: ", conditionMessage(e)
+      )
+      message(trend_phase_error)
+      list(summary = data.frame(), data = data.frame())
+    }
+  )
+
+  trend_phase_accordion <- build_trend_phase_traditional(
+    performance_summary = trend_phase_result$summary,
+    location_codes = loc_codes,
+    location_labels = loc_labels,
+    phase_data = trend_phase_result$data,
+    status_message = trend_phase_error,
+    time_step = if(!is.null(eval_meta$time_step)) eval_meta$time_step else 7
+  )
+
+  nested_phase_error <- trend_phase_error
+  nested_phase_summary <- tryCatch(
+    trendPhaseTraditionalMetricsCalculation(trend_phase_result$data),
+    error = function(e){
+      nested_phase_error <<- paste0(
+        "The traditional-metric trend/phase table could not be calculated: ",
+        conditionMessage(e)
+      )
+      message(nested_phase_error)
+      data.frame()
+    }
+  )
+
+  nested_phase_accordion <- build_trend_phase_traditional_metrics(
+    performance_summary = nested_phase_summary,
+    location_codes = loc_codes,
+    location_labels = loc_labels,
+    phase_data = trend_phase_result$data,
+    status_message = nested_phase_error,
+    available_metrics = available_metric_attrs
+  )
+
+#------------------------------------------------------------------------------#
 # Pulling per-location overall metrics -----------------------------------------
 #------------------------------------------------------------------------------#
 # About: The overall summary columns are broadcast across every row for a      #
@@ -124,10 +401,14 @@ section_traditional_metrics <- function(traditional.data,
     list(
       WIS   = pick("WIS_Overall"),
       MAE   = pick("MAE_Overall"),
+      Under = pick("Under_Overall"),
+      Over  = pick("Over_Overall"),
       Cov50 = pick("Cov50_Overall"),
+      Cov80 = pick("Cov80_Overall"),
       Cov95 = pick("Cov95_Overall")
     )
   }
+
 
 #------------------------------------------------------------------------------#
 # Cell + row builders ----------------------------------------------------------
@@ -169,12 +450,14 @@ section_traditional_metrics <- function(traditional.data,
 
     paste0(
       '<tr data-loc-code="', cd, '" style="', border, '">', loc_cell,
-      num_cell(o$WIS, 2, metric = "wis"),
-      num_cell(o$MAE, 2, metric = "mae"),
-      num_cell(if(is.na(o$Cov50)) NA_real_ else o$Cov50 * 100, 1, "%",
-               metric = "cov50"),
-      num_cell(if(is.na(o$Cov95)) NA_real_ else o$Cov95 * 100, 1, "%",
-               metric = "cov95"),
+      paste0(vapply(shown_metrics, function(key){
+        if(is_coverage(key)){
+          num_cell(if(is.na(o[[key]])) NA_real_ else o[[key]] * 100, 1, "%",
+                   metric = metric_meta[[key]]$attr)
+        }else{
+          num_cell(o[[key]], 2, metric = metric_meta[[key]]$attr)
+        }
+      }, character(1)), collapse = ""),
       '</tr>'
     )
   }
@@ -214,7 +497,10 @@ section_traditional_metrics <- function(traditional.data,
     }
     list(WIS   = pick("WIS_Season"),
          MAE   = pick("MAE_Season"),
+         Under = pick("Under_Season"),
+         Over  = pick("Over_Season"),
          Cov50 = pick("Cov50_Season"),
+         Cov80 = pick("Cov80_Season"),
          Cov95 = pick("Cov95_Season"))
   }
 
@@ -231,7 +517,9 @@ section_traditional_metrics <- function(traditional.data,
   ########################################
   js_bundle <- function(m){
     paste0("{wis:", js_num(m$WIS), ",mae:", js_num(m$MAE),
-           ",cov50:", js_num(m$Cov50), ",cov95:", js_num(m$Cov95), "}")
+           ",under:", js_num(m$Under), ",over:", js_num(m$Over),
+           ",cov50:", js_num(m$Cov50), ",cov80:", js_num(m$Cov80),
+           ",cov95:", js_num(m$Cov95), "}")
   }
 
   #####################################
@@ -281,11 +569,11 @@ section_traditional_metrics <- function(traditional.data,
       '<script>', season_data_js,
       'function tradFmt(m,v){',
       'if(v===null||v===undefined||isNaN(v))return "\u2014";',
-      'if(m==="cov50"||m==="cov95")return (v*100).toFixed(1)+"%";',
+      'if(m==="cov50"||m==="cov80"||m==="cov95")return (v*100).toFixed(1)+"%";',
       'return v.toFixed(2);}',
       'function tradDataVal(m,v){',
       'if(v===null||v===undefined||isNaN(v))return "";',
-      'if(m==="cov50"||m==="cov95")return (v*100);return v;}',
+      'if(m==="cov50"||m==="cov80"||m==="cov95")return (v*100);return v;}',
       'function setTradSeason(season){',
       'var rows=document.querySelectorAll("#tradWrap tr[data-loc-code]");',
       'rows.forEach(function(row){',
@@ -310,18 +598,21 @@ section_traditional_metrics <- function(traditional.data,
     # Sortable / searchable table    #
     ##################################
     table_inner <- paste0('
-    <p style="font-size:14px;line-height:1.6;color:#444;margin:0 0 1rem 0;">
-      Compare traditional scores across all locations at once. Lower average WIS and MAE
-      indicate better point and probabilistic accuracy; coverage closer to its
-      nominal level (50% and 95%) indicates better-calibrated intervals. Each value is averaged across all forecast dates and horizons. The
-      table starts sorted from best to worst by MAE; click any column to re-sort,
-      or use the search box to find a specific location.
+    <p style="font-size: 15px; line-height: 1.8; color: #444; margin: 0 0 1rem 0;">
+      Compare traditional scores across all locations at once.
+      ', accuracy_sentence, '
+      ', direction_sentence, '
+      ', coverage_sentence, '
+      Each value is averaged across all forecast dates and horizons.
+      ', omitted_note, '
+      The table starts sorted from best to worst by ', sort_label, '; click any
+      column to re-sort, or use the search box to find a specific location.
     </p>
 
     <div style="font-family:sans-serif;padding:0.5rem 0;overflow-x:auto;">
       <script>
         var tradCmpSortDir = {};
-        var tradLastSort   = { col: 2, type: "num", asc: true };
+        var tradLastSort   = { col: ', sort_index, ', type: "num", asc: true };
 
         // Sort the tbody by a column without toggling direction
         function tradSortCore(colIndex, type, asc) {
@@ -363,8 +654,8 @@ section_traditional_metrics <- function(traditional.data,
         };
 
         document.addEventListener("DOMContentLoaded", function() {
-          tradCmpSortDir[2] = false;   // first sort on MAE ascending = best first
-          sortTradCompare(2, "num");
+          tradCmpSortDir[', sort_index, '] = false;   // first sort ascending = best first
+          sortTradCompare(', sort_index, ', "num");
         });
       </script>
 
@@ -391,30 +682,7 @@ section_traditional_metrics <- function(traditional.data,
                        letter-spacing:0;display:block;margin-left:auto;margin-right:auto;"
               />
             </th>
-            <th class="sum-th" onclick="sortTradCompare(1, \'num\')" style="border-right:1px solid #e0e0e0;">
-              <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">
-                Average WIS <span style="font-size:10px;">&#8597;</span>
-              </div>
-              <div class="sum-th-sub" style="color:#C9B8E8;">Lower Is Better</div>
-            </th>
-            <th class="sum-th" onclick="sortTradCompare(2, \'num\')" style="border-right:1px solid #e0e0e0;">
-              <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">
-                Average MAE <span style="font-size:10px;">&#8597;</span>
-              </div>
-              <div class="sum-th-sub" style="color:#C9B8E8;">Lower Is Better</div>
-            </th>
-            <th class="sum-th" onclick="sortTradCompare(3, \'num\')" style="border-right:1px solid #e0e0e0;">
-              <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">
-                Average Coverage 50% <span style="font-size:10px;">&#8597;</span>
-              </div>
-              <div class="sum-th-sub" style="color:#C9B8E8;">Target 50%</div>
-            </th>
-            <th class="sum-th" onclick="sortTradCompare(4, \'num\')" style="">
-              <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">
-                Average Coverage 95% <span style="font-size:10px;">&#8597;</span>
-              </div>
-              <div class="sum-th-sub" style="color:#C9B8E8;">Target 95%</div>
-            </th>
+            ', metric_headers_sortable, '
           </tr>
         </thead>
         <tbody>', all_rows, '</tbody>
@@ -427,10 +695,13 @@ section_traditional_metrics <- function(traditional.data,
     # Single-location: one row       #
     ##################################
     table_inner <- paste0('
-    <p style="font-size:14px;line-height:1.6;color:#444;margin:0 0 1rem 0;">
-      Traditional scores over the transmission-season testing period, averaged across all forecast dates and horizons. Lower average WIS
-      and MAE indicate better accuracy; coverage closer to its nominal level
-      (50% and 95%) indicates better-calibrated intervals.
+    <p style="font-size: 15px; line-height: 1.8; color: #444; margin: 0 0 1rem 0;">
+      Traditional scores over the transmission-season testing period, averaged
+      across all forecast dates and horizons.
+      ', accuracy_sentence, '
+      ', direction_sentence, '
+      ', coverage_sentence, '
+      ', omitted_note, '
     </p>
 
     <div style="font-family:sans-serif;padding:0.5rem 0;overflow-x:auto;">
@@ -439,14 +710,7 @@ section_traditional_metrics <- function(traditional.data,
         <thead>
           <tr style="border-bottom:1px solid #333;">
             <th class="sum-th" style="border-right:1px solid #e0e0e0;width:160px;">Location</th>
-            <th class="sum-th" style="border-right:1px solid #e0e0e0;">
-              Average WIS<div class="sum-th-sub" style="color:#C9B8E8;">Lower Is Better</div></th>
-            <th class="sum-th" style="border-right:1px solid #e0e0e0;">
-              Average MAE<div class="sum-th-sub" style="color:#C9B8E8;">Lower Is Better</div></th>
-            <th class="sum-th" style="border-right:1px solid #e0e0e0;">
-              Average Coverage 50%<div class="sum-th-sub" style="color:#C9B8E8;">Target 50%</div></th>
-            <th class="sum-th" style="">
-              Average Coverage 95%<div class="sum-th-sub" style="color:#C9B8E8;">Target 95%</div></th>
+            ', metric_headers_static, '
           </tr>
         </thead>
         <tbody>', all_rows, '</tbody>
@@ -466,39 +730,197 @@ section_traditional_metrics <- function(traditional.data,
 # Detailed Methods accordion ---------------------------------------------------
 #------------------------------------------------------------------------------#
 
-  methods_html <- htmltools::HTML(paste0('
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  ####################################
+  # Transmission Season Filter block #
+  ####################################
+  transmission_filter_block <- if(show_no_eval){
 
-  <div style="font-size:14px;line-height:1.7;color:#333;">
-
-    <p style="margin:0 0 1rem 0;">
-      These are standard forecast scoring rules, computed per forecast from the
-      full quantile distribution and then averaged across all forecast dates and horizons over the transmission-season
-      testing rows, summarized per location.
+    # Text to show
+    paste0('
+    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Transmission Season Filter</p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
+      Target end dates falling in the non-transmission season (<strong>', nt_label, '</strong>)
+      are excluded from all summary statistics. During this period low and highly variable
+      counts can distort scoring metrics. Scores for these dates are not included in any
+      average shown in this section.
+    </p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
+      <strong>Example:</strong> A forecast whose target end date falls within the
+      non-transmission window (', nt_label, ') will not contribute to the averaged
+      WIS, MAE, directional components, or interval coverage for any horizon, season,
+      or the overall summary.
     </p>
 
-    <p style="margin:0 0 0.5rem 0;"><strong>Average Weighted Interval Score (WIS).</strong>
-      A proper score that rewards both accuracy and well-calibrated uncertainty,
-      built from the median and the symmetric prediction intervals. Lower is
-      better. When a forecast provides only a median (no intervals), WIS reduces
-      to the absolute error of the median, so it is reported as a dash
-      (\u2014) and only MAE is shown.</p>
+    <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
+  ')
 
-    <p style="margin:0 0 0.5rem 0;"><strong>Average Absolute Error of the Median (MAE).</strong>
-      The mean absolute difference between each observed value and the
-      forecast median. Lower is better.</p>
-    <div id="trad-katex-mae" style="margin:0.25rem 0 1rem 0;"></div>
+  #######################################
+  # No text needed: No evaluation model #
+  #######################################
+  }else{''}
 
-    <p style="margin:0 0 0.5rem 0;"><strong>Average Interval Coverage.</strong>
-      The proportion of observations that fell inside the forecast\'s 50% and
-      95% prediction intervals. Well-calibrated forecasts cover close to their
-      nominal level (about 50% and 95% respectively); much lower indicates
-      overconfident intervals, much higher indicates overly wide intervals.</p>
-    <div id="trad-katex-cov" style="margin:0.25rem 0 0 0;"></div>
+  ##############################################
+  # Trend and epidemic phase explanation block #
+  ##############################################
+  trend_phase_methods_block <- paste0('
+    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">
+      Trend and Phase Breakdown
+    </p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
+      The nested Trend/Phase-Specific Performance table uses the same
+      per-forecast <strong>traditional scores</strong> described above. As in
+      the Percent Accuracy and Forecast Bias sections, trend and phase labels
+      simply divide those scores into clinically meaningful parts of the
+      observed epidemic curve; they do not change how any score is calculated.
+    </p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
+      <strong>Observed trend:</strong> Counts are first converted to rates per
+      100,000 population, then compared with the preceding target week. Within
+      each location, the distribution of observed week-to-week rate changes
+      supplies the cut points for <strong>Large Increase</strong>,
+      <strong>Increase</strong>, <strong>Stable</strong>,
+      <strong>Decrease</strong>, and <strong>Large Decrease</strong>. A raw
+      weekly change smaller than <strong>', eval_config$stable_threshold,
+      '</strong> counts is treated as Stable so very small count changes are not
+      overstated.
+    </p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
+      <strong>Observed phase:</strong> For each location and season, the Peak is
+      the continuous set of observed weeks surrounding the seasonal maximum
+      that remain within <strong>', eval_config$peak_window,
+      '%</strong> of that maximum. Weeks before the Peak are labeled
+      <strong>Ascension</strong>; weeks after it are labeled
+      <strong>Decline</strong>. The phases are determined only from observed
+      target-date data and therefore do not change by forecast horizon.
+    </p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
+      Each table cell reports the <strong>average</strong> of the selected
+      traditional metric for rows with that observed trend and phase. The
+      metric and horizon selectors determine which score is averaged within
+      each combination; <strong>Overall</strong> pools all eligible
+      forecast-target pairs across horizons. The displayed <em>n</em> is the
+      number of pairs contributing to the cell. A dash means the required
+      forecast quantiles or eligible scores were unavailable.
+    </p>
+  ')
 
+  ####################################################################
+  # Creating the remainder of the methods for the traditional scores #
+  ####################################################################
+  methods_html <- htmltools::HTML(paste0('
+  <div style="font-family: sans-serif; padding: 0.5rem 0;">
+
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
+      The following definitions describe the standard forecast scoring rules used in
+      this section. Each score is computed per forecast from the full quantile
+      distribution, then averaged across all transmission-season forecast dates and
+      horizons and summarized per location, providing a transparent and interpretable
+      view of both point-forecast accuracy and the calibration of forecast uncertainty.
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
+', if(metric_available[["WIS"]]) paste0('
+    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Average Weighted Interval Score (WIS)</p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
+      The weighted interval score is a proper scoring rule that evaluates the entire
+      forecast distribution, rewarding forecasts that are both close to the observed
+      value and honest about their uncertainty. It combines the absolute error of the
+      median with a penalty for each symmetric prediction interval, where wider
+      intervals and intervals that miss the observation both increase the score.
+      Lower is better. WIS is on the same scale as the observed data, so it can be
+      read like an absolute error. Here <em>y</em> is the observed value, <em>m</em>
+      is the forecast median, <em>K</em> is the number of prediction intervals, and
+      IS<sub>&alpha;</sub> is the interval score of the corresponding central
+      prediction interval.
+    </p>
+    <div id="eq-trad-wis" style="text-align: center; margin: 0.75rem 0 1rem;"></div>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
+      <strong>Example:</strong> If Model A averages a WIS of 12 and Model B averages
+      a WIS of 18 on the same ', outcome, ' targets, the forecast distributions from
+      Model A were, on average, closer to the observed counts once both accuracy and
+      interval calibration are accounted for. When a forecast provides only a median
+      (no intervals), WIS reduces to the absolute error of the median, so it is shown
+      as a dash (&mdash;) and MAE should be used instead.
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
+') else '', if(metric_available[["MAE"]]) paste0('
+    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Average Absolute Error of the Median (MAE)</p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
+      The average absolute error of the median measures point-forecast accuracy: the
+      mean absolute difference between each observed value and the corresponding
+      forecast median. It ignores the rest of the forecast distribution, making it a
+      useful companion to WIS for separating point accuracy from interval calibration.
+      Lower is better, and MAE is expressed in the same units as the observed data.
+    </p>
+    <div id="eq-trad-mae" style="text-align: center; margin: 0.75rem 0 1rem;"></div>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
+      <strong>Example:</strong> If the model issued median forecasts of 450, 520, and
+      480 ', outcome, ' in three consecutive weeks while 500 were observed each week,
+      the absolute errors are 50, 20, and 20, giving an MAE of 30 &mdash; the median
+      forecast missed the observed count by 30 ', outcome, ' per week on average.
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
+') else '', if(metric_available[["Under"]] || metric_available[["Over"]]) paste0('
+    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Underprediction and Overprediction</p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
+      WIS can be decomposed into three non-negative parts, calculated by
+      <code>scoringutils</code>: a dispersion component reflecting the width of the
+      prediction intervals, an underprediction penalty accrued when the forecast
+      distribution sits below the observation, and an overprediction penalty accrued
+      when it sits above. Comparing the two directional components reveals whether a
+      model systematically leans low or high. Zero means no penalty in that direction
+      was assigned, and smaller average values are better.
+    </p>
+    <div id="eq-trad-decomp" style="text-align: center; margin: 0.75rem 0 1rem;"></div>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
+      <strong>Example:</strong> An average underprediction of 8 alongside an average
+      overprediction of 2 indicates that when forecasts missed, they usually sat below
+      the observed counts &mdash; the model tended to underestimate the trajectory.
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
+') else '', if(length(cov_levels_shown) > 0) paste0('
+    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Average Interval Coverage</p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
+      Interval coverage is the proportion of observations that fell inside the ',
+      paste(cov_levels_shown, collapse = ", "), ' prediction intervals, where
+      <em>L</em> and <em>U</em> are the lower and upper bounds of the interval. The
+      50%, 80%, and 95% intervals use the 25th/75th, 10th/90th, and 2.5th/97.5th
+      quantiles, respectively. A well-calibrated forecast covers close to its nominal
+      level: coverage far below the target signals overconfident (too-narrow)
+      intervals, while coverage far above the target signals overly wide intervals.
+      Coverage should be read alongside WIS, since very wide intervals can achieve
+      high coverage at the cost of precision.
+    </p>
+    <div id="eq-trad-cov" style="text-align: center; margin: 0.75rem 0 1rem;"></div>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
+      <strong>Example:</strong> If 95% coverage is 78.0%, only 78% of observed counts
+      fell inside the 95% prediction intervals, meaning the intervals missed roughly
+      one week in five when they should have missed only one in twenty &mdash; a sign
+      of overconfident intervals. If 50% coverage is 70.0%, the 50% intervals were
+      wider than needed.
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
+') else '', if(!all(metric_available)) paste0('
+    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Metrics Not Shown</p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
+      The following metrics could not be computed for these forecasts and are
+      omitted from the table: ', omitted_list_text, '. Interval-based scores
+      (WIS, its directional components, and interval coverage) require forecasts
+      to include prediction-interval quantiles; when forecasts provide only a
+      median, these scores cannot be evaluated.
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
+') else '',
+transmission_filter_block, trend_phase_methods_block, '
   </div>
 
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script>
     (function() {
       function r(id, tex) {
@@ -509,8 +931,10 @@ section_traditional_metrics <- function(traditional.data,
         }
       }
       function go() {
-        r("trad-katex-mae", "\\\\mathrm{MAE} = \\\\frac{1}{n}\\\\sum_{i=1}^{n} \\\\left| y_i - \\\\hat{y}_i^{(0.5)} \\\\right|");
-        r("trad-katex-cov", "\\\\mathrm{Cov}_{\\\\alpha} = \\\\frac{1}{n}\\\\sum_{i=1}^{n} \\\\mathbf{1}\\\\!\\\\left[ L_i^{\\\\alpha} \\\\le y_i \\\\le U_i^{\\\\alpha} \\\\right]");
+        r("eq-trad-wis", "\\\\text{WIS} = \\\\frac{1}{K + 1/2}\\\\left( \\\\frac{1}{2}\\\\, \\\\left| y - m \\\\right| + \\\\sum_{k=1}^{K} \\\\frac{\\\\alpha_k}{2}\\\\, \\\\text{IS}_{\\\\alpha_k}(F,\\\\, y) \\\\right)");
+        r("eq-trad-mae", "\\\\mathrm{MAE} = \\\\frac{1}{n}\\\\sum_{i=1}^{n} \\\\left| y_i - \\\\hat{y}_i^{(0.5)} \\\\right|");
+        r("eq-trad-decomp", "\\\\text{WIS} = \\\\text{Dispersion} + \\\\text{Underprediction} + \\\\text{Overprediction}");
+        r("eq-trad-cov", "\\\\mathrm{Cov}_{\\\\alpha} = \\\\frac{1}{n}\\\\sum_{i=1}^{n} \\\\mathbf{1}\\\\!\\\\left[ L_i^{\\\\alpha} \\\\le y_i \\\\le U_i^{\\\\alpha} \\\\right]");
       }
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", go);
@@ -530,25 +954,28 @@ section_traditional_metrics <- function(traditional.data,
 #------------------------------------------------------------------------------#
 
   intro_html <- htmltools::HTML(paste0('
-  <p style="font-size:14px;line-height:1.6;color:#444;margin:0 0 1rem 0;">
+  <p style="font-size: 15px; line-height: 1.8; color: #444; margin: 0 0 1rem 0;">
     Traditional scoring rules for the ', outcome, ' forecasts over the
-    transmission-season testing period: the weighted interval score (WIS),
-    median absolute error (MAE), and 50% / 95% interval coverage.
+    transmission-season testing period: ', metric_list_text, '.
+    ', omitted_note, '
   </p>'))
 
 #------------------------------------------------------------------------------#
 # Assembling the full drop-down ------------------------------------------------
 #------------------------------------------------------------------------------#
 
-  htmltools::tags$details(
+  traditional_accordion <- htmltools::tags$details(
     class = "accordion",
     htmltools::tags$summary(htmltools::tags$strong("Traditional Metrics")),
     htmltools::div(
       class = "accordion-body",
       intro_html,
       table_block,
+      nested_phase_accordion,
       methods_accordion
     )
   )
+
+  htmltools::tagList(traditional_accordion, trend_phase_accordion)
 
 }

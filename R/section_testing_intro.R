@@ -1,9 +1,10 @@
 #' Render the testing-period evaluation introduction text
 #'
 #' Produces the orienting paragraph and the per-metric descriptions shown at the
-#' top of the testing-period evaluation section: percent agreement, forecast
-#' bias, peak-phase timing, peak-phase magnitude, and the traditional
-#' (statistical) scoring metrics. The testing-phase date span is taken from
+#' top of the testing-period evaluation section: percent accuracy, forecast
+#' bias, peak-phase timing, peak-phase intensity, the traditional (statistical)
+#' scoring metrics, and the trend- and phase-specific breakdown of those
+#' measures. The testing-phase date span is taken from
 #' `eval_meta$testing_start` / `eval_meta$testing_end`. When no testing data is
 #' present, the function renders nothing so the section disappears from the
 #' report entirely.
@@ -80,7 +81,7 @@ section_testing_intro <- function(eval_meta) {
 # Building the intro HTML ------------------------------------------------------
 #------------------------------------------------------------------------------#
 # About: This section builds the intro card -- a lead sentence with the        #
-# testing-phase span, followed by one row per metric. Rows are numbered 1-5 in #
+# testing-phase span, followed by one row per metric. Rows are numbered 1-6 in #
 # reading order, and each description mirrors what its helper script actually  #
 # computes.                                                                    #
 #------------------------------------------------------------------------------#
@@ -93,11 +94,11 @@ section_testing_intro <- function(eval_meta) {
   <h1>Testing Period Evaluation</h1>
 
   <!-- ============================= Intro card ============================= -->
-  <div style="font-family: sans-serif; padding: 1rem 0 1.5rem;">
+  <div style="font-family: sans-serif; padding: 1rem 0 0.75rem;">
 
     <!-- Lead sentence: orients the reader and states the testing-phase span -->
     <p style="font-size: 15px; line-height: 1.8; color: #444; margin: 0 0 2rem 0;">
-      The following section includes an exploration of model performance, using five
+      The following section includes an exploration of model performance, using six
       key metrics, during the testing phase spanning from
       <strong>', min_ref_date, '</strong> through <strong>', max_ref_date, '</strong>:
     </p>
@@ -105,13 +106,13 @@ section_testing_intro <- function(eval_meta) {
     <!-- Metric list: one numbered row per metric, in reading order -->
     <div style="display: flex; flex-direction: column; gap: 10px; padding-left: 2rem;">
 
-      <!-- 1. Percent agreement -> percentAgreementCalculation() -->
+      <!-- 1. Percent accuracy -> percentAgreementCalculation() -->
       <div style="display: flex; align-items: center; gap: 12px;">
         <span style="min-width: 22px; height: 22px; border-radius: 50%; background-color: #C9B8E8;
                      color: #fff; font-size: 11px; font-weight: 700; display: flex; flex-shrink: 0;
                      align-items: center; justify-content: center;">1</span>
         <p style="font-size: 14px; line-height: 1.7; color: #444; margin: 0;">
-          <strong>Percent Agreement:</strong> how closely forecasted and observed counts
+          <strong>Percent Accuracy:</strong> how closely forecasted and observed counts
           align, scored as the ratio of the smaller value to the larger.
         </p>
       </div>
@@ -138,13 +139,13 @@ section_testing_intro <- function(eval_meta) {
         </p>
       </div>
 
-      <!-- 4. Peak-phase magnitude -> calculating_peak_trough_PEAKPHASE() -->
+      <!-- 4. Peak-phase intensity -> calculating_peak_trough_PEAKPHASE() -->
       <div style="display: flex; align-items: center; gap: 12px;">
         <span style="min-width: 22px; height: 22px; border-radius: 50%; background-color: #C9B8E8;
                      color: #fff; font-size: 11px; font-weight: 700; display: flex; flex-shrink: 0;
                      align-items: center; justify-content: center;">4</span>
         <p style="font-size: 14px; line-height: 1.7; color: #444; margin: 0;">
-          <strong>Peak Phase Magnitude:</strong> how closely the forecasted peak counts
+          <strong>Peak Phase Intensity:</strong> how closely the forecasted peak counts
           matched the observed counts during the peak phase.
         </p>
       </div>
@@ -155,10 +156,28 @@ section_testing_intro <- function(eval_meta) {
                      color: #fff; font-size: 11px; font-weight: 700; display: flex; flex-shrink: 0;
                      align-items: center; justify-content: center;">5</span>
         <p style="font-size: 14px; line-height: 1.7; color: #444; margin: 0;">
-          <strong>Statistical Scoring Metrics:</strong> the Weighted Interval Score (WIS)
-          and the absolute error of the median forecast summarize overall accuracy, while
-          50% and 95% interval coverage measure how often observed counts fell within the
+          <strong>Statistical Scoring Metrics:</strong> four standard scores. The
+          <strong>Weighted Interval Score (WIS)</strong> summarizes the accuracy of the
+          full predictive distribution and the <strong>absolute error of the median
+          forecast</strong> summarizes point accuracy, while <strong>50% and 95%
+          interval coverage</strong> measure how often observed counts fell within the
           corresponding prediction intervals.
+        </p>
+      </div>
+
+      <!-- 6. Trend- and phase-specific performance -> the trendPhase* family, shown
+           as a breakdown inside the Percent Accuracy, Forecast Bias, and
+           Statistical Scoring Metrics sections rather than as its own section -->
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="min-width: 22px; height: 22px; border-radius: 50%; background-color: #C9B8E8;
+                     color: #fff; font-size: 11px; font-weight: 700; display: flex; flex-shrink: 0;
+                     align-items: center; justify-content: center;">6</span>
+        <p style="font-size: 14px; line-height: 1.7; color: #444; margin: 0;">
+          <strong>Trend and Phase Specific Performance:</strong> percent accuracy,
+          forecast bias, and the statistical scoring metrics broken out by the observed
+          week-over-week trend and the observed epidemic phase &mdash; ascension, peak,
+          and decline &mdash; showing where in a season each measure held up and where
+          it did not.
         </p>
       </div>
 

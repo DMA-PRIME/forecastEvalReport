@@ -11,7 +11,7 @@
 #                                                                              #
 # The peak is the single highest week of the season (the observed global       #
 # maximum). The section reports three measures at each forecast horizon: peak  #
-# timing, peak magnitude, and peak-week accuracy. The resolved outcome label is#
+# timing, peak intensity, and peak-week accuracy. The resolved outcome label is#
 # woven into the wording when supplied.                                        #
 #                                                                              #
 # When multiple locations are present the navigation text speaks to several    #
@@ -52,10 +52,10 @@ build_peak_phase_intro <- function(multi_location = TRUE,
      through the nowcast (the estimate for the current week). Four measures are
      reported: <strong>peak timing</strong> (how far the predicted peak week
      fell from the true peak week) and three height comparisons that differ only
-     in which week anchors them &mdash; <strong>peak-to-peak magnitude</strong>
+     in which week anchors them &mdash; <strong>peak-to-peak intensity</strong>
      (predicted peak height vs the observed peak height, dates aside),
-     <strong>magnitude at the predicted peak</strong> (predicted peak vs what
-     was actually observed that same week), and <strong>magnitude at the
+     <strong>intensity at the predicted peak</strong> (predicted peak vs what
+     was actually observed that same week), and <strong>intensity at the
      observed peak</strong> (the forecast for the true peak week vs the observed
      peak).',
     week_phrase)
@@ -67,13 +67,13 @@ build_peak_phase_intro <- function(multi_location = TRUE,
 
     'Use the <strong>dropdown</strong> below to select a geography. Results are
      organized by <strong>forecast horizon</strong>, with peak timing plus
-     three magnitude comparisons (peak-to-peak, at the predicted peak, and at
+     three intensity comparisons (peak-to-peak, at the predicted peak, and at
      the observed peak) shown for each.'
 
   } else {
 
     'Results are organized by <strong>forecast horizon</strong>, with peak
-     timing plus three magnitude comparisons (peak-to-peak, at the predicted
+     timing plus three intensity comparisons (peak-to-peak, at the predicted
      peak, and at the observed peak) shown for each.'
 
   }

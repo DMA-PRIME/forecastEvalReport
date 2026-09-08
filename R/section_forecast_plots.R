@@ -132,6 +132,62 @@ section_forecast_plots <- function(impl_meta,
 
   }
 
+#------------------------------------------------------------------------------#
+# Reapplying the user location crosswalk to the display map --------------------
+#------------------------------------------------------------------------------#
+# About: Multi-location reports carry a named raw-code -> display-name vector. #
+# Some upstream normalization paths can leave the values equal to the raw      #
+# codes even though config still contains the user crosswalk. Reapply that     #
+# crosswalk here, before the location loop is re-keyed, so the dropdown and    #
+# y-axis title both receive the requested clean display name.                  #
+#------------------------------------------------------------------------------#
+
+  ###########################################################
+  # User crosswalk supplied as raw code -> clean name vector #
+  ###########################################################
+  user_location_crosswalk <- config$location_crosswalk
+
+  if(!is.null(user_location_crosswalk) &&
+     length(user_location_crosswalk) > 0 &&
+     !is.null(names(user_location_crosswalk))){
+
+    ###########################################
+    # Raw keys represented by the location map #
+    ###########################################
+    raw_location_keys <- names(locations)
+
+    # Falling back to the values when the map arrived without usable names
+    if(is.null(raw_location_keys) ||
+       length(raw_location_keys) != length(locations) ||
+       any(is.na(raw_location_keys)) ||
+       any(!nzchar(trimws(raw_location_keys)))){
+
+      # Values are the best available raw identifiers
+      raw_location_keys <- as.character(unname(locations))
+
+    }
+
+    #########################################################
+    # Exact matching after trimming, consistent with reader #
+    #########################################################
+    crosswalk_index <- match(
+      trimws(as.character(raw_location_keys)),
+      trimws(as.character(names(user_location_crosswalk)))
+    )
+
+    # Locations with an explicit user mapping
+    matched_locations <- !is.na(crosswalk_index)
+
+    # Replacing only matched values; all other locations retain their fallback
+    locations[matched_locations] <- unname(
+      user_location_crosswalk[crosswalk_index[matched_locations]]
+    )
+
+    # Preserving raw keys until the model columns are normalized below
+    names(locations) <- raw_location_keys
+
+  }
+
   #########################
   # Outcome display label #
   #########################
@@ -999,7 +1055,9 @@ section_forecast_plots <- function(impl_meta,
       outcome       = outcome_display,
       disease       = disease_display,
       geography     = loc_display,
-      spatial.scale = spatial_scale
+      spatial.scale = spatial_scale,
+      axis_font_size = font_size,
+      plot_height    = plot_styles$plot_height
     )
 
     ##################################
@@ -1637,12 +1695,14 @@ section_forecast_plots <- function(impl_meta,
 # Return with spacer -----------------------------------------------------------
 #------------------------------------------------------------------------------#
 # About: This section returns returns the plot to the main script as well as   #
-# spacer for the top of the plot.                                              #
+# the trailing spacer that separates the plot from the section that follows.   #
+# The spacer carries the `forecast-plot-gap` class rather than a fixed inline  #
+# margin, so its size is set in styles.css and scales with the viewport.       #
 #------------------------------------------------------------------------------#
 
   htmltools::tagList(
     plot_block,
-    htmltools::div(style = "margin-top: 0em;")
+    htmltools::div(class = "forecast-plot-gap")
   )
 
 }

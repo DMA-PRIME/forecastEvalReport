@@ -171,6 +171,166 @@ section_model_table <- function(variables_crosswalk,
   model_data <- model_data[!is.na(model_data$Value), , drop = FALSE]
 
 #------------------------------------------------------------------------------#
+# Derive consistent table-only modeling period boundaries ---------------------
+#------------------------------------------------------------------------------#
+# About: The table previously mixed horizon-adjusted dates for training and    #
+# validation with unadjusted target dates for testing. This could manufacture  #
+# overlapping periods even when the phase codes were mutually exclusive. The  #
+# table now uses the same target-date span for every phase. This change is     #
+# intentionally limited to display and does not alter evaluation calculations. #
+#------------------------------------------------------------------------------#
+
+  ############################################
+  # Resolving the evaluation data time step  #
+  ############################################
+  table_time_step <- if(
+    !is.null(eval_meta$time_step) &&
+    is.numeric(eval_meta$time_step) &&
+    length(eval_meta$time_step) == 1L &&
+    is.finite(eval_meta$time_step) &&
+    eval_meta$time_step >= 1
+  ){
+
+    # Time step detected while extracting the evaluation model
+    as.integer(round(eval_meta$time_step))
+
+  }else{
+
+    # Weekly fallback when no evaluation cadence is available
+    7L
+
+  }
+
+  ########################################################
+  # Helper Function: Deriving one table period from rows  #
+  ########################################################
+  table_period_bounds <- function(period_data, phase_code,
+                                  fallback_start, fallback_end){
+
+    # Retaining existing metadata when the underlying rows are unavailable
+    fallback_bounds <- list(
+      start = fallback_start,
+      end   = fallback_end
+    )
+
+    if(is.null(period_data) ||
+       !is.data.frame(period_data) ||
+       nrow(period_data) == 0L ||
+       !"target_end_date" %in% names(period_data)){
+      return(fallback_bounds)
+    }
+
+    # Testing metadata may contain neighboring rows needed elsewhere in the
+    # report. Restrict the table calculation to the requested phase code.
+    if("training_validation" %in% names(period_data)){
+      period_data <- period_data[
+        !is.na(period_data$training_validation) &
+          period_data$training_validation == phase_code, ,
+        drop = FALSE
+      ]
+    }
+
+    # Falling back when phase filtering leaves no rows
+    if(nrow(period_data) == 0L) return(fallback_bounds)
+
+    # Converting and retaining finite target dates only
+    period_dates <- anytime::anydate(period_data$target_end_date)
+    period_dates <- period_dates[
+      !is.na(period_dates) & is.finite(as.numeric(period_dates))
+    ]
+
+    # Falling back when the phase contains no usable target dates
+    if(length(period_dates) == 0L) return(fallback_bounds)
+
+    # Monthly periods begin on the first day of the earliest target month;
+    # daily and weekly periods begin at the start of the earliest target span.
+    period_start <- if(table_time_step >= 28L){
+      as.Date(format(min(period_dates), "%Y-%m-01"))
+    }else{
+      min(period_dates) - (table_time_step - 1L)
+    }
+
+    # Every phase uses its latest target date as the display end
+    list(
+      start = period_start,
+      end   = max(period_dates)
+    )
+  }
+
+  ###########################################
+  # Deriving each modeling period uniformly #
+  ###########################################
+  training_bounds <- table_period_bounds(
+    eval_meta$training_data,
+    1L,
+    eval_meta$training_start,
+    eval_meta$training_end
+  )
+
+  validation_bounds <- table_period_bounds(
+    eval_meta$validation_data,
+    2L,
+    eval_meta$validation_start,
+    eval_meta$validation_end
+  )
+
+  testing_bounds <- table_period_bounds(
+    eval_meta$testing_data,
+    0L,
+    eval_meta$testing_start,
+    eval_meta$testing_end
+  )
+
+  #############################################################
+  # Keeping adjacent table periods from sharing calendar days #
+  #############################################################
+  clip_before_next_period <- function(current_bounds, next_bounds){
+
+    # Returning unchanged bounds when either period is unavailable
+    if(is.null(current_bounds$start) ||
+       is.null(current_bounds$end) ||
+       is.null(next_bounds$start)){
+      return(current_bounds)
+    }
+
+    current_start <- anytime::anydate(current_bounds$start)
+    current_end   <- anytime::anydate(current_bounds$end)
+    next_start    <- anytime::anydate(next_bounds$start)
+
+    # Clipping only when a valid next period begins after the current period
+    # begins but on or before its displayed end.
+    if(!is.na(current_start) &&
+       !is.na(current_end) &&
+       !is.na(next_start) &&
+       next_start > current_start &&
+       current_end >= next_start){
+      current_bounds$end <- next_start - 1L
+    }
+
+    current_bounds
+  }
+
+  # Validation defines the end boundary for training when it is present;
+  # otherwise testing provides the next available model-period boundary.
+  if(!is.null(validation_bounds$start)){
+    training_bounds <- clip_before_next_period(
+      training_bounds,
+      validation_bounds
+    )
+  }else{
+    training_bounds <- clip_before_next_period(
+      training_bounds,
+      testing_bounds
+    )
+  }
+
+  # Testing defines the final boundary for the validation period
+  validation_bounds <- clip_before_next_period(
+    validation_bounds,
+    testing_bounds
+  )
+
+#------------------------------------------------------------------------------#
 # Build a period row when both dates are present -------------------------------
 #------------------------------------------------------------------------------#
 # About: This section returns a one-row data frame for a period, or NULL when  #
@@ -208,22 +368,22 @@ section_model_table <- function(variables_crosswalk,
   # Training rows #
   #################
   training_row   <- period_row("Training Period",
-                               eval_meta$training_start,
-                               eval_meta$training_end)
+                               training_bounds$start,
+                               training_bounds$end)
 
   ###################
   # Validation rows #
   ###################
   validation_row <- period_row("Validation Period",
-                               eval_meta$validation_start,
-                               eval_meta$validation_end)
+                               validation_bounds$start,
+                               validation_bounds$end)
 
   ################
   # Testing rows #
   ################
   testing_row    <- period_row("Testing Period",
-                               eval_meta$testing_start,
-                               eval_meta$testing_end)
+                               testing_bounds$start,
+                               testing_bounds$end)
 
   ########################
   # Forecast period rows #

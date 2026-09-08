@@ -32,6 +32,8 @@
 #' @param eval_config Evaluation config from `create_evaluation_config()`.
 #'   `non_transmission_months`, `stable_threshold`, and `pct_error_cushion` are
 #'   used to phrase the methods text. When `NULL`, defaults are used.
+#' @param population_crosswalk Optional custom population rows from
+#'   `generate_report()`, used for population-adjusted observed trend calls.
 #'
 #' @return Rendered HTML via [htmltools::tagList()], or `invisible(NULL)` when no
 #'   testing data is available.
@@ -42,7 +44,8 @@ section_forecast_bias <- function(forecastBias.data,
                                   eval_meta,
                                   outcome             = NULL,
                                   variables_crosswalk = NULL,
-                                  eval_config         = NULL) {
+                                  eval_config         = NULL,
+                                  population_crosswalk = NULL) {
 
 #------------------------------------------------------------------------------#
 # Guard: testing data must be present ------------------------------------------
@@ -230,6 +233,36 @@ section_forecast_bias <- function(forecastBias.data,
 
   # Comparison table only applies with more than one location
   interactive <- n_loc > 1
+
+#------------------------------------------------------------------------------#
+# Trend- and phase-specific Forecast Bias -------------------------------------
+#------------------------------------------------------------------------------#
+
+  trend_phase_bias_error <- NULL
+  trend_phase_bias_result <- tryCatch(
+    trendPhaseBiasCalculation(
+      forecastBias.data = forecastBias.data,
+      population = population_crosswalk,
+      eval_config = eval_config,
+      week_days = if(!is.null(eval_meta$time_step)) eval_meta$time_step else 7
+    ),
+    error = function(e){
+      trend_phase_bias_error <<- paste0(
+        "The trend/phase bias table could not be calculated: ",
+        conditionMessage(e)
+      )
+      message(trend_phase_bias_error)
+      list(summary = data.frame(), data = data.frame())
+    }
+  )
+
+  trend_phase_bias_accordion <- build_trend_phase_bias(
+    performance_summary = trend_phase_bias_result$summary,
+    location_codes = loc_codes,
+    location_labels = loc_labels,
+    phase_data = trend_phase_bias_result$data,
+    status_message = trend_phase_bias_error
+  )
 
 #------------------------------------------------------------------------------#
 # Intro paragraph --------------------------------------------------------------
@@ -675,6 +708,9 @@ section_forecast_bias <- function(forecastBias.data,
           td.setAttribute("data-value", isNaN(med) ? "" : med);
         });
         if (typeof window.reRankBiasCompare === "function") window.reRankBiasCompare();
+        if (typeof window.setTrendPhaseBiasMode === "function") {
+          window.setTrendPhaseBiasMode(mode);
+        }
       };
 
       // Show only the selected location row (multi-location)
@@ -932,6 +968,51 @@ section_forecast_bias <- function(forecastBias.data,
     ''
   }
 
+  ##############################################
+  # Trend and epidemic phase explanation block #
+  ##############################################
+  trend_phase_bias_methods_block <- paste0('
+    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">
+      Trend- and Phase-Specific Forecast Bias
+    </p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
+      This table uses the same signed forecast-bias calculations as the figure
+      and summary table above. The observed trend and epidemic phase labels only
+      organize those bias values into meaningful parts of the observed curve;
+      they do not change the bias formula. Positive values indicate
+      overestimation, negative values indicate underestimation, and values near
+      zero indicate little systematic bias.
+    </p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
+      <strong>Observed trend:</strong> Counts are converted to rates per 100,000
+      population and compared with the preceding target period. Each location\'s
+      observed rate-change distribution defines <strong>Large Increase</strong>,
+      <strong>Increase</strong>, <strong>Stable</strong>,
+      <strong>Decrease</strong>, and <strong>Large Decrease</strong>. A raw
+      period-to-period change smaller than <strong>', stable_thr,
+      '</strong> counts is treated as Stable.
+    </p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
+      <strong>Observed phase:</strong> Within each location and season, Peak is
+      the continuous observed period surrounding the seasonal maximum whose
+      values remain within <strong>', eval_config$peak_window,
+      '%</strong> of that maximum. Earlier periods are
+      <strong>Ascension</strong>; later periods are <strong>Decline</strong>.
+      These observed phases are fixed across forecast horizons.
+    </p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
+      Each cell reports median bias and its range. <strong>Bias (%)</strong>
+      includes only stable observations at or above ', stable_thr,
+      ', while <strong>Raw Counts</strong> includes all eligible
+      transmission-season observations. Horizon selections restrict the table
+      to one forecast horizon; Overall pools eligible forecast-target pairs
+      across horizons. The displayed <em>n</em> is the number of contributing
+      pairs, and a dash indicates that none were available.
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
+  ')
+
   #############################
   # Building the methods HTML #
   #############################
@@ -982,7 +1063,7 @@ section_forecast_bias <- function(forecastBias.data,
 
     <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
 
-    ', transmission_filter_block, '
+    ', transmission_filter_block, trend_phase_bias_methods_block, '
 
     <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Bias Group Classification</p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
@@ -1101,6 +1182,7 @@ section_forecast_bias <- function(forecastBias.data,
       plot_block,
       table_html,
       compare_accordion,
+      trend_phase_bias_accordion,
       methods_accordion
     )
   )

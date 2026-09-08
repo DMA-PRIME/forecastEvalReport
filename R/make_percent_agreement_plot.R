@@ -28,7 +28,7 @@ make_percent_agreement_plot <- function(data, loc, outcome) {
 #------------------------------------------------------------------------------#
 # Preparing the input data for the plot ----------------------------------------
 #------------------------------------------------------------------------------#
-# About: This section filters the percent agreement data for the selected      #
+# About: This section filters the percent accuracy data for the selected      #
 # location, prepares the observed data for the right y axis, identifies unique #
 # horizons, assigns horizon colors, and computes the overall median percent    #
 # agreement per target end date for the main line.                             #
@@ -107,7 +107,7 @@ make_percent_agreement_plot <- function(data, loc, outcome) {
 #------------------------------------------------------------------------------#
 # Computing the overall median line --------------------------------------------
 #------------------------------------------------------------------------------#
-# About: This section computes the median percent agreement and median         #
+# About: This section computes the median percent accuracy and median         #
 # forecasted value across all horizons for each location and target end date   #
 # excluding May through July. Both are used in the hover tooltip.              #
 #------------------------------------------------------------------------------#
@@ -133,9 +133,9 @@ make_percent_agreement_plot <- function(data, loc, outcome) {
         is.na(median_agreement),
         NA_character_,
         paste0(
-          "<b>Overall Median Percent Agreement</b><br>",
+          "<b>Overall Median Percent Accuracy</b><br>",
           "Date: ", format(target_end_date, "%b %d, %Y"), "<br>",
-          "Median Agreement: ", round(median_agreement, 1), "%<br>",
+          "Median Accuracy: ", round(median_agreement, 1), "%<br>",
           "Median Forecasted ", outcome, ": ", round(median_value, 1), "<br>",
           "Observed ", outcome, ": ", fmt_hover_val(observed_count)
         )
@@ -287,7 +287,7 @@ make_percent_agreement_plot <- function(data, loc, outcome) {
   #########################
   # Initializing the plot #
   #########################
-  p <- plotly::plot_ly(height = 700)
+  p <- plotly::plot_ly(height = 620)
 
   # Adding invisible anchor scatter on yaxis
   p <- p %>%
@@ -386,9 +386,9 @@ make_percent_agreement_plot <- function(data, loc, outcome) {
           size  = 7
         ),
         hovertemplate = paste0(
-          "<b>Horizon ", h, " Percent Agreement</b><br>",
+          "<b>Horizon ", h, " Percent Accuracy</b><br>",
           "Date: %{x}<br>",
-          "Percent Agreement: %{y:.1f}%<br>",
+          "Percent Accuracy: %{y:.1f}%<br>",
           "Forecasted ", outcome, ": %{customdata[0]}<br>",
           "Observed ", outcome, ": %{customdata[1]}",
           "<extra></extra>"
@@ -406,7 +406,7 @@ make_percent_agreement_plot <- function(data, loc, outcome) {
       y             = ~median_agreement,
       type          = "scatter",
       mode          = "lines",
-      name          = "Overall Median Percent Agreement",
+      name          = "Overall Median Percent Accuracy",
       yaxis         = "y",
       connectgaps   = FALSE,
       customdata    = ~median_value,
@@ -462,7 +462,7 @@ make_percent_agreement_plot <- function(data, loc, outcome) {
 
       # Left Y axis
       yaxis       = list(
-        title      = "Percent Agreement (%)",
+        title      = "Percent Accuracy (%)",
         titlefont  = list(size = 16),
         showgrid   = TRUE,
         gridcolor  = "#f0f0f0",
@@ -498,7 +498,7 @@ make_percent_agreement_plot <- function(data, loc, outcome) {
         orientation = "h",
         x           = 0.5,
         xanchor     = "center",
-        y           = -0.14
+        y           = -0.11
       ),
 
       # General plot setting
@@ -506,7 +506,7 @@ make_percent_agreement_plot <- function(data, loc, outcome) {
       plot_bgcolor  = "#ffffff",
       paper_bgcolor = "#ffffff",
       font          = list(family = "sans-serif", color = "#555"),
-      margin        = list(l = 40, r = 100, t = 40, b = 120),
+      margin        = list(l = 40, r = 100, t = 30, b = 85),
       shapes        = all_shapes,
       annotations   = no_eval_annotations
     )
@@ -571,8 +571,8 @@ make_percent_agreement_plot <- function(data, loc, outcome) {
         var host = gd.closest('.plot-panel') || gd.parentElement;
         var w = (host && host.clientWidth) ? host.clientWidth : 900;
         gd.style.width  = w + 'px';
-        gd.style.height = '700px';
-        Plotly.relayout(gd, { autosize: false, width: w, height: 700 }).then(function() {
+        gd.style.height = '620px';
+        Plotly.relayout(gd, { autosize: false, width: w, height: 620 }).then(function() {
           if (gd.offsetParent !== null) Plotly.Plots.resize(gd);
         });
       };

@@ -12,10 +12,11 @@
 #' `window.setRtBiasTableMode("pct" | "raw")`, which swaps the displayed track in
 #' both tables and re-ranks the comparison table.
 #'
-#' Locations are keyed in the DOM by their display label (`location_display`) so
-#' the dropdown, plot panels, and table stay in sync; the underlying data is
-#' filtered by the raw `location` code, which is what `make_realtime_forecast_bias_plot()`
-#' expects.
+#' Location display labels are presentation-only. The dropdown, plot panels,
+#' and table are synchronized by a stable zero-based panel index so a custom
+#' location crosswalk cannot break the controls through duplicate labels or
+#' punctuation in a clean location name. The underlying data is filtered by the
+#' raw `location` code, which is what `make_realtime_forecast_bias_plot()` expects.
 #'
 #' @param forecastBias.data Output of `forecastBiasCalculation()` — the
 #'   evaluation frame with row-level (`raw_error`, `pct_error`, `is_transmission`,
@@ -132,8 +133,8 @@ section_realtime_forecast_bias <- function(forecastBias.data,
 # Resolving location codes and display labels ----------------------------------
 #------------------------------------------------------------------------------#
 # About: Data is filtered by raw `location`; the DOM (dropdown, panels, table)  #
-# is keyed by the display label so all three stay in sync. Labels come from     #
-# location_display, then impl_meta$locations, then fall back to the raw code.   #
+# is keyed by panel index so custom display labels cannot affect behavior.      #
+# Labels come from location_display, then impl_meta$locations, then raw code.   #
 #------------------------------------------------------------------------------#
 
   loc_codes <- sort(unique(forecastBias.data$location))
@@ -155,6 +156,36 @@ section_realtime_forecast_bias <- function(forecastBias.data,
   loc_labels  <- vapply(loc_codes, resolve_label, character(1))
   n_loc       <- length(loc_codes)
   interactive <- n_loc > 1   # comparison table only makes sense for >1 location
+
+  ####################################################################
+  # Report-wide raw-only decision                                    #
+  ####################################################################
+  # Make this decision in R, before any HTML/JavaScript is generated. #
+  # A percentage cell displays a dash when its stable median is NA or #
+  # when a location has no rows for one of the report's horizons. If  #
+  # that occurs anywhere, render the whole Forecast Bias section in   #
+  # Raw Counts mode so the result does not depend on browser callbacks.#
+  horizons <- sort(unique(forecastBias.data$horizon))
+
+  pct_cols_present <- all(c("medianPctStableHorizon",
+                            "medianPctStableOverall") %in%
+                          names(forecastBias.data))
+
+  pct_insufficient <- if(!pct_cols_present){
+    TRUE
+  }else{
+    any(vapply(loc_codes, function(code){
+      d <- forecastBias.data[forecastBias.data$location == code, , drop = FALSE]
+      missing_horizon <- any(vapply(horizons, function(h){
+        dh <- d[d$horizon == h, , drop = FALSE]
+        nrow(dh) == 0 || all(is.na(dh$medianPctStableHorizon))
+      }, logical(1)))
+      missing_overall <- nrow(d) == 0 || all(is.na(d$medianPctStableOverall))
+      missing_horizon || missing_overall
+    }, logical(1)))
+  }
+
+  raw_only_section <- isTRUE(pct_insufficient)
 
 #------------------------------------------------------------------------------#
 # Intro paragraph --------------------------------------------------------------
@@ -185,6 +216,21 @@ section_realtime_forecast_bias <- function(forecastBias.data,
 # "To Navigate" box (config-aware non-transmission label) ----------------------
 #------------------------------------------------------------------------------#
 
+  scale_guidance <- if(raw_only_section){
+    paste0(
+      ' Percentage summaries are unavailable because at least one displayed ',
+      'summary has insufficient observations at or above the stability ',
+      'threshold of <strong>', stable_thr, '</strong>; therefore this section ',
+      'shows <strong>Raw Counts</strong> only.'
+    )
+  }else{
+    paste0(
+      ' Use <strong>Bias (%)</strong> to view error relative to observed ',
+      'counts, or <strong>Raw Counts</strong> to view forecast error on the ',
+      'observed scale.'
+    )
+  }
+
   navigate_html <- htmltools::HTML(paste0('
   <!-- Reader orientation for the figure and table -->
   <div class="section-intro" style="margin: 0 auto;">
@@ -197,9 +243,8 @@ section_realtime_forecast_bias <- function(forecastBias.data,
       <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0;">
         The solid black line shows the <strong>overall median bias</strong> by week, with a
         dashed line for each <strong>forecast horizon</strong>; use the legend to toggle any
-        series on or off, including the observed counts. Use <strong>Bias (%)</strong>
-        to view error relative to observed counts, or <strong>Raw Counts</strong> to view
-        forecast error on the observed scale.', no_eval_sentence, '
+        series on or off, including the observed counts.', scale_guidance,
+        no_eval_sentence, '
       </p>
     </div>
   </div>
@@ -218,6 +263,116 @@ section_realtime_forecast_bias <- function(forecastBias.data,
     htmltools::div(style = "margin-top: 2em;")
   }
 
+  ####################################################################
+  # Bias scale toggle: Always present in the rendered report HTML     #
+  ####################################################################
+  # The earlier toggle was created inside a delayed Plotly onRender   #
+  # callback. Hidden multi-location panels can delay or interrupt that #
+  # callback, leaving no buttons in the document. Render the controls  #
+  # here and let them call the active plot's registered mode setter.   #
+  toggle_html <- if(raw_only_section){
+    htmltools::HTML('
+      <div id="rtBiasToggleRow"
+           style="display:flex;justify-content:flex-end;margin:0 20px 10px 0;">
+        <div style="padding:5px 12px;font-size:12px;font-weight:600;
+                    border:1px solid #ddd;border-radius:6px;
+                    background:#522D80;color:#fff;">Raw Counts</div>
+      </div>
+      <script>
+        window.rtBiasMode = "raw";
+        window.rtBiasPreferredMode = "raw";
+      </script>
+    ')
+  }else{
+    htmltools::HTML('
+    <div id="rtBiasToggleRow"
+         style="display:flex;justify-content:flex-end;margin:0 20px 10px 0;">
+      <div style="display:inline-flex;border:1px solid #ddd;border-radius:6px;overflow:hidden;">
+        <button type="button" id="rtBiasBtnPct"
+          style="padding:5px 12px;font-size:12px;font-weight:600;border:none;cursor:pointer;
+                 background:#522D80;color:#fff;">Bias (%)</button>
+        <button type="button" id="rtBiasBtnRaw"
+          style="padding:5px 12px;font-size:12px;font-weight:600;border:none;cursor:pointer;
+                 background:transparent;color:#555;">Raw Counts</button>
+      </div>
+    </div>
+    <script>
+      (function() {
+        var pct = document.getElementById("rtBiasBtnPct");
+        var raw = document.getElementById("rtBiasBtnRaw");
+        if (!pct || !raw) return;
+
+        function styleButtons(mode) {
+          pct.style.background = mode === "pct" ? "#522D80" : "transparent";
+          pct.style.color      = mode === "pct" ? "#fff" : "#555";
+          raw.style.background = mode === "raw" ? "#522D80" : "transparent";
+          raw.style.color      = mode === "raw" ? "#fff" : "#555";
+        }
+
+        window.setActiveRtBiasMode = function(mode) {
+          // A percentage-deficient location exposes Raw Counts only.
+          if (mode === "pct" && pct.disabled) mode = "raw";
+          window.rtBiasMode = mode;
+          styleButtons(mode);
+
+          var wrap = document.getElementById("wrap-rtForecastBiasPlot");
+          if (!wrap) return;
+          var panels = Array.from(wrap.querySelectorAll(".plot-panel"));
+          var active = panels.find(function(panel) {
+            return panel.style.display !== "none";
+          }) || panels[0];
+          var gd = active ? active.querySelector(".plotly") : null;
+          if (gd && typeof gd.__setRtBiasMode === "function") {
+            gd.__setRtBiasMode(mode);
+          }
+        };
+
+        // Called whenever the active location changes. A missing percentage
+        // median in any horizon/overall cell is the same condition that
+        // triggers the insufficient-data note. In that case, remove the
+        // percentage choice and force the plot/table onto raw counts.
+        window.updateRtBiasAvailability = function(panelIndex) {
+          var row = document.querySelector(
+            "#rtForecastBiasTable tbody td[data-location-index=" +
+            String(panelIndex) + "]"
+          );
+          row = row ? row.closest("tr") : null;
+          var insufficient = false;
+          if (row) {
+            insufficient = Array.from(
+              row.querySelectorAll("td[data-pct-med]")
+            ).some(function(td) {
+              return isNaN(parseFloat(td.getAttribute("data-pct-med")));
+            });
+          }
+
+          pct.disabled      = insufficient;
+          pct.style.display = insufficient ? "none" : "inline-block";
+          pct.title         = insufficient
+            ? "Percentage bias is unavailable because observed counts are below the stability threshold."
+            : "";
+
+          var nextMode = insufficient
+            ? "raw"
+            : (window.rtBiasPreferredMode || "pct");
+          window.setActiveRtBiasMode(nextMode);
+        };
+
+        pct.addEventListener("click", function() {
+          window.rtBiasPreferredMode = "pct";
+          window.setActiveRtBiasMode("pct");
+        });
+        raw.addEventListener("click", function() {
+          window.rtBiasPreferredMode = "raw";
+          window.setActiveRtBiasMode("raw");
+        });
+        window.rtBiasPreferredMode = window.rtBiasPreferredMode || "pct";
+        styleButtons(window.rtBiasMode || "pct");
+      })();
+    </script>
+    ')
+  }
+
 #------------------------------------------------------------------------------#
 # Building the per-location plots ----------------------------------------------
 #------------------------------------------------------------------------------#
@@ -229,7 +384,8 @@ section_realtime_forecast_bias <- function(forecastBias.data,
       make_realtime_forecast_bias_plot(
         data    = forecastBias.data,
         loc     = loc,
-        outcome = outcome
+        outcome = outcome,
+        raw_only = raw_only_section
       )
     }),
     loc_labels
@@ -245,6 +401,7 @@ section_realtime_forecast_bias <- function(forecastBias.data,
     # Single location: render   #
     #############################
     plot_block <- htmltools::div(
+      id    = wrap_id,
       style = "display: flex; justify-content: center; width: 100%;",
       htmltools::div(
         class = "plot-panel",
@@ -257,7 +414,7 @@ section_realtime_forecast_bias <- function(forecastBias.data,
 
     #################################################
     # Multiple locations: panels + dropdown-driven  #
-    # show/hide JS, keyed by display label          #
+    # show/hide JS, keyed by stable panel index     #
     #################################################
     plot_block <- htmltools::tagList(
 
@@ -284,34 +441,38 @@ section_realtime_forecast_bias <- function(forecastBias.data,
       htmltools::tags$script(htmltools::HTML(sprintf('
         (function() {
 
-          function applyRtBiasPlotLocation(locName) {
+          function applyRtBiasPlotLocation(panelIndex) {
             var wrap = document.getElementById("%s");
             if (!wrap) return;
             var panels = wrap.querySelectorAll("[data-panel-index]");
             panels.forEach(function(p) {
-              var isActive = p.getAttribute("data-location-name") === locName;
+              var isActive = p.getAttribute("data-panel-index") === String(panelIndex);
               p.style.display        = isActive ? "flex" : "none";
               p.style.justifyContent = "center";
               if (isActive && window.Plotly) {
                 var gd = p.querySelector(".plotly");
-                if (gd) requestAnimationFrame(function() { Plotly.Plots.resize(gd); });
+                if (gd) requestAnimationFrame(function() {
+                  Plotly.Plots.resize(gd);
+                  if (window.setActiveRtBiasMode) {
+                    window.setActiveRtBiasMode(window.rtBiasMode || "pct");
+                  }
+                });
               }
             });
-            if (typeof syncRtBiasTableToPlot === "function") syncRtBiasTableToPlot(locName);
+            if (typeof syncRtBiasTableToPlot === "function") syncRtBiasTableToPlot(panelIndex);
           }
 
           var sel = document.getElementById("geoSelect_RTFB");
           if (sel) {
             sel.addEventListener("change", function() {
-              var opt = this.options[this.selectedIndex];
-              applyRtBiasPlotLocation(opt.getAttribute("data-location-name"));
+              applyRtBiasPlotLocation(this.value);
             });
           }
 
           window.addEventListener("load", function() {
             var sel = document.getElementById("geoSelect_RTFB");
             if (sel && sel.options[0]) {
-              applyRtBiasPlotLocation(sel.options[0].getAttribute("data-location-name"));
+              applyRtBiasPlotLocation(sel.options[0].value);
             }
           });
 
@@ -345,6 +506,7 @@ section_realtime_forecast_bias <- function(forecastBias.data,
   # Signed formatters (percentage / raw)   #
   ##########################################
   fmt_pct_r <- function(v) if(is.na(v)) "&mdash;" else paste0(if(v > 0) "+" else "", v, "%")
+  fmt_raw_r <- function(v) if(is.na(v)) "&mdash;" else paste0(if(v > 0) "+" else "", v)
 
   ##########################################
   # Over / under / neutral cell color      #
@@ -365,16 +527,23 @@ section_realtime_forecast_bias <- function(forecastBias.data,
     pct_color <- bias_color(mp, is_overall)
     raw_color <- bias_color(mr, is_overall)
     sub_color <- if(is_overall) "#9B85C8" else "#555"
-    main_txt  <- fmt_pct_r(mp)
-    sub_txt   <- if(is.na(mp)) "" else paste0("(", fmt_pct_r(lop), " \u2013 ", fmt_pct_r(hip), ")")
-    dval      <- if(is.na(mp)) "" else mp
+    main_txt <- if(raw_only_section) fmt_raw_r(mr) else fmt_pct_r(mp)
+    sub_txt  <- if(raw_only_section){
+      if(is.na(mr)) "" else paste0("(", fmt_raw_r(lor), " \u2013 ", fmt_raw_r(hir), ")")
+    }else{
+      if(is.na(mp)) "" else paste0("(", fmt_pct_r(lop), " \u2013 ", fmt_pct_r(hip), ")")
+    }
+    dval      <- if(raw_only_section){if(is.na(mr)) "" else mr}else{
+      if(is.na(mp)) "" else mp
+    }
+    initial_color <- if(raw_only_section) raw_color else pct_color
 
     paste0('
       <td style="padding: 14px 16px; text-align: center; vertical-align: middle; ', bg, '"
            data-value="', dval, '"
            data-pct-med="', mp, '" data-pct-lo="', lop, '" data-pct-hi="', hip, '"
            data-raw-med="', mr, '" data-raw-lo="', lor, '" data-raw-hi="', hir, '">
-        <div class="bias-main" style="font-size: 14px; font-weight: 600; color: ', pct_color, '; white-space: nowrap;"
+        <div class="bias-main" style="font-size: 14px; font-weight: 600; color: ', initial_color, '; white-space: nowrap;"
              data-pct-color="', pct_color, '" data-raw-color="', raw_color, '">', main_txt, '</div>
         <div class="bias-sub" style="font-size: 13px; font-weight: 400; color: ', sub_color, '; white-space: nowrap;">', sub_txt, '</div>
       </td>')
@@ -387,6 +556,7 @@ section_realtime_forecast_bias <- function(forecastBias.data,
     sapply(seq_len(n_loc), function(i){
       code   <- loc_codes[i]
       label  <- loc_labels[i]
+      label_html <- htmltools::htmlEscape(label)
       border <- if(i < n_loc) "border-bottom: 1px solid #e0e0e0;" else ""
 
       loc_data <- forecastBias.data %>% dplyr::filter(location == code)
@@ -428,10 +598,10 @@ section_realtime_forecast_bias <- function(forecastBias.data,
       # Location cell#
       ################
       loc_cell <- paste0('
-        <td data-location="', label, '" style="padding: 14px 16px; font-size: 14px;
+        <td data-location-index="', i - 1L, '" style="padding: 14px 16px; font-size: 14px;
             font-weight: 700; color: #555; text-align: center; vertical-align: middle;
             width: 120px; border-right: 1px solid #e0e0e0; white-space: nowrap;">',
-            label, '</td>')
+            label_html, '</td>')
 
       paste0('<tr style="', border, '">', loc_cell, horizon_cells, overall_cell, '</tr>')
     }),
@@ -557,30 +727,40 @@ section_realtime_forecast_bias <- function(forecastBias.data,
       };
 
       // Show only the selected location row (multi-location)
-      function showRtBiasRow(locName) {
+      function showRtBiasRow(panelIndex) {
         var tbody = document.querySelector("#rtForecastBiasTable tbody");
         if (!tbody) return;
         Array.from(tbody.querySelectorAll("tr")).forEach(function(row) {
-          var lc = row.querySelector("td[data-location]");
-          if (lc) row.style.display = (lc.getAttribute("data-location") === locName) ? "" : "none";
+          var lc = row.querySelector("td[data-location-index]");
+          if (lc) row.style.display =
+            (lc.getAttribute("data-location-index") === String(panelIndex)) ? "" : "none";
         });
+        if (typeof window.updateRtBiasAvailability === "function") {
+          window.updateRtBiasAvailability(panelIndex);
+        }
         if (typeof window.updateRtBiasNotes === "function") window.updateRtBiasNotes();
       }
-      window.syncRtBiasTableToPlot = function(locName) { showRtBiasRow(locName); };
+      window.syncRtBiasTableToPlot = function(panelIndex) { showRtBiasRow(panelIndex); };
 
       function initBiasTable() {
         var sel = document.getElementById("geoSelect_RTFB");
         if (!sel) return;
         sel.addEventListener("change", function() {
-          var opt = this.options[this.selectedIndex];
-          if (opt) showRtBiasRow(opt.getAttribute("data-location-name"));
+          showRtBiasRow(this.value);
         });
         var opt0 = sel.options[sel.selectedIndex] || sel.options[0];
-        if (opt0) showRtBiasRow(opt0.getAttribute("data-location-name"));
+        if (opt0) showRtBiasRow(opt0.value);
       }
       // Runs for every report; initBiasTable() returns early when there is no
       // geography dropdown, so the note needs its own init.
       function initRtBiasNotes() {
+        var sel = document.getElementById("geoSelect_RTFB");
+        var firstIndex = sel && sel.options.length > 0
+          ? (sel.options[sel.selectedIndex] || sel.options[0]).value
+          : "0";
+        if (typeof window.updateRtBiasAvailability === "function") {
+          window.updateRtBiasAvailability(firstIndex);
+        }
         if (typeof window.updateRtBiasNotes === "function") window.updateRtBiasNotes();
       }
       if (document.readyState === "loading") {
@@ -949,7 +1129,7 @@ section_realtime_forecast_bias <- function(forecastBias.data,
       header_html,
       navigate_html,
       dropdown_html,
-      htmltools::div(style = "height: 48px;"),   # clears the toggle, absolutely positioned at top:-35px
+      toggle_html,
       plot_block,
       htmltools::div(style = "height: 32px;"),   # clearance below the plot before the table
       table_html,

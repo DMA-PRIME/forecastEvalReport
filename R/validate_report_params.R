@@ -429,6 +429,16 @@ validate_report_params <- function(params, verbose = FALSE){
         stop("`location_crosswalk` is invalid.\n\n", conditionMessage(e),
              call. = FALSE)
       }
+    ),
+
+    # Optional user population rows. These extend the package defaults and are
+    # already reduced to the required location/population fields.
+    population_crosswalk = tryCatch(
+      read_population_crosswalk(params$population.crosswalk),
+      error = function(e){
+        stop("`population_crosswalk` is invalid.\n\n", conditionMessage(e),
+             call. = FALSE)
+      }
     )
   )
 

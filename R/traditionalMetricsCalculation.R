@@ -1,8 +1,9 @@
-#' Calculate traditional forecast evaluation metrics (WIS, MAE, coverage)
+#' Calculate traditional forecast evaluation metrics
 #'
 #' Computes scoringutils-based evaluation metrics for the single evaluation
 #' model: the weighted interval score (WIS), the absolute error of the median
-#' (MAE = ae_median), and 50% and 95% interval coverage. Metrics are scored per
+#' (MAE = ae_median), the WIS underprediction and overprediction components,
+#' and 50%, 80%, and 95% interval coverage. Metrics are scored per
 #' forecast from the full quantile distribution, summarised by horizon x
 #' location and overall per location, then broadcast back onto every row.
 #' Aggregates use transmission-season rows only. Operates on the testing
@@ -70,9 +71,14 @@ traditionalMetricsCalculation <- function(data.for.evaluation,
   # Aggregate (summary) columns #
   ###############################
   num_summary_cols <- c(
-    "WIS_Horizon", "MAE_Horizon", "Cov50_Horizon", "Cov95_Horizon",
-    "WIS_Season",  "MAE_Season",  "Cov50_Season",  "Cov95_Season",
-    "WIS_Overall", "MAE_Overall", "Cov50_Overall", "Cov95_Overall"
+    "WIS_Forecast", "MAE_Forecast", "Under_Forecast", "Over_Forecast",
+    "Cov50_Forecast", "Cov80_Forecast", "Cov95_Forecast",
+    "WIS_Horizon", "MAE_Horizon", "Under_Horizon", "Over_Horizon",
+    "Cov50_Horizon", "Cov80_Horizon", "Cov95_Horizon",
+    "WIS_Season", "MAE_Season", "Under_Season", "Over_Season",
+    "Cov50_Season", "Cov80_Season", "Cov95_Season",
+    "WIS_Overall", "MAE_Overall", "Under_Overall", "Over_Overall",
+    "Cov50_Overall", "Cov80_Overall", "Cov95_Overall"
   )
 
   ###################################################
@@ -323,8 +329,10 @@ traditionalMetricsCalculation <- function(data.for.evaluation,
     # Pulling all available metrics
     metrics_list <- scoringutils::get_metrics(forecast_obj)
 
-    # Pulling out the WIS and MAE metrics
-    metrics_list <- metrics_list[names(metrics_list) %in% c("wis", "ae_median")]
+    # Pulling out accuracy and directional WIS-component metrics
+    metrics_list <- metrics_list[names(metrics_list) %in% c(
+      "wis", "ae_median", "underprediction", "overprediction"
+    )]
 
     # Scoring every forecast
     scoringutils::score(forecast_obj, metrics = metrics_list)
@@ -365,8 +373,9 @@ traditionalMetricsCalculation <- function(data.for.evaluation,
 #------------------------------------------------------------------------------#
 # Creating the summary metrics -------------------------------------------------
 #------------------------------------------------------------------------------#
-# About: This section averages the per forecast scores into mean WIS, MAE, and #
-# 50/95% coverage rates per horizon and location, per season and location, and #
+# About: This section averages the per forecast scores into mean WIS, MAE, WIS #
+# under/overprediction, and 50/80/95% coverage rates per horizon and location, #
+# per season and location, and                                                  #
 # per location. All NAs are removed, so missing coverage is ignored. The last  #
 # step broadcasts every level back onto each row; a failure here keeps the row #
 # data and returns the summary columns as NA.                                  #
@@ -385,7 +394,7 @@ traditionalMetricsCalculation <- function(data.for.evaluation,
     }
 
     #############################################################
-    # WIS + MAE: summarise the scoringutils per-forecast scores #
+    # scoringutils metrics: summarise the per-forecast scores  #
     #############################################################
 
     # Horizon + Location summary (WIS dashed where a location has no interval)
@@ -395,7 +404,9 @@ traditionalMetricsCalculation <- function(data.for.evaluation,
       dplyr::left_join(loc_has_intervals, by = "location") %>%
       dplyr::transmute(horizon, location,
                        WIS_Horizon = dplyr::if_else(wis_ok, wis, NA_real_),
-                       MAE_Horizon = ae_median)
+                       MAE_Horizon = ae_median,
+                       Under_Horizon = underprediction,
+                       Over_Horizon = overprediction)
 
     # Location only summary (WIS dashed where a location has no interval)
     wis_mae_overall <- scoringutils::summarise_scores(
@@ -404,24 +415,40 @@ traditionalMetricsCalculation <- function(data.for.evaluation,
       dplyr::left_join(loc_has_intervals, by = "location") %>%
       dplyr::transmute(location,
                        WIS_Overall = dplyr::if_else(wis_ok, wis, NA_real_),
-                       MAE_Overall = ae_median)
+                       MAE_Overall = ae_median,
+                       Under_Overall = underprediction,
+                       Over_Overall = overprediction)
 
     # Per-forecast scores as a frame, tagged with season for the season summary
     scores_df        <- as.data.frame(scores)
     scores_df$season <- assign_season(scores_df$reference_date)
 
+    # One row per forecast retained for the nested trend/phase metric table
+    per_forecast_scores <- scores_df %>%
+      dplyr::left_join(loc_has_intervals, by = "location") %>%
+      dplyr::transmute(
+        location, reference_date, target_end_date, horizon,
+        WIS_Forecast = dplyr::if_else(wis_ok, wis, NA_real_),
+        MAE_Forecast = ae_median,
+        Under_Forecast = underprediction,
+        Over_Forecast = overprediction
+      )
+
     # Season + Location summary (WIS dashed where that season has no interval)
     wis_mae_season <- scores_df %>%
       dplyr::group_by(location, season) %>%
       dplyr::summarise(WIS_Season = avg_or_na(wis),
-                       MAE_Season = avg_or_na(ae_median), .groups = "drop") %>%
+                       MAE_Season = avg_or_na(ae_median),
+                       Under_Season = avg_or_na(underprediction),
+                       Over_Season = avg_or_na(overprediction),
+                       .groups = "drop") %>%
       dplyr::left_join(loc_season_intervals, by = c("location", "season")) %>%
       dplyr::mutate(
         WIS_Season = dplyr::if_else(wis_ok, WIS_Season, NA_real_)) %>%
       dplyr::select(-wis_ok)
 
     #####################################################################
-    # Coverage: one row per forecast with the 50% / 95% interval bounds #
+    # Coverage: one row per forecast with the 50% / 80% / 95% bounds    #
     #####################################################################
     per_forecast_cov <- data.for.evaluation %>%
 
@@ -446,6 +473,12 @@ traditionalMetricsCalculation <- function(data.for.evaluation,
         # Pulling the .75 quantile: 50% PI
         hi50 = value[which(abs(output_type_id - 0.75)  < 1e-6)][1],
 
+        # Pulling the .10 quantile: 80% PI
+        lo80 = value[which(abs(output_type_id - 0.10)  < 1e-6)][1],
+
+        # Pulling the .90 quantile: 80% PI
+        hi80 = value[which(abs(output_type_id - 0.90)  < 1e-6)][1],
+
         # Pulling the .025 quantile: 95% PI
         lo95 = value[which(abs(output_type_id - 0.025) < 1e-6)][1],
 
@@ -464,9 +497,18 @@ traditionalMetricsCalculation <- function(data.for.evaluation,
         in50 = dplyr::if_else(is.na(lo50) | is.na(hi50) | is.na(Observed),
                               NA, Observed >= lo50 & Observed <= hi50),
 
+        # In 80% PI check
+        in80 = dplyr::if_else(is.na(lo80) | is.na(hi80) | is.na(Observed),
+                              NA, Observed >= lo80 & Observed <= hi80),
+
         # In 95% PI check
         in95 = dplyr::if_else(is.na(lo95) | is.na(hi95) | is.na(Observed),
-                              NA, Observed >= lo95 & Observed <= hi95)
+                              NA, Observed >= lo95 & Observed <= hi95),
+
+        # Per-forecast coverage values retained for the nested phase table
+        Cov50_Forecast = as.numeric(in50),
+        Cov80_Forecast = as.numeric(in80),
+        Cov95_Forecast = as.numeric(in95)
 
       )
 
@@ -480,6 +522,7 @@ traditionalMetricsCalculation <- function(data.for.evaluation,
 
       # Summary across group
       dplyr::summarise(Cov50_Horizon = avg_or_na(in50),
+                       Cov80_Horizon = avg_or_na(in80),
                        Cov95_Horizon = avg_or_na(in95), .groups = "drop")
 
     ###############################
@@ -492,6 +535,7 @@ traditionalMetricsCalculation <- function(data.for.evaluation,
 
       # Summary across group
       dplyr::summarise(Cov50_Season = avg_or_na(in50),
+                       Cov80_Season = avg_or_na(in80),
                        Cov95_Season = avg_or_na(in95), .groups = "drop")
 
     ###############################
@@ -504,10 +548,20 @@ traditionalMetricsCalculation <- function(data.for.evaluation,
 
       # Summary across group
       dplyr::summarise(Cov50_Overall = avg_or_na(in50),
+                       Cov80_Overall = avg_or_na(in80),
                        Cov95_Overall = avg_or_na(in95), .groups = "drop")
 
     # Broadcasting all summary blocks back onto every row
     data.for.evaluation %>%
+      dplyr::left_join(per_forecast_scores,
+                       by = c("location", "reference_date",
+                              "target_end_date", "horizon")) %>%
+      dplyr::left_join(
+        dplyr::select(per_forecast_cov, location, reference_date,
+                      target_end_date, horizon, Cov50_Forecast,
+                      Cov80_Forecast, Cov95_Forecast),
+        by = c("location", "reference_date", "target_end_date", "horizon")
+      ) %>%
       dplyr::left_join(wis_mae_horizon, by = c("horizon", "location")) %>%
       dplyr::left_join(cov_horizon,     by = c("horizon", "location")) %>%
       dplyr::left_join(wis_mae_season,  by = c("location", "season")) %>%

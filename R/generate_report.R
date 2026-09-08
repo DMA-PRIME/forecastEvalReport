@@ -29,9 +29,11 @@
 #' @param quiet Logical. If `TRUE` (default), suppresses
 #'   `rmarkdown::render()` console output. Set to `FALSE` for verbose
 #'   rendering output useful during debugging.
-#' @param output_file Name of report. It must end with .html. When
-#'   `split_by_location = TRUE`, the location name is appended to this base
-#'   name for each per-location file (e.g. `myreport-Upstate.html`).
+#' @param output_file Name of report. It must end with .html. When `NULL`, the
+#'   automatic name preserves spaces and spelling from the configured contact,
+#'   disease, reason, and model type. When `split_by_location = TRUE`, the exact
+#'   location display name is appended to this base name for each per-location
+#'   file (e.g. `my report-Pee Dee.html`).
 #' @param plot_styles A named list of plot style settings produced by
 #'   `create_plot_styles()`. If `NULL` (default), the report uses the
 #'   default styles returned by `create_plot_styles()` with no arguments.
@@ -60,8 +62,9 @@
 #'   `{location}` is a filesystem-safe label (e.g. `"Pee_Dee"`) and
 #'   `{location_name}` is the raw location value (e.g. `"Pee Dee"`). The
 #'   template may include subdirectories (created as needed) and must end in
-#'   `.html`. When `NULL` (default), the location is appended to the base
-#'   filename as `-<Location>`. Ignored (with a warning) when
+#'   `.html`. When `NULL` (default), the exact location display name is appended
+#'   to the base filename as `-<Location Name>`; spaces are preserved. Ignored
+#'   (with a warning) when
 #'   `split_by_location = FALSE`. Examples:
 #'   `"region-covid_19-inpatient-{location}.html"` writes flat files with the
 #'   location at the end; `"{location}/report.html"` writes one subfolder per
@@ -76,6 +79,12 @@
 #'   use the package's built-in location lookups. Matching is exact after
 #'   trimming whitespace; only listed locations are overridden, and a supplied
 #'   name takes precedence over the built-in tables.
+#' @param population_crosswalk Optional population lookup used by the
+#'   population-adjusted trend evaluation. May be a CSV path or data frame with
+#'   columns `location` and `population`, or a named numeric vector. The custom
+#'   rows extend and override [default_population_crosswalk], so only unmatched
+#'   locations need to be supplied. If a model location is not available in
+#'   either source, report generation stops with a copy-ready example.
 #'
 #' @return Invisibly returns the path to the rendered HTML report; a character
 #'   vector of paths (one per location) when `split_by_location = TRUE`; or --
@@ -91,7 +100,8 @@ generate_report <- function(options_file,
                             plot_export = NULL,
                             split_by_location = FALSE,
                             split_filename = NULL,
-                            location_crosswalk = NULL) {
+                            location_crosswalk = NULL,
+                            population_crosswalk = NULL) {
 #------------------------------------------------------------------------------#
 # Validating the function inputs -----------------------------------------------
 #------------------------------------------------------------------------------#
@@ -428,6 +438,35 @@ generate_report <- function(options_file,
     resolved_loc_xwalk
   }
 
+  #########################################
+  # Resolve + inject population crosswalk #
+  #########################################
+  # About: A function argument takes priority over an optional value stored in
+  # the options file. The two essential fields are resolved now so rendering
+  # has no dependency on the original CSV path.
+  pop_xwalk_input <- if(!is.null(population_crosswalk)){
+    population_crosswalk
+  }else{
+    opts$population.crosswalk
+  }
+
+  resolved_pop_xwalk <- tryCatch(
+    read_population_crosswalk(pop_xwalk_input),
+    error = function(e){
+      stop(
+        "`population_crosswalk` could not be read.\n\n",
+        conditionMessage(e),
+        call. = FALSE
+      )
+    }
+  )
+
+  opts$population.crosswalk <- if(is.null(resolved_pop_xwalk)){
+    NA
+  }else{
+    resolved_pop_xwalk
+  }
+
 #------------------------------------------------------------------------------#
 # Check variables.crosswalk.file is present and not NA -------------------------
 #------------------------------------------------------------------------------#
@@ -498,17 +537,68 @@ generate_report <- function(options_file,
   )
 
 #------------------------------------------------------------------------------#
+# Verify every model location has a population --------------------------------
+#------------------------------------------------------------------------------#
+# About: Read only the location column from each supplied model file. This     #
+# catches missing population denominators before the expensive report assembly #
+# begins and gives users a copy-ready custom crosswalk call.                    #
+#------------------------------------------------------------------------------#
+
+  read_location_column <- function(path){
+    if(is.null(path) || length(path) != 1L || is.na(path)) return(character())
+
+    header <- names(utils::read.csv(
+      path, nrows = 0L, check.names = FALSE, stringsAsFactors = FALSE
+    ))
+    if(!"location" %in% header) return(character())
+
+    classes <- rep("NULL", length(header))
+    classes[match("location", header)] <- "character"
+    values <- utils::read.csv(
+      path,
+      check.names = FALSE,
+      stringsAsFactors = FALSE,
+      colClasses = classes
+    )$location
+
+    trimws(as.character(values))
+  }
+
+  model_locations <- unique(c(
+    read_location_column(config$implementation_model_file),
+    read_location_column(config$evaluation_model_file)
+  ))
+  model_locations <- model_locations[
+    !is.na(model_locations) & nzchar(model_locations)
+  ]
+
+  if(length(model_locations) > 0L){
+    population_values <- resolve_population_values(
+      model_locations,
+      custom_crosswalk = config$population_crosswalk,
+      location_crosswalk = config$location_crosswalk
+    )
+    missing_population <- names(population_values)[
+      is.na(population_values) | !is.finite(population_values) |
+        population_values <= 0
+    ]
+    if(length(missing_population) > 0L){
+      stop_for_missing_population(missing_population, options_file)
+    }
+  }
+
+#------------------------------------------------------------------------------#
 # Build the output filename ----------------------------------------------------
 #------------------------------------------------------------------------------#
 # About: Constructs the HTML output filename from the contact name, disease,   #
-# reason, and model type stored in the validated config, using the same        #
-# sanitation pattern as build_variables_crosswalk().                           #
+# reason, and model type stored in the validated config. The configured text   #
+# is preserved exactly (apart from surrounding whitespace), including spaces.  #
 #------------------------------------------------------------------------------#
 
-  ###################
-  # Sanitize helper #
-  ###################
-  sanitize <- function(x) gsub(" ", "_", trimws(as.character(x)))
+  ############################################
+  # Preserve one configured filename segment #
+  ############################################
+  preserve_name <- function(x) trimws(as.character(x))
 
   ######################
   # Construct filename #
@@ -519,16 +609,16 @@ generate_report <- function(options_file,
     output_filename <- paste0(
 
       # Contact name
-      sanitize(config$contact_name), "-",
+      preserve_name(config$contact_name), "-",
 
       # Disease name
-      sanitize(config$disease), "-",
+      preserve_name(config$disease), "-",
 
       # Reason name
-      sanitize(config$reason), "-",
+      preserve_name(config$reason), "-",
 
       # General model type
-      sanitize(config$general_model_type),
+      preserve_name(config$general_model_type),
 
       # Extension
       ".html"
@@ -1034,7 +1124,9 @@ generate_report <- function(options_file,
       # When a split_filename template is supplied, substitute the location    #
       # placeholders into it; otherwise fall back to the default of appending   #
       # "-<Location>" to the base name. {location} is the filesystem-safe       #
-      # label; {location_name} is the raw location value.                       #
+      # label; {location_name} is the raw location value. When no template is  #
+      # supplied, use the crosswalk display name when present and preserve its  #
+      # spaces exactly.                                                         #
       if(!is.null(split_filename)){
 
         loc_filename <- gsub("{location_name}", loc,  split_filename, fixed = TRUE)
@@ -1042,7 +1134,16 @@ generate_report <- function(options_file,
 
       }else{
 
-        loc_filename <- paste0(base_no_ext, "-", safe, ".html")
+        display_location <- loc
+        if(!is.null(config$location_crosswalk) &&
+           loc %in% names(config$location_crosswalk)){
+          mapped_location <- unname(config$location_crosswalk[[loc]])
+          if(!is.na(mapped_location) && nzchar(trimws(mapped_location))){
+            display_location <- trimws(mapped_location)
+          }
+        }
+
+        loc_filename <- paste0(base_no_ext, "-", display_location, ".html")
 
       }
 

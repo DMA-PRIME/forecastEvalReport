@@ -1,3 +1,19 @@
+#------------------------------------------------------------------------------#
+# Source-data cache ------------------------------------------------------------
+#------------------------------------------------------------------------------#
+# About: Split-location reports render repeatedly within the same R session.   #
+# This environment keeps each prepared source file in memory so large outcome #
+# and auxiliary files are read, date-parsed, and location-normalized only once #
+# during a generate_report() call. The file path, size, modification time,     #
+# requested variables, reason, and location crosswalk are included in the key  #
+# so changed inputs do not reuse stale data.                                   #
+#------------------------------------------------------------------------------#
+
+  ##########################################
+  # Cache shared across report render calls #
+  ##########################################
+  .assemble_report_data_cache <- new.env(parent = emptyenv())
+
 #' Assemble the master data set for report generation
 #'
 #' Reads the outcome data file and any auxiliary variable files listed in
@@ -314,14 +330,42 @@ assemble_report_data <- function(config,
       # Skip if already a Date
       if(inherits(vals, "Date")) return(col)
 
+      #############################################################
+      # Sampling large columns for detection instead of parsing   #
+      # every row in every candidate column. The selected date     #
+      # column is parsed in full once after detection.             #
+      #############################################################
+      if(length(vals) > 1000L){
+
+        # Evenly spaced sample covering the complete column
+        sample_idx <- unique(as.integer(seq(
+          from       = 1,
+          to         = length(vals),
+          length.out = 1000L
+        )))
+
+        # Using the sample for date-column detection
+        vals_to_test <- vals[sample_idx]
+
+      }else{
+
+        # Small column: use every value
+        vals_to_test <- vals
+
+      }
+
       # Try parsing as character date
       parsed <- tryCatch(
-        anytime::anydate(as.character(vals)),
-        error = function(e) rep(NA, length(vals))
+        anytime::anydate(as.character(vals_to_test)),
+        error = function(e) rep(NA, length(vals_to_test))
       )
 
       # Determining average number of rows that can be parsed
-      pct_valid <- mean(!is.na(parsed))
+      pct_valid <- if(length(parsed) > 0){
+        mean(!is.na(parsed))
+      }else{
+        0
+      }
 
       # Returning column if average parsed to date > 50%
       if(pct_valid >= 0.5) return(col)
@@ -500,7 +544,21 @@ assemble_report_data <- function(config,
   data_dir  <- file.path(base_dir, "Created-Data", folder_name)
 
   # Creating the file path
-  data_path <- file.path(data_dir, paste0("master_data-", ref_date_str, ".csv"))
+  ###########################################################
+  # Location tag prevents split reports from overwriting    #
+  # the master-data file produced by the preceding location #
+  ###########################################################
+  location_tag <- if(length(raw_forecast_locs) == 1L){
+    paste0("-", sanitize_path_component(raw_forecast_locs, max_chars = 30))
+  }else{
+    ""
+  }
+
+  # Creating the location-aware file path
+  data_path <- file.path(
+    data_dir,
+    paste0("master_data", location_tag, "-", ref_date_str, ".csv")
+  )
 
 #------------------------------------------------------------------------------#
 # Filtering crosswalk to outcome and aux_variable rows ------------------------#
@@ -562,6 +620,95 @@ assemble_report_data <- function(config,
     # Rows from the crosswalk that reference this file
     file_rows <- xwalk_by_file[[file_path]]
 
+#------------------------------------------------------------------------------#
+# Resolving the source-data cache key ------------------------------------------
+#------------------------------------------------------------------------------#
+# About: The cache key changes whenever the file, requested variables, reason, #
+# or location crosswalk changes. This allows split-location renders to reuse   #
+# prepared data safely without carrying stale data into a later report call.   #
+#------------------------------------------------------------------------------#
+
+    ######################################
+    # Reading lightweight file metadata  #
+    ######################################
+    file_meta <- suppressWarnings(file.info(file_path))
+
+    # Normalized file path used in the key
+    normalized_file_path <- normalizePath(
+      file_path,
+      winslash = "/",
+      mustWork = FALSE
+    )
+
+    # Variables from this file needed by the report
+    requested_variables <- sort(unique(as.character(file_rows$variable)))
+
+    # Stable location-crosswalk signature
+    location_crosswalk_signature <- if(
+      !is.null(config$location_crosswalk) &&
+      length(config$location_crosswalk) > 0
+    ){
+
+      # Raw location and clean display name pairs
+      paste(
+        names(config$location_crosswalk),
+        unname(config$location_crosswalk),
+        sep = "=",
+        collapse = "|"
+      )
+
+    }else{
+
+      # No custom crosswalk supplied
+      "no-location-crosswalk"
+
+    }
+
+    # Complete cache key
+    cache_key <- paste(
+      normalized_file_path,
+      if(nrow(file_meta) > 0) file_meta$size else NA,
+      if(nrow(file_meta) > 0) as.numeric(file_meta$mtime) else NA,
+      paste(requested_variables, collapse = "|"),
+      config$reason,
+      location_crosswalk_signature,
+      sep = "::"
+    )
+
+    ##########################################
+    # Checking for an already prepared file #
+    ##########################################
+    cached_source <- get0(
+      cache_key,
+      envir     = .assemble_report_data_cache,
+      inherits  = FALSE,
+      ifnotfound = NULL
+    )
+
+    #########################################
+    # Cache hit: Reusing the prepared source #
+    #########################################
+    if(!is.null(cached_source)){
+
+      # Reusing the normalized and date-parsed data
+      source_data <- cached_source$data
+
+      # Reusing the detected column names
+      loc_col  <- cached_source$loc_col
+      date_col <- cached_source$date_col
+
+      # Progress message for long split-location runs
+      message("assemble_report_data(): using cached source: ",
+              basename(file_path))
+
+    ############################################
+    # Cache miss: Reading and preparing the file #
+    ############################################
+    }else{
+
+      # Progress message before the potentially slow read
+      message("assemble_report_data(): reading source: ", file_path)
+
     ###############################
     # Trying to read indexed file #
     ###############################
@@ -596,15 +743,15 @@ assemble_report_data <- function(config,
     ##################################
     # Skip if file could not be read #
     ##################################
-    if(is.null(source_data)) next
+      if(is.null(source_data)) next
 
     #################################
     # Detecting the location column #
     #################################
-    loc_col <- detect_location_col(source_data)
+      loc_col <- detect_location_col(source_data)
 
     # Triggering if there is an issue with selecting a location column
-    if(is.null(loc_col)){
+      if(is.null(loc_col)){
 
       # Warning to show to users
       add_warning(paste0(
@@ -615,17 +762,17 @@ assemble_report_data <- function(config,
       ))
 
       # Skipping to next file in the loop
-      next
+        next
 
-    }
+      }
 
     #############################
     # Detecting the date column #
     #############################
-    date_col <- detect_date_col(source_data)
+      date_col <- detect_date_col(source_data)
 
     # Triggering if a date column could not be detected
-    if(is.null(date_col)){
+      if(is.null(date_col)){
 
       # Warning to show to users
       add_warning(paste0(
@@ -634,18 +781,98 @@ assemble_report_data <- function(config,
       ))
 
       # Skipping to next file in the loop
-      next
+        next
+
+      }
+
+      ###########################################################
+      # Normalizing unique locations only                       #
+      ###########################################################
+      # About: Large source files usually contain many repeated #
+      # rows for a small number of locations. Running the full  #
+      # crosswalk search for each row is unnecessarily costly. #
+      ###########################################################
+
+      # Raw location values from the source file
+      raw_source_locations <- trimws(as.character(source_data[[loc_col]]))
+
+      # Distinct raw locations requiring normalization
+      unique_source_locations <- unique(raw_source_locations)
+
+      # Normalizing each unique location exactly once
+      normalized_unique_locations <- vapply(
+        unique_source_locations,
+        normalize_location,
+        character(1)
+      )
+
+      # Lookup from raw source value to normalized display name
+      normalized_location_lookup <- stats::setNames(
+        normalized_unique_locations,
+        unique_source_locations
+      )
+
+      # Mapping the normalized values back to every source row
+      source_data$location_normalized <- unname(
+        normalized_location_lookup[raw_source_locations]
+      )
+
+      ###########################################
+      # Parsing the selected date column once  #
+      ###########################################
+      source_data[[date_col]] <- tryCatch(
+
+        # Changing to date format
+        anytime::anydate(as.character(source_data[[date_col]])),
+
+        # Triggered if an error occurs
+        error = function(e){
+
+          # Warning to show to users
+          add_warning(paste0(
+            "Date column '", date_col, "' in file: ", file_path,
+            " could not be parsed. This file will be skipped."
+          ))
+
+          # Repeat for each row
+          rep(as.Date(NA), nrow(source_data))
+        }
+      )
+
+      #######################################################
+      # Retaining only columns required by report assembly  #
+      #######################################################
+      columns_to_cache <- unique(c(
+        loc_col,
+        date_col,
+        "location_normalized",
+        intersect(requested_variables, names(source_data))
+      ))
+
+      # Reducing the memory used by the persistent cache
+      source_data <- source_data[, columns_to_cache, drop = FALSE]
+
+      ########################################
+      # Saving the prepared source in memory #
+      ########################################
+      assign(
+        cache_key,
+        list(
+          data     = source_data,
+          loc_col  = loc_col,
+          date_col = date_col
+        ),
+        envir = .assemble_report_data_cache
+      )
+
+      # Progress message after the one-time preparation
+      message(
+        "assemble_report_data(): cached ",
+        format(nrow(source_data), big.mark = ","),
+        " row(s) from ", basename(file_path), "."
+      )
 
     }
-
-    ###################################
-    # Normalizing the location column #
-    ###################################
-    source_data$location_normalized <- vapply(
-      source_data[[loc_col]],
-      normalize_location,
-      character(1)
-    )
 
     ##############################################################
     # Filtering the data to keep locations only in forecast file #
@@ -666,28 +893,6 @@ assemble_report_data <- function(config,
       next
 
     }
-
-    ###########################################
-    # Coercing the date column to date format #
-    ###########################################
-    source_data[[date_col]] <- tryCatch(
-
-      # Changing to date format
-      anytime::anydate(as.character(source_data[[date_col]])),
-
-      # Triggered if error occurs
-      error = function(e){
-
-        # Warning to show to users
-        add_warning(paste0(
-          "Date column '", date_col, "' in file: ", file_path,
-          " could not be parsed. This file will be skipped."
-        ))
-
-        # Repeat for each row
-        rep(NA, nrow(source_data))
-      }
-    )
 
     #####################################################################
     # Extracting each variable referenced by this file's crosswalk rows #
