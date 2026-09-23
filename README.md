@@ -1,6 +1,6 @@
 # **🚧 BETA — IN DEVELOPMENT 🚧**
 
-> **Use with caution.** `forecastEvalReport-beta` is an experimental beta branch and has **not been fully vetted**. Its code, evaluation methods, defaults, outputs, and documentation may contain errors or change without notice. Independently review the input data, configuration, and results with appropriate subject-matter and statistical expertise before relying on them. Do not use this beta as the sole basis for consequential clinical, public-health, operational, or policy decisions.
+> **Use with caution.** `forecastEvalReport` is an experimental beta branch and has **not been fully vetted**. Its code, evaluation methods, defaults, outputs, and documentation may contain errors or change without notice. Independently review the input data, configuration, and results with appropriate subject-matter and statistical expertise before relying on them. Do not use this beta as the sole basis for consequential clinical, public-health, operational, or policy decisions.
 
 # forecastEvalReport
 
