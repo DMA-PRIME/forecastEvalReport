@@ -6,7 +6,7 @@
 #' their own config object by calling this function with overrides, then source
 #' it in their options file and pass it to [generate_report()]. The settings
 #' flow through to `build_testing_evaluation()` and on to the individual metric
-#' helpers (percent agreement, forecast bias, peak phase).
+#' helpers (similarity index, forecast bias, peak phase).
 #'
 #' @param non_transmission_months Integer vector of calendar months (1-12)
 #'   treated as the off-season. These rows are kept for plotting but excluded
@@ -24,10 +24,18 @@
 #'   zero within which a forecast-bias row counts as "Within Range"; beyond
 #'   +/- this it is "Overestimate" / "Underestimate". Default `20`.
 #' @param timing_tol_steps Numeric. Tolerance, in time steps, within which a
-#'   peak-phase timing miss still counts as "On Time". Default `1`.
-#' @param mag_tol Numeric between 0 and 1. Minimum rank-matched agreement
+#'   peak-phase timing miss still counts as "On Time". Default `0`.
+#' @param mag_tol Numeric between 0 and 1. Minimum smaller/larger magnitude ratio
 #'   at/above which a peak-phase magnitude counts as "On Target". Default
 #'   `0.80`.
+#' @param trend_count_threshold Non-negative raw weekly count-change threshold.
+#'   Changes strictly below this are stable. Default 10; separate from the bias floor.
+#' @param trend_calibration_data Optional historical observations for trend calibration,
+#'   with location, target_end_date (or date), and Observed (or value), plus optional
+#'   population. Defaults to the chosen truth series strictly before evaluation.
+#' @param trend_thresholds Optional saved table from calibrate_trend_thresholds().
+#'   Cannot be combined with trend_calibration_data. Calibration dates must precede
+#'   the evaluated issue and target dates.
 #'
 #' @return A named list of evaluation settings for use by
 #'   `build_testing_evaluation()`.
@@ -88,7 +96,7 @@ create_evaluation_config <- function(
 #------------------------------------------------------------------------------#
 # About: This section sets the settings around assigning direction labels to   #
 # the peak phase metrics. This included the cushion around setting the         #
-# perfect timing label, and the percent agreement limit that is considered a   #
+# perfect timing label, and the similarity index limit that is considered a   #
 # on target label.                                                             #
 #------------------------------------------------------------------------------#
 
@@ -100,7 +108,10 @@ create_evaluation_config <- function(
   #########################################
   # Setting cushion around peak magnitude #
   #########################################
-  mag_tol          = 0.80
+  mag_tol          = 0.80,
+  trend_count_threshold = 10,
+  trend_calibration_data = NULL,
+  trend_thresholds = NULL
 
 ) {
 
@@ -127,6 +138,15 @@ create_evaluation_config <- function(
 
   # Empty vector to store errors
   errors <- character()
+  if(length(trend_count_threshold) != 1L || !is.numeric(trend_count_threshold) ||
+     !is.finite(trend_count_threshold) || trend_count_threshold < 0)
+    stop("`trend_count_threshold` must be one finite non-negative number.")
+  if(!is.null(trend_calibration_data) && !is.data.frame(trend_calibration_data))
+    stop("`trend_calibration_data` must be a historical observations data frame.")
+  if(!is.null(trend_thresholds) && !is.data.frame(trend_thresholds))
+    stop("`trend_thresholds` must be a saved calibration data frame.")
+  if(!is.null(trend_calibration_data) && !is.null(trend_thresholds))
+    stop("Supply historical calibration data or frozen thresholds, not both.")
 
   # Function to add errors to the error vector
   add_error <- function(msg) errors <<- c(errors, msg)
@@ -279,7 +299,10 @@ create_evaluation_config <- function(
     stable_threshold        = stable_threshold,
     pct_error_cushion       = pct_error_cushion,
     timing_tol_steps        = as.integer(timing_tol_steps),
-    mag_tol                 = mag_tol
+    mag_tol                 = mag_tol,
+    trend_count_threshold   = trend_count_threshold,
+    trend_calibration_data  = trend_calibration_data,
+    trend_thresholds        = trend_thresholds
   )
 
 }

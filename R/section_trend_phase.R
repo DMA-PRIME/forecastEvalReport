@@ -17,7 +17,7 @@
 #' tables carry the per-geography detail.
 #'
 #' This section replaces the trend/phase accordions that previously lived inside
-#' the Percent Agreement, Forecast Bias, and Statistical Scoring Metrics
+#' the Percent Accuracy (Similarity Index), Forecast Bias, and Statistical Scoring Metrics
 #' sections. Consolidating them here keeps every trend- and phase-cut view in
 #' one place rather than requiring the reader to open three separate
 #' subdropdowns to assemble the same picture.
@@ -65,7 +65,7 @@ section_trend_phase <- function(percentAgreement.data,
   if(!has_testing) return(invisible(NULL))
 
   ############################################
-  # Presence of usable percent agreement rows #
+  # Presence of usable similarity index rows #
   ############################################
   if(is.null(percentAgreement.data) ||
      !is.data.frame(percentAgreement.data) ||
@@ -204,7 +204,7 @@ section_trend_phase <- function(percentAgreement.data,
       <strong>large increase</strong>. Every target period also falls in an
       observed epidemic phase &mdash; <strong>Ascension</strong>,
       <strong>Peak</strong>, or <strong>Decline</strong> &mdash; set by where it
-      sits relative to the observed seasonal maximum.
+      sits relative to the observed maximum within that season&apos;s testing period.
     </p>
     <p style="font-size: 15px; line-height: 1.8; color: #444; margin: 0 0 1rem 0;">
       The two figures below ask different questions of the same labels.
@@ -223,6 +223,23 @@ section_trend_phase <- function(percentAgreement.data,
     </p>
   </div>
   ')
+
+  calibration_html <- htmltools::tagList(
+    htmltools::tags$p(htmltools::HTML(trend_methods_html())),
+    htmltools::tags$p(paste0("Configured raw-count stability override: absolute weekly change < ",
+      if(is.null(eval_config$trend_count_threshold)) 10 else eval_config$trend_count_threshold,
+      ". Phase stratification is retrospective and uses the observed testing-period peak."))
+  )
+  metadata <- trend_phase_result$thresholds
+  if(is.data.frame(metadata) && nrow(metadata)) {
+    columns <- intersect(c("location", "p05", "p25", "p75", "p95",
+      "calibration_start", "calibration_end", "n_weekly_changes", "status"), names(metadata))
+    calibration_html <- htmltools::tagList(calibration_html,
+      htmltools::tags$details(
+        htmltools::tags$summary("Historical trend calibration (rates per 100,000)"),
+        htmltools::HTML(knitr::kable(metadata[columns], format="html", escape=TRUE))
+      ))
+  }
 
 #------------------------------------------------------------------------------#
 # Diagnostic note when nothing scored ------------------------------------------
@@ -253,7 +270,7 @@ section_trend_phase <- function(percentAgreement.data,
 
       paste(
         "No trend and phase results could be calculated. Scoring a trend call",
-        "requires at least two consecutive in-season target periods with both",
+        "requires valid frozen historical thresholds and consecutive weekly values with both",
         "an observed and a forecasted value, so that week-over-week change can",
         "be derived for each."
       )
@@ -265,6 +282,7 @@ section_trend_phase <- function(percentAgreement.data,
     #############################
     return(htmltools::tagList(
       intro_html,
+      calibration_html,
       htmltools::HTML(paste0(
         '<p style="font-size: 14px; line-height: 1.7; color: #8a6d3b;',
         ' background: #fcf8e3; border: 1px solid #faebcc; border-radius: 4px;',
@@ -447,6 +465,7 @@ section_trend_phase <- function(percentAgreement.data,
   htmltools::tagList(
 
     intro_html,
+    calibration_html,
 
     # Question one: capture
     capture_plot,

@@ -10,7 +10,7 @@
   const peakDetails = payload.peak_details || [];
   const seasonStartMonth = Number(payload.season_start_month) || 8;
   const descriptions = payload.metric_descriptions || [];
-  const trendHorizon = Number(payload.trend_horizon) || 2;
+  const trendHorizon = 1;
   const selectedModels = new Set(models.map(x => x.model));
   const hiddenPerformanceModels = new Set();
   const palette = ["#087f86", "#e76f51", "#3a6ea5", "#8b5fbf", "#27815b", "#c18a14", "#c94f72", "#50667a"];
@@ -143,46 +143,19 @@
     return clean.length % 2 ? clean[middle] : (clean[middle - 1] + clean[middle]) / 2;
   }
 
-  function percentile(values, probability) {
-    const clean = values.filter(Number.isFinite).sort((a, b) => a - b);
-    if (!clean.length) return null;
-    const index = (clean.length - 1) * probability;
-    const lower = Math.floor(index), upper = Math.ceil(index);
-    return lower === upper ? clean[lower] : clean[lower] + (clean[upper] - clean[lower]) * (index - lower);
-  }
-
-  function observedTrendThresholds(disease, location) {
-    const byDate = new Map();
-    truth.filter(row => selected(row) && row.disease === disease && row.location === location &&
-      numeric(row.value) && Number.isFinite(Date.parse(row.date))).forEach(row => {
-      if (!byDate.has(row.date)) byDate.set(row.date, []);
-      byDate.get(row.date).push(Number(row.value));
-    });
-    const points = [...byDate.entries()].map(([date, values]) => ({ date, value: median(values) }))
-      .filter(point => point.value !== null).sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
-    const changes = [];
-    for (let i = 1; i < points.length; i++) {
-      const days = (Date.parse(points[i].date) - Date.parse(points[i - 1].date)) / 86400000;
-      if (Math.abs(days - 7) < .01) changes.push(points[i].value - points[i - 1].value);
-    }
-    return changes.length >= 4 ? {
-      p05: percentile(changes, .05), p25: percentile(changes, .25),
-      p75: percentile(changes, .75), p95: percentile(changes, .95)
-    } : null;
-  }
-
-  function classifyTrend(change, thresholds) {
-    if (!Number.isFinite(change)) return null;
+  function classifyTrend(change, thresholds, population) {
+    if (!Number.isFinite(change) || !thresholds || !Number.isFinite(population) || population <= 0) return null;
+    if (![thresholds.p05, thresholds.p25, thresholds.p75, thresholds.p95].every(Number.isFinite)) return null;
     if (trendStableThreshold !== null && Math.abs(change) < trendStableThreshold) return "stable";
-    if (!thresholds) return change > 0 ? "increase" : change < 0 ? "decrease" : "stable";
-    if (change <= thresholds.p05) return "large decrease";
-    if (change <= thresholds.p25) return "decrease";
-    if (change < thresholds.p75) return "stable";
-    if (change < thresholds.p95) return "increase";
+    const rate = change / population * 100000;
+    if (rate <= thresholds.p05) return "large decrease";
+    if (rate <= thresholds.p25) return "decrease";
+    if (rate < thresholds.p75) return "stable";
+    if (rate < thresholds.p95) return "increase";
     return "large increase";
   }
 
-  function latestModelTrend(model, disease, location, thresholds) {
+  function latestModelTrend(model, disease, location) {
     const central = row => !numeric(row.quantile) || Math.abs(Number(row.quantile) - .5) < 1e-8;
     const sourceOrder = ["Current forecast", "Real-time archived forecasts", "Testing median forecasts"];
     const modelRows = forecasts.filter(row => selected(row) && row.model === model &&
@@ -207,11 +180,16 @@
       .slice(0, trendHorizon + 1);
     if (points.length < 2) return null;
     const steps = points.length - 1;
+    if (points.some((point, i) => i > 0 && Math.abs((Date.parse(point.date) - Date.parse(points[i - 1].date)) / 86400000 - 7) > .01)) return null;
+    const meta = rows[0];
+    const thresholds = {p05: meta.trend_p05, p25: meta.trend_p25, p75: meta.trend_p75, p95: meta.trend_p95};
     const totalChange = points[points.length - 1].value - points[0].value;
     const averageStepChange = totalChange / steps;
     const percentChange = Math.abs(points[0].value) > 1e-8 ? totalChange / Math.abs(points[0].value) * 100 : null;
+    const call = classifyTrend(averageStepChange, thresholds, meta.population);
+    if (call === null) return null;
     return {
-      model, call: classifyTrend(averageStepChange, thresholds), totalChange,
+      model, call, totalChange,
       percentChange, steps, source, reference,
       through: points[points.length - 1].date
     };
@@ -237,9 +215,8 @@
 
     const cards = groups.map(key => {
       const [disease, location] = key.split("\r");
-      const thresholds = observedTrendThresholds(disease, location);
       const modelNames = uniq(forecasts.filter(row => selected(row) && row.disease === disease && row.location === location).map(row => row.model));
-      const calls = modelNames.map(model => latestModelTrend(model, disease, location, thresholds)).filter(result => result && result.call);
+      const calls = modelNames.map(model => latestModelTrend(model, disease, location)).filter(result => result && result.call);
       if (!calls.length) return null;
       const counts = Object.fromEntries(uniq(calls.map(result => result.call)).map(call => [call, calls.filter(result => result.call === call).length]));
       const largest = Math.max(...Object.values(counts));
@@ -270,7 +247,7 @@
     }).filter(Boolean);
 
     shell.innerHTML = cards.length ? cards.join("") :
-      '<div class="callout trend-unavailable">Near-term trend indicators require at least two median forecast points for the selected models.</div>';
+      '<div class="callout trend-unavailable">Near-term trend indicators require two consecutive weekly median forecasts, a population denominator, and valid historical calibration ending before evaluation.</div>';
   }
 
   function activateTabs() {
@@ -667,7 +644,7 @@
   })[value] || String(value || "Not available");
 
   const familyLabel = value => ({
-    "percentAgreement": "Percent Agreement",
+    "percentAgreement": "Percent Accuracy (Similarity Index)",
     "forecastBias": "Forecast Bias",
     "peakPhase": "Peak Timing & Magnitude",
     "traditional": "Traditional Metrics"
@@ -681,7 +658,7 @@
   function metricLabel(value) {
     const raw = String(value || "");
     const exact = {
-      per_agreement: "Percent agreement",
+      per_agreement: "Percent Accuracy (Similarity Index)",
       raw_error: "Raw forecast error",
       pct_error: "Percentage forecast error",
       WIS: "Weighted interval score (WIS)",
@@ -691,17 +668,17 @@
       predictedPeakTimingOff: "Peak timing difference (early or late)",
       predictedPeakTimingLabel: "Peak timing result (early, on time, or late)",
       predictedPeakMagnitudeOff: "Peak-to-peak magnitude difference",
-      predictedPeakAccuracy: "Peak-to-peak magnitude accuracy",
+      predictedPeakAccuracy: "Peak-to-peak similarity (proportion)",
       sameDayMagnitudeOff: "Magnitude at predicted peak — difference",
-      sameDayAccuracy: "Magnitude at predicted peak — accuracy",
+      sameDayAccuracy: "Similarity at predicted peak (proportion)",
       peakWeekMagnitudeOff: "Magnitude at observed peak — difference",
-      peakWeekAccuracy: "Magnitude at observed peak — accuracy"
+      peakWeekAccuracy: "Similarity at observed peak (proportion)"
     };
     if (exact[raw]) return exact[raw];
     const agreementSummary = raw.match(/^(median|min|max)(?:Horizon|Overall)$/i);
     if (agreementSummary) {
       const statistic = { median: "Median", min: "Minimum", max: "Maximum" }[agreementSummary[1].toLowerCase()];
-      return `${statistic} Percent Agreement`;
+      return `${statistic} Percent Accuracy (Similarity Index)`;
     }
 
     let label = raw.replace(/_+/g, " ").replace(/([a-z0-9])([A-Z])/g, "$1 $2")
@@ -834,7 +811,7 @@
   function updatePerformanceFamilies() {
     setDisplayOptions($("perfFamily"), preferredOrder(
       uniq(performanceSliceRows().map(x => x.family)),
-      ["percentAgreement", "forecastBias", "peakPhase", "traditional"]), familyLabel);
+      ["percentAgreement", "traditional", "forecastBias", "peakPhase"]), familyLabel);
     renderEvaluationBreakdown();
     updatePerformanceScopes();
   }
@@ -849,7 +826,7 @@
   function updatePerformanceMetrics() {
     const family = $("perfFamily").value;
     const metrics = uniq(basePerformanceRows().filter(x => x.family === family).map(x => x.metric));
-    setDisplayOptions($("perfMetric"), metrics, metricLabel);
+    setDisplayOptions($("perfMetric"), preferredOrder(metrics, ["MAE_Overall", "MAE_Horizon", "WIS_Overall", "WIS_Horizon"]), metricLabel);
     updateMetricHelp(); updatePerformanceHorizons(); drawPerformance();
   }
   function updatePerformanceHorizons() {

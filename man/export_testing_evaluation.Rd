@@ -12,7 +12,10 @@ export_testing_evaluation(
   ai_row_detail = FALSE,
   eval_config = NULL,
   file_prefix = NULL,
-  quiet = TRUE
+  quiet = TRUE,
+  return_context = FALSE,
+  save_json = FALSE,
+  population_crosswalk = NULL
 )
 }
 \arguments{
@@ -44,11 +47,24 @@ and model type in the options file.}
 
 \item{quiet}{Logical. When \code{TRUE} (default), suppresses the progress
 messages emitted while the pipeline runs.}
+
+\item{return_context}{Logical. When \code{TRUE}, the invisible return value also
+includes the validated configuration, model data, metadata, variables
+crosswalk, and assembled master data used to produce the scores. Defaults
+to \code{FALSE}. This is primarily used by package workflows that need to reuse
+the verified report data without repeating the complete preparation step.}
+
+\item{save_json}{Logical. Write standalone JSON with metadata, effective settings,
+results, forecast/truth pairs, definitions, WIS diagnostics, and trend calibration.
+Default FALSE. JSON always includes per-forecast results.}
+
+\item{population_crosswalk}{Optional named numeric population vector or
+location/population data frame for trend labels.}
 }
 \value{
 Invisibly, a named list with \code{testing_eval} (the raw bundle from
 \code{build_testing_evaluation()}), \code{results} (the tidy long-format data
-frame), and \code{paths} (the written file paths, or \code{NA} when not requested).
+frame), \code{payload} (the JSON-ready structured results), and \code{paths} (the written file paths, or \code{NA} when not requested).
 }
 \description{
 Runs the same data pipeline \code{generate_report()} feeds into the report
@@ -56,9 +72,9 @@ template -- validating the options file, loading and validating the model
 files and variables crosswalk, assembling the master data set, and building
 the testing-period evaluation via \code{build_testing_evaluation()} -- but stops
 before any RMarkdown render. Instead of an HTML report it returns the
-testing-period metrics and, on request, writes them to disk in two forms:
+testing-period metrics and, on request, writes Markdown, CSV, and JSON:
 an AI-ready Markdown summary (\code{ai_form}) and/or a tidy long-format CSV
-(\code{save_results}). The CSV is designed so several runs can later be stacked
+(\code{save_results}), plus standalone JSON (\code{save_json}). The CSV is designed so several runs can later be stacked
 to build cross-model comparison tables.
 }
 \details{
@@ -66,5 +82,5 @@ This function never calls \code{rmarkdown::render()} and never alters
 \code{generate_report()}; it is a standalone entry point that reuses the same
 helper pathway. The model-file and master-data extractors are called with
 \code{save_data = FALSE}, so the only files written are the outputs requested
-through \code{ai_form} / \code{save_results}.
+through \code{ai_form} / \code{save_results} / \code{save_json}. No AI service is called.
 }

@@ -221,7 +221,9 @@ generate_comparison_dashboard <- function(
         output$realtime_eval <- build_realtime_evaluation(
           impl_meta = output$context$impl_meta,
           master_data = output$context$master_data,
-          variables_crosswalk = output$context$variables_crosswalk
+          variables_crosswalk = output$context$variables_crosswalk,
+          stable_threshold = resolved_eval_config$stable_threshold,
+          pct_error_cushion = resolved_eval_config$pct_error_cushion
         )
       }
 
@@ -454,6 +456,8 @@ generate_comparison_dashboard <- function(
                location = character(0), reference_date = character(0),
                target_end_date = character(0), horizon = character(0),
                target = character(0), quantile = numeric(0), value = numeric(0),
+               population=numeric(0), trend_p05=numeric(0), trend_p25=numeric(0),
+               trend_p75=numeric(0), trend_p95=numeric(0),
                stringsAsFactors = FALSE)
   }
 
@@ -501,6 +505,11 @@ generate_comparison_dashboard <- function(
       target          = target,
       quantile        = quantile,
       value           = suppressWarnings(as.numeric(df$value)),
+      population      = unname(active_population[as.character(df$location)]),
+      trend_p05       = active_thresholds$p05[match(as.character(df$location), active_thresholds$location)],
+      trend_p25       = active_thresholds$p25[match(as.character(df$location), active_thresholds$location)],
+      trend_p75       = active_thresholds$p75[match(as.character(df$location), active_thresholds$location)],
+      trend_p95       = active_thresholds$p95[match(as.character(df$location), active_thresholds$location)],
       stringsAsFactors = FALSE
     )
 
@@ -743,7 +752,7 @@ generate_comparison_dashboard <- function(
       "Observed values below this count are omitted from percentage-bias summaries because small absolute errors can create unstable percentages.",
       "The percentage-point band around zero counted as within range for forecast-bias labels.",
       "The number of forecast time steps allowed around the observed peak before timing is labeled early or late.",
-      "The minimum rank-matched agreement required for peak magnitude to be labeled on target."
+      "The minimum smaller/larger magnitude ratio required for peak magnitude to be labeled on target."
     )
 
     output <- data.frame(
@@ -834,6 +843,32 @@ generate_comparison_dashboard <- function(
              !is.null(context$eval_meta$locations)){
       context$eval_meta$locations
     }else{NULL}
+
+    # Reuse historical calibration for every browser trend call from this model.
+    active_thresholds <- data.frame(location=character(), p05=numeric(), p25=numeric(), p75=numeric(), p95=numeric())
+    evaluation_frames <- Filter(function(x) is.data.frame(x) && nrow(x),
+      list(bundle$testing_eval$data, bundle$realtime_eval$data))
+    calibration_frame <- dplyr::bind_rows(evaluation_frames)
+    calibration_history <- dplyr::bind_rows(lapply(evaluation_frames, function(x) attr(x, "trend_history")))
+    active_population <- numeric()
+    if(is.data.frame(calibration_frame) && nrow(calibration_frame)) {
+      active_population <- resolve_population_values(unique(calibration_frame$location), location_crosswalk=location_map)
+      active_thresholds <- tryCatch({
+        cutoff <- trend_calibration_cutoffs(calibration_frame)
+        candidate <- resolved_eval_config$trend_thresholds
+        if(is.null(candidate)) {
+          history <- resolved_eval_config$trend_calibration_data
+          if(is.null(history)) history <- calibration_history
+          if(is.null(history)) stop("No historical truth for dashboard trend calibration.")
+          history <- history[as.character(history$location) %in% names(active_population), , drop=FALSE]
+          candidate <- calibrate_trend_thresholds(history, cutoff, population=active_population)
+        }
+        validate_frozen_trend_thresholds(candidate, cutoff)
+      }, error=function(e) {
+        warning("Dashboard trend calibration unavailable: ", conditionMessage(e), call.=FALSE)
+        active_thresholds
+      })
+    }
 
     # Report-facing labels, resolved from the completed crosswalk first
     disease_display <- clean_disease_label(
@@ -1086,10 +1121,10 @@ generate_comparison_dashboard <- function(
     truth = truth,
     performance = performance,
     peak_details = peak_details,
-    trend_horizon = 2L,
+    trend_horizon = 1L,
     season_start_month = suppressWarnings(as.integer(substr(
       resolved_eval_config$season_start_day_month, 1L, 2L))),
-    trend_stable_threshold = resolved_eval_config$stable_threshold,
+    trend_stable_threshold = if(is.null(resolved_eval_config$trend_count_threshold)) 10 else resolved_eval_config$trend_count_threshold,
     metric_descriptions = metric_descriptions()
   )
 
@@ -1148,7 +1183,7 @@ generate_comparison_dashboard <- function(
     "<button class=\"tab\" data-panel=\"performancePanel\">Performance</button>",
     "<button class=\"tab\" data-panel=\"configurationPanel\">Configuration</button>",
     "<button class=\"tab\" data-panel=\"coveragePanel\">Coverage</button></nav>",
-    "<section id=\"overviewPanel\" class=\"panel active\"><div class=\"section-head\"><div><h2>Near-term forecast outlook</h2><p>See the direction most models expect for each disease and location over the next two forecast steps.</p></div></div><div id=\"trendIndicators\" class=\"trend-indicator-grid\"></div><p class=\"trend-method-note\"><strong>How to read this:</strong> Each model receives its own trend call from its latest median forecast. The displayed direction is the majority call across models. Consensus describes model agreement, not a statistical probability.</p><div class=\"overview-model-heading\"><h2>Models at a glance</h2><p>Methods, data, variables, and evaluation periods for each model.</p></div><div id=\"modelGrid\" class=\"model-grid\"></div></section>",
+    "<section id=\"overviewPanel\" class=\"panel active\"><div class=\"section-head\"><div><h2>Near-term forecast outlook</h2><p>See the direction most models expect for each disease and location over the next weekly forecast step.</p></div></div><div id=\"trendIndicators\" class=\"trend-indicator-grid\"></div><p class=\"trend-method-note\"><strong>How to read this:</strong> Each model receives its own trend call from its latest median forecast. The displayed direction is the majority call across models. Consensus describes model agreement, not a statistical probability.</p><div class=\"overview-model-heading\"><h2>Models at a glance</h2><p>Methods, data, variables, and evaluation periods for each model.</p></div><div id=\"modelGrid\" class=\"model-grid\"></div></section>",
     "<section id=\"forecastPanel\" class=\"panel\"><div class=\"section-head\"><div><h2>Forecast comparison</h2><p>Compare complete horizon 0–X forecast trajectories, prediction intervals, and observed outcomes.</p></div></div>",
     "<div class=\"controls forecast-controls\">",
     "<section class=\"forecast-control-group forecast-data-group\"><div class=\"forecast-group-heading\"><span class=\"forecast-step\">1</span><div><h3>Choose the forecast data</h3><p>Select where, why, and which type of forecast to compare.</p></div></div><div class=\"forecast-fields forecast-fields-three\">",
@@ -1171,7 +1206,7 @@ generate_comparison_dashboard <- function(
     "<div class=\"control\"><label for=\"perfPeriod\">Evaluation type</label><span class=\"control-help\">Held-out testing period or archived real-time forecasts</span><select id=\"perfPeriod\"></select></div>",
     "<div class=\"control\"><label for=\"perfDisease\">Disease</label><span class=\"control-help\">One outcome stream at a time</span><select id=\"perfDisease\"></select></div><div class=\"control\"><label for=\"perfLocation\">Location</label><span class=\"control-help\">One report-style location view at a time</span><select id=\"perfLocation\"></select></div><div class=\"control\"><label for=\"perfSeason\">Season</label><span class=\"control-help\">Keeps separate peak seasons from being combined</span><select id=\"perfSeason\"></select></div></div></section>",
     "<section class=\"performance-control-group\"><div class=\"forecast-group-heading\"><span class=\"forecast-step\">2</span><div><h3>Choose a report performance section</h3><p>Use the same performance families, measures, and summary levels as the individual reports.</p></div></div><div class=\"performance-fields performance-metric-fields\">",
-    "<div class=\"control\"><label for=\"perfFamily\">Report section</label><span class=\"control-help\">Percent Agreement, Forecast Bias, Peak/Phase, or Traditional Metrics</span><select id=\"perfFamily\"></select></div>",
+    "<div class=\"control\"><label for=\"perfFamily\">Report section</label><span class=\"control-help\">Percent Accuracy (Similarity Index), Forecast Bias, Peak/Phase, or Traditional Metrics</span><select id=\"perfFamily\"></select></div>",
     "<div class=\"control\"><label for=\"perfScope\">Report view</label><span class=\"control-help\">Over time, horizon summary, or overall summary</span><select id=\"perfScope\"></select></div>",
     "<div class=\"control\"><label for=\"perfMetric\">Measure</label><span class=\"control-help\">The exact statistic shown in the chart</span><select id=\"perfMetric\"></select></div>",
     "<div class=\"control\"><label for=\"perfHorizon\">Forecast horizon</label><span class=\"control-help\">All or one selected lead time</span><select id=\"perfHorizon\"></select></div></div></section>",

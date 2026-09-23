@@ -11,7 +11,7 @@
 #' \itemize{
 #'   \item `dimension = "cross"`: one row per location, horizon, observed
 #'     trend, and observed epidemic phase (Ascension, Peak, Decline) for each
-#'     performance measure -- Percent Agreement (median, minimum, maximum),
+#'     performance measure -- Percent Accuracy (Similarity Index) (median, minimum, maximum),
 #'     Forecast Bias (median percentage and raw error), and the Traditional
 #'     Metrics means (WIS, MAE, under/over-prediction, and interval coverage).
 #'   \item `dimension = "phase"` / `dimension = "trend"`: the trend-performance
@@ -87,7 +87,7 @@ build_comparison_phase_breakdown <- function(testing_eval,
   pieces <- list()
 
 #------------------------------------------------------------------------------#
-# Percent Agreement by observed trend and phase ---------------------------------
+# Percent Accuracy (Similarity Index) by observed trend and phase ---------------------------------
 #------------------------------------------------------------------------------#
 # About: The report's median / minimum / maximum convention is preserved so    #
 # the dashboard cells match the report's trend-by-phase table exactly.         #

@@ -1,4 +1,4 @@
-#' Build the trend- and phase-specific Percent Accuracy table
+#' Build the trend- and phase-specific Percent Accuracy (Similarity Index) table
 #'
 #' @keywords internal
 #' @noRd
@@ -20,7 +20,7 @@ build_trend_phase_performance <- function(performance_summary,
     if(is.null(status_message) || !nzchar(status_message)){
       status_message <- paste(
         "No trend/phase table could be calculated. At least two consecutive",
-        "observed target periods with eligible Percent Accuracy values are",
+        "observed target periods with eligible Percent Accuracy (Similarity Index) values are",
         "required."
       )
     }
@@ -189,7 +189,7 @@ build_trend_phase_performance <- function(performance_summary,
   first_location <- htmltools::htmlEscape(location_codes[1])
   body <- htmltools::HTML(paste0('
     <p style="font-size:14px;line-height:1.65;color:#444;margin:0 0 1rem;">
-      Explore the existing Percent Accuracy measure within each observed trend
+      Explore the existing Percent Accuracy (Similarity Index) measure within each observed trend
       and epidemic phase. Values are shown as <strong>median (range)</strong>;
       <em>n</em> is the number of eligible forecast-target pairs.
     </p>',
@@ -197,7 +197,7 @@ build_trend_phase_performance <- function(performance_summary,
     '<div id="trendPhasePanels">', paste0(panels, collapse = ""), '</div>
     <p style="font-size:12px;line-height:1.55;color:#666;margin:0.9rem 0 0;">
       A dash (&mdash;) means that the observed trend did not occur in that phase
-      for the selected location and horizon, or no eligible Percent Accuracy
+      for the selected location and horizon, or no eligible Percent Accuracy (Similarity Index)
       values were available.
     </p>
     <script>

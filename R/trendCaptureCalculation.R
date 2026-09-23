@@ -21,7 +21,7 @@
 #'
 #' Rows are eligible when they fall inside a transmission period and carry a
 #' non-missing observed trend, forecasted trend, and phase. Non-transmission
-#' periods are excluded for the same reason the Percent Agreement summaries
+#' periods are excluded for the same reason the Similarity Index summaries
 #' exclude them: an off-season trend call is not a meaningful test of the model.
 #'
 #' @param phase_data The row-level `data` frame returned by
@@ -276,7 +276,7 @@ trendCaptureCalculation <- function(phase_data,
 # Adding pooled horizon rows ---------------------------------------------------
 #------------------------------------------------------------------------------#
 # About: Every summary reports each horizon separately plus an "Overall" row    #
-# pooling all horizons, matching how the Percent Agreement and Forecast Bias    #
+# pooling all horizons, matching how the Similarity Index and Forecast Bias    #
 # sections present their horizon summaries. Pooling is done by duplicating the  #
 # eligible rows under the Overall label so a single grouped summarise covers    #
 # both, rather than summarizing twice and binding.                              #

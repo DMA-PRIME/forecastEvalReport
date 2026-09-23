@@ -825,7 +825,7 @@ forecastEvalReport:::loading_overlay_html()
 # Testing-period evaluation data and metrics -----------------------------------
 #------------------------------------------------------------------------------#
 # About: This chunk builds the data sets containing the various testing        #
-# period metrics, such as percent agreement, forecast bias, peak timing and    #
+# period metrics, such as similarity index, forecast bias, peak timing and    #
 # magnitude, and the traditional methods. It also takes in the configuration   #
 # file, allowing users to set their own thresholds for the metrics.            #
 #------------------------------------------------------------------------------#
@@ -852,7 +852,7 @@ forecastEvalReport:::loading_overlay_html()
   # Testing data
   data.for.evaluation   <- testing_eval$data
 
-  # Percent agreement table
+  # Percent Accuracy (Similarity Index) table
   percentAgreement.data <- testing_eval$percentAgreement
   
   # Forecast bias table 
@@ -872,7 +872,7 @@ forecastEvalReport:::loading_overlay_html()
 #------------------------------------------------------------------------------#
 # About: This section produces the orienting paragraph and the per-metric      #
 # descriptions shown at the top of the testing-period evaluation section:      #
-# percent agreement, forecast bias, peak-phase timing, peak-phase magnitude,   #
+# similarity index, forecast bias, peak-phase timing, peak-phase magnitude,   #
 # and the traditional (statistical) scoring metrics. The testing-phase date    #
 # span is taken from `eval_meta$testing_start` / `eval_meta$testing_end`. When #  
 # no testing data is present, the function renders nothing so the section      #
@@ -912,10 +912,10 @@ forecastEvalReport:::loading_overlay_html()
 
 ```{r pct-agreement, echo=FALSE, message=FALSE, warning=FALSE}
 #------------------------------------------------------------------------------#
-# Building percent agreement section -------------------------------------------
+# Building similarity index section -------------------------------------------
 #------------------------------------------------------------------------------#
-# About: This section builds the full Percent Agreement accordion for the      #
-# testing-period block: an intro, the "Percent Agreement Over Time" figure     #
+# About: This section builds the full Percent Accuracy (Similarity Index) accordion for the      #
+# testing-period block: an intro, the "Percent Accuracy (Similarity Index) Over Time" figure     #
 # (one panel per location, switched by a geography dropdown), a synced Median  #
 # (Range) summary table by forecast horizon, and a Detailed Methods accordion. #
 # Renders nothing when no testing data is present, matching every other        #
@@ -923,7 +923,7 @@ forecastEvalReport:::loading_overlay_html()
 #------------------------------------------------------------------------------#
 
   ######################################
-  # Building percent agreement section #
+  # Building similarity index section #
   ######################################
   forecastEvalReport:::section_percent_agreement(
     percentAgreement.data = percentAgreement.data,
@@ -933,6 +933,17 @@ forecastEvalReport:::loading_overlay_html()
     eval_config           = EVAL_CONFIG,
     population_crosswalk  = config$population_crosswalk
   )
+```
+
+```{r traditional-metrics, echo=FALSE, message=FALSE, warning=FALSE}
+forecastEvalReport:::section_traditional_metrics(
+  traditional.data    = testing_eval$traditional,
+  eval_meta           = eval_meta,
+  outcome             = NULL,                 # NULL -> clean name from the crosswalk
+  variables_crosswalk = variables_crosswalk,
+  eval_config         = EVAL_CONFIG,
+  population_crosswalk = config$population_crosswalk
+)
 ```
 
 ```{r forecast-bias, echo=FALSE, message=FALSE, warning=FALSE}
@@ -973,16 +984,7 @@ forecastEvalReport:::section_peak_phase(
 )
 ```
 
-```{r traditional-metrics, echo=FALSE, message=FALSE, warning=FALSE}
-forecastEvalReport:::section_traditional_metrics(
-  traditional.data    = testing_eval$traditional,
-  eval_meta           = eval_meta,
-  outcome             = NULL,                 # NULL -> clean name from the crosswalk
-  variables_crosswalk = variables_crosswalk,
-  eval_config         = EVAL_CONFIG,
-  population_crosswalk = config$population_crosswalk
-)
-```
+
 
 ```{r forecast-consistency, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 forecastEvalReport:::section_forecast_consistency(
@@ -1002,26 +1004,28 @@ forecastEvalReport:::section_forecast_consistency(
 rt <- forecastEvalReport:::build_realtime_evaluation(
   impl_meta           = impl_meta,
   master_data         = master_data,
-  variables_crosswalk = variables_crosswalk
+  variables_crosswalk = variables_crosswalk,
+  stable_threshold = EVAL_CONFIG$stable_threshold,
+  pct_error_cushion = EVAL_CONFIG$pct_error_cushion
 )
 ```
 
 
 ```{r realtime-evaluation, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 htmltools::tagList(
-  section_realtime_intro(rt$data),
-  section_realtime_percent_agreement(
+  forecastEvalReport:::section_realtime_intro(rt$data),
+  forecastEvalReport:::section_realtime_percent_agreement(
     rt$percentAgreement, impl_meta,
     variables_crosswalk = variables_crosswalk,
     eval_config         = EVAL_CONFIG
   ),
-  section_realtime_forecast_bias(
-    rt$forecastBias, impl_meta,
+  forecastEvalReport:::section_realtime_traditional_metrics(
+    rt$traditional, impl_meta,
     variables_crosswalk = variables_crosswalk,
     eval_config         = EVAL_CONFIG
   ),
-  section_realtime_traditional_metrics(
-    rt$traditional, impl_meta,
+  forecastEvalReport:::section_realtime_forecast_bias(
+    rt$forecastBias, impl_meta,
     variables_crosswalk = variables_crosswalk,
     eval_config         = EVAL_CONFIG
   )

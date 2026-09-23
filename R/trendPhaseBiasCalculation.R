@@ -41,7 +41,7 @@ trendPhaseBiasCalculation <- function(forecastBias.data,
 #------------------------------------------------------------------------------#
 # Adding the shared observed trend and phase labels ---------------------------
 #------------------------------------------------------------------------------#
-# About: The Percent Agreement phase helper owns the shared observed-curve     #
+# About: The Similarity Index phase helper owns the shared observed-curve     #
 # definition. A temporary placeholder lets us reuse that annotation pathway;   #
 # the placeholder summary is discarded and only the annotated rows are kept.   #
 #------------------------------------------------------------------------------#

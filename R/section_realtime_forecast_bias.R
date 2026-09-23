@@ -1024,7 +1024,9 @@ section_realtime_forecast_bias <- function(forecastBias.data,
 
     <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Bias Group Classification</p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
-      Each row is classified into one of four bias groups based on the percentage error and the
+      Missing/nonfinite forecasts or truth and undefined percentage errors (zero truth) are
+      <strong>Unscorable</strong> and excluded from percentage-bias summaries. Other eligible
+      rows are classified based on the percentage error and the
       stability flag. Rows with observed counts below ', stable_thr, ' are classified as
       <strong>Insufficient Data</strong>. Remaining rows are classified as
       <strong>Overestimate</strong> (percentage error &gt; +', cushion, '%),

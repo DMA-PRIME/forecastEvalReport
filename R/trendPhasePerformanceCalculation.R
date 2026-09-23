@@ -1,9 +1,9 @@
-#' Calculate trend- and phase-specific percent agreement
+#' Calculate trend- and phase-specific similarity index
 #'
 #' Uses population-adjusted observed trend calls to group the existing
-#' row-level Percent Agreement measure within the observed Ascension, Peak, and
+#' row-level Similarity Index measure within the observed Ascension, Peak, and
 #' Decline phases. Results are summarized by location, horizon, trend, and phase
-#' using the same median and range convention as the Percent Agreement section.
+#' using the same median and range convention as the Similarity Index section.
 #'
 #' @param percentAgreement.data Output from `percentAgreementCalculation()`.
 #' @param population Optional custom population crosswalk. Custom rows extend
@@ -27,7 +27,7 @@ trendPhasePerformanceCalculation <- function(percentAgreement.data,
 # Confirming the function should run ------------------------------------------
 #------------------------------------------------------------------------------#
 # About: This section returns empty, consistently shaped outputs whenever the  #
-# testing Percent Agreement data are unavailable.                              #
+# testing Similarity Index data are unavailable.                              #
 #------------------------------------------------------------------------------#
 
   empty_summary <- data.frame(
@@ -47,7 +47,7 @@ trendPhasePerformanceCalculation <- function(percentAgreement.data,
 #------------------------------------------------------------------------------#
 # Calculating population-adjusted trend calls ---------------------------------
 #------------------------------------------------------------------------------#
-# About: The trend helper retains the existing row-level Percent Agreement     #
+# About: The trend helper retains the existing row-level Similarity Index     #
 # value while adding observed and forecast week-to-week trend labels. Only the #
 # observed label is used to define the table rows.                              #
 #------------------------------------------------------------------------------#
@@ -77,8 +77,11 @@ trendPhasePerformanceCalculation <- function(percentAgreement.data,
   trend_bundle <- trendCallCalculation(
     percentAgreement.data,
     population = resolved_population,
-    stable_threshold = eval_config$stable_threshold,
-    week_days = week_days
+    stable_threshold = if(is.null(eval_config$trend_count_threshold)) 10 else eval_config$trend_count_threshold,
+    week_days = week_days,
+    calibration_data = if(is.null(eval_config$trend_calibration_data))
+      attr(percentAgreement.data, "trend_history") else eval_config$trend_calibration_data,
+    thresholds = eval_config$trend_thresholds
   )
 
   trend_data <- trend_bundle$df
@@ -212,11 +215,11 @@ trendPhasePerformanceCalculation <- function(percentAgreement.data,
     )
 
 #------------------------------------------------------------------------------#
-# Summarizing the existing Percent Agreement metric ---------------------------
+# Summarizing the existing Similarity Index metric ---------------------------
 #------------------------------------------------------------------------------#
 # About: Horizon summaries use only the selected horizon. Overall summaries    #
 # pool every eligible forecast-target pair across horizons, matching the       #
-# existing Percent Agreement section's overall calculation.                    #
+# existing Similarity Index section's overall calculation.                    #
 #------------------------------------------------------------------------------#
 
   eligible <- trend_data %>%
@@ -229,7 +232,8 @@ trendPhasePerformanceCalculation <- function(percentAgreement.data,
     )
 
   if(nrow(eligible) == 0L){
-    return(list(summary = empty_summary, data = trend_data))
+    return(list(summary = empty_summary, data = trend_data,
+                thresholds = trend_bundle$location_thresholds))
   }
 
   summarize_groups <- function(data, horizon_value){
@@ -260,5 +264,6 @@ trendPhasePerformanceCalculation <- function(percentAgreement.data,
   summary <- dplyr::bind_rows(overall, by_horizon)
   row.names(summary) <- NULL
 
-  list(summary = summary, data = trend_data)
+  list(summary = summary, data = trend_data,
+       thresholds = trend_bundle$location_thresholds)
 }

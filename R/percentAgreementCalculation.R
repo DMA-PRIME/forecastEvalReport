@@ -1,6 +1,6 @@
-#' Calculate percent agreement across forecasts, horizons, and overall
+#' Calculate similarity index across forecasts, horizons, and overall
 #'
-#' Computes percent agreement between forecasted and observed values at the row
+#' Computes similarity index between forecasted and observed values at the row
 #' level (ratio of the smaller to the larger value, as a percentage), then
 #' summarizes by forecast horizon and overall within each location using the
 #' mean, range (min/max), median, and a set of quantiles. Operates on the
@@ -30,7 +30,7 @@ percentAgreementCalculation <- function(data.for.evaluation,
 #------------------------------------------------------------------------------#
 # About: This section checks that the function which prepares the evaluation   #
 # data ran properly, and that both observed and forecast data is available for #
-# percent agreement calculations. If there is no evaluation data available,    #
+# similarity index calculations. If there is no evaluation data available,    #
 # this function returns the NULL file.                                         #
 #------------------------------------------------------------------------------#
 
@@ -188,9 +188,9 @@ percentAgreementCalculation <- function(data.for.evaluation,
   }
 
 #------------------------------------------------------------------------------#
-# Calculating the row-level percent agreement ----------------------------------
+# Calculating the row-level similarity index ----------------------------------
 #------------------------------------------------------------------------------#
-# About: This section calculates the row-level percent agreement. Percent      #
+# About: This section calculates the row-level similarity index. Percent      #
 # agreement is calculated as the ratio of the smaller value to the larger      #
 # value, and then shown as a percentage. If both the forecast and observed     #
 # data produce zero values, this section returns 100%. NA is used when any     #
@@ -213,18 +213,19 @@ percentAgreementCalculation <- function(data.for.evaluation,
         is_transmission = !lubridate::month(target_end_date) %in% non_transmission_months
       ) %>%
 
-      # Calculating the row-by-row percent agreement
+      # Calculating the row-by-row similarity index
       dplyr::mutate(
 
         per_agreement = dplyr::case_when(
 
           # Any data is missing
-          is.na(targetValue) | is.na(forecastValue)  ~ NA_real_,
+          !is.finite(targetValue) | !is.finite(forecastValue) |
+            targetValue < 0 | forecastValue < 0 ~ NA_real_,
 
           # Both values correctly predict zero
           targetValue == 0 & forecastValue == 0 ~ 100,
 
-          # Calculating the percent agreement
+          # Calculating the similarity index
           TRUE ~ (pmin(targetValue, forecastValue) / pmax(targetValue, forecastValue)) * 100
 
         )
@@ -232,7 +233,7 @@ percentAgreementCalculation <- function(data.for.evaluation,
       )
 
   #########################################################################
-  # Triggered if an error occurs with calculating percent agreement above #
+  # Triggered if an error occurs with calculating similarity index above #
   #########################################################################
   }, error = function(e){
 
@@ -265,7 +266,7 @@ percentAgreementCalculation <- function(data.for.evaluation,
   }
 
 #------------------------------------------------------------------------------#
-# Grouped percent agreement (transmission rows only) ---------------------------
+# Grouped similarity index (transmission rows only) ---------------------------
 #------------------------------------------------------------------------------#
 # About: This section computes the mean, range (min/max), median, and          #
 # quantiles per horizon x location and per location, across transmission rows  #

@@ -1,15 +1,11 @@
 #' Calculate population-adjusted testing-period trend calls
 #'
-#' Replicates the supplied state, region, and county trend analysis for the
-#' testing-period forecast evaluation frame. Forecast and observed counts are
-#' converted to rates, week-to-week differences are calculated on those rates,
-#' and the observed rate-change percentiles within each location define the
-#' five trend categories applied to both series.
-#'
-#' The original analysis uses a hybrid stability rule: a weekly change of fewer
-#' than 10 raw counts is called stable before the population-adjusted percentile
-#' rules are applied. This function preserves that behavior through
-#' `stable_threshold`. Set it to `NULL` to disable the raw-count override.
+#' Applies the Mathis et al. (2025) weekly trend framework using historical
+#' thresholds frozen before the evaluated issue and target dates. Thresholds
+#' are calibrated from supplied historical truth or loaded from a saved table.
+#' Evaluation outcomes are never used to estimate the cutoffs. The default
+#' count-change override is strictly less than 10 admissions, separately from
+#' the forecast-bias count floor. See calibrate_trend_thresholds().
 #'
 #' Population can be supplied as one number for a single-location analysis, a
 #' named numeric vector keyed by location, or a data frame containing location
@@ -34,14 +30,16 @@
 #'   producing rates per 100,000 population.
 #' @param stable_threshold A non-negative raw-count change below which the call
 #'   is forced to `"stable"`, reproducing the regional and county analysis.
-#'   Default `10`. Set to `NULL` to use only rate-change percentiles.
+#'   Default `10`. Set to `NULL` to disable the count override (an adaptation).
 #' @param week_days Positive number of days required between consecutive target
 #'   dates for a week-to-week comparison. Default `7`.
 #'
+#' @param calibration_data Historical truth frame, defaulting to the prepared data's history.
+#' @param thresholds A saved calibration table from calibrate_trend_thresholds().
 #' @return A named list with `df`, containing population, raw counts, rates,
 #'   raw and rate week-to-week changes, forecast and observed trend calls, and
 #'   agreement; and `location_percentiles`, containing each location's
-#'   population and observed rate-change cut points.
+#'   frozen historical cut points per 100,000 (also returned as location_thresholds).
 #'
 #' @examples
 #' \dontrun{
@@ -60,7 +58,9 @@ trendCallCalculation <- function(data.for.evaluation,
                                  population_value_col = "population",
                                  rate_multiplier = 100000,
                                  stable_threshold = 10,
-                                 week_days = 7) {
+                                 week_days = 7,
+                                 calibration_data = attr(data.for.evaluation, "trend_history"),
+                                 thresholds = NULL) {
 
 #------------------------------------------------------------------------------#
 # Confirming the function should be run ---------------------------------------
@@ -109,6 +109,8 @@ trendCallCalculation <- function(data.for.evaluation,
 # quantile is retained and all calculation fields are converted consistently. #
 #------------------------------------------------------------------------------#
 
+  if(week_days != 7) stop("The published trend method requires weekly (7-day) data.", call.=FALSE)
+  truth_history <- attr(data.for.evaluation, "trend_history")
   trend.data <- data.for.evaluation
 
   if("output_type_id" %in% names(trend.data)){
@@ -126,7 +128,7 @@ trendCallCalculation <- function(data.for.evaluation,
   trend.data$Observed <- suppressWarnings(as.numeric(trend.data$Observed))
   trend.data$horizon <- suppressWarnings(as.numeric(trend.data$horizon))
 
-  key_cols <- intersect(c("model", "location", "horizon", "target_end_date"),
+  key_cols <- intersect(c("model", "location", "reference_date", "horizon", "target_end_date"),
                         names(trend.data))
   duplicate_forecasts <- duplicated(trend.data[key_cols]) |
     duplicated(trend.data[key_cols], fromLast = TRUE)
@@ -194,7 +196,17 @@ trendCallCalculation <- function(data.for.evaluation,
 # changes in the rate per `rate_multiplier`, exactly as in the source analysis.#
 #------------------------------------------------------------------------------#
 
-  observed.data <- trend.data %>%
+  observed.input <- trend.data[c("location", "target_end_date", "Observed", "population")]
+  if(is.data.frame(truth_history) && nrow(truth_history) &&
+     all(c("location", "target_end_date", "Observed") %in% names(truth_history))) {
+    h <- truth_history[as.character(truth_history$location) %in% locations,
+                       c("location", "target_end_date", "Observed"), drop=FALSE]
+    h$location <- as.character(h$location)
+    h$target_end_date <- anytime::anydate(h$target_end_date)
+    h$population <- unname(resolved_population[h$location])
+    observed.input <- dplyr::bind_rows(observed.input, h)
+  }
+  observed.data <- observed.input %>%
     dplyr::group_by(location, target_end_date) %>%
     dplyr::summarise(
       observed_values = dplyr::n_distinct(Observed[!is.na(Observed)]),
@@ -221,38 +233,40 @@ trendCallCalculation <- function(data.for.evaluation,
         Observed - dplyr::lag(Observed), NA_real_),
       observed_weekly_rate_change = dplyr::if_else(
         observed_days_between == week_days,
-        observed_rate - dplyr::lag(observed_rate), NA_real_)
+        (Observed - dplyr::lag(Observed)) / population * rate_multiplier, NA_real_)
     ) %>%
     dplyr::ungroup()
 
-  safe_percentile <- function(x, probability){
-    x <- x[!is.na(x) & is.finite(x)]
-    if(length(x) == 0L) return(NA_real_)
-    as.numeric(stats::quantile(x, probs = probability, na.rm = TRUE,
-                               names = FALSE))
+  cutoffs <- trend_calibration_cutoffs(trend.data)
+  if(is.null(thresholds)) {
+    if(is.null(calibration_data) || !is.data.frame(calibration_data) || !nrow(calibration_data))
+      stop("No pre-evaluation truth for trend calibration. Supply historical trend_calibration_data or saved trend_thresholds.", call.=FALSE)
+    calibration_data <- calibration_data[as.character(calibration_data$location) %in% locations, , drop=FALSE]
+    thresholds <- calibrate_trend_thresholds(calibration_data, cutoff=cutoffs,
+                                             population=resolved_population)
   }
-
-  location_percentiles <- observed.data %>%
-    dplyr::group_by(location) %>%
-    dplyr::summarise(
-      population = dplyr::first(population),
-      rate_multiplier = rate_multiplier,
-      n_weekly_changes = sum(!is.na(observed_weekly_rate_change)),
-      p05 = safe_percentile(observed_weekly_rate_change, 0.05),
-      p25 = safe_percentile(observed_weekly_rate_change, 0.25),
-      p75 = safe_percentile(observed_weekly_rate_change, 0.75),
-      p95 = safe_percentile(observed_weekly_rate_change, 0.95),
-      .groups = "drop"
-    )
+  location_percentiles <- validate_frozen_trend_thresholds(thresholds, cutoffs)
+  location_percentiles$population <- unname(resolved_population[location_percentiles$location])
+  bad <- location_percentiles$status != "ok"
+  if(any(bad)) warning("Trend calibration unavailable: ", paste(
+    paste0(location_percentiles$location[bad], " (", location_percentiles$status[bad], ")"),
+    collapse="; "), ". Supply a longer historical reference series.", call.=FALSE)
+  # Classification uses the requested rate unit, while saved metadata remains
+  # per 100,000. Never silently change the meaning of saved thresholds.
+  classification_thresholds <- location_percentiles
+  for(column in c("p05", "p25", "p75", "p95"))
+    classification_thresholds[[column]] <- classification_thresholds[[column]] * rate_multiplier / 1e5
 
   stable_observed <- if(is.null(stable_threshold)){
     rep(FALSE, nrow(observed.data))
   }else{abs(observed.data$observed_weekly_change) < stable_threshold}
 
   observed.data <- observed.data %>%
-    dplyr::left_join(location_percentiles, by = c("location", "population")) %>%
+    dplyr::left_join(classification_thresholds, by = c("location", "population")) %>%
     dplyr::mutate(
       observed_trend = dplyr::case_when(
+        status != "ok"                              ~ NA_character_,
+        !is.finite(observed_weekly_rate_change)       ~ NA_character_,
         stable_observed                              ~ "stable",
         observed_weekly_rate_change <= p05           ~ "large decrease",
         observed_weekly_rate_change > p05 &
@@ -287,7 +301,8 @@ trendCallCalculation <- function(data.for.evaluation,
   # Submission identity: rows sharing a forecast reference date, derived from
   # the target date minus the horizon in steps when no explicit column exists
   horizon_steps <- suppressWarnings(as.numeric(trend.data$horizon))
-  trend.data$forecast_anchor_date <-
+  trend.data$forecast_anchor_date <- if("reference_date" %in% names(trend.data))
+    anytime::anydate(trend.data$reference_date) else
     trend.data$target_end_date - horizon_steps * week_days
 
   sub_grouping <- intersect(c("model", "location"), names(trend.data))
@@ -335,9 +350,9 @@ trendCallCalculation <- function(data.for.evaluation,
       ),
 
       forecast_weekly_change      = value - prev_anchor_value,
-      forecast_weekly_rate_change = forecast_rate - prev_anchor_rate
+      forecast_weekly_rate_change = (value - prev_anchor_value) / population * rate_multiplier
     ) %>%
-    dplyr::left_join(location_percentiles, by = c("location", "population"))
+    dplyr::left_join(classification_thresholds, by = c("location", "population"))
 
   stable_forecast <- if(is.null(stable_threshold)){
     rep(FALSE, nrow(trend.results))
@@ -352,6 +367,8 @@ trendCallCalculation <- function(data.for.evaluation,
   trend.results <- trend.results %>%
     dplyr::mutate(
       forecast_trend = dplyr::case_when(
+        status != "ok"                              ~ NA_character_,
+        !is.finite(forecast_weekly_rate_change)       ~ NA_character_,
         stable_forecast                              ~ "stable",
         forecast_weekly_rate_change <= p05           ~ "large decrease",
         forecast_weekly_rate_change > p05 &
@@ -379,6 +396,7 @@ trendCallCalculation <- function(data.for.evaluation,
 
   list(
     df = trend.results,
-    location_percentiles = location_percentiles
+    location_percentiles = location_percentiles,
+    location_thresholds = location_percentiles
   )
 }

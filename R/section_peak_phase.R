@@ -253,7 +253,7 @@ section_peak_phase <- function(peakPhase.data,
     paste0(main_open(sign_color(m)), fmt_signed_int(m), suffix, '</div>', rng)
   }
 
-  # Stacked value-over-range for a percent-accuracy score (relative track)
+  # Stacked value-over-range for a descriptive similarity index (relative track)
   stacked_pct <- function(m, lo, hi, suffix = ""){
     if(is.na(m)) return(paste0(main_open(), '&mdash;', suffix, '</div>'))
     rng <- if(!is.na(lo) && !is.na(hi) && round(lo) != round(hi)) paste0(
@@ -630,21 +630,21 @@ section_peak_phase <- function(peakPhase.data,
           <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Peak-to-Peak Intensity</div>
           <div class="sum-th-sub" style="color:#9B85C8;font-size:13px;">
             <span class="peak-mag-raw-cell">(Predicted Peak &minus; Observed Peak)</span>
-            <span class="peak-mag-rel-cell" style="display:none;">(% Accuracy)</span>
+            <span class="peak-mag-rel-cell" style="display:none;">(Similarity Index (%))</span>
           </div>
         </th>
         <th class="sum-th" style="border-right:1px solid #e0e0e0;">
           <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Intensity at Predicted Peak</div>
           <div class="sum-th-sub" style="color:#9B85C8;font-size:13px;">
             <span class="peak-mag-raw-cell">(Predicted Peak &minus; Observed That Week)</span>
-            <span class="peak-mag-rel-cell" style="display:none;">(% Accuracy)</span>
+            <span class="peak-mag-rel-cell" style="display:none;">(Similarity Index (%))</span>
           </div>
         </th>
         <th class="sum-th" style="border-right:none;">
           <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Intensity at Observed Peak</div>
           <div class="sum-th-sub" style="color:#9B85C8;font-size:13px;">
             <span class="peak-mag-raw-cell">(Forecast That Week &minus; Observed Peak)</span>
-            <span class="peak-mag-rel-cell" style="display:none;">(% Accuracy)</span>
+            <span class="peak-mag-rel-cell" style="display:none;">(Similarity Index (%))</span>
           </div>
         </th>
       </tr>
@@ -676,7 +676,7 @@ section_peak_phase <- function(peakPhase.data,
     that predicted peak against what was actually observed that same week; and <strong>Intensity at Observed
     Peak</strong> is the forecast for the true peak week against the observed peak. Use the
     <strong>Raw / Relative (%)</strong> toggle to switch the intensity columns between the count
-    difference and a percent-accuracy score. For a single season each row shows one value; for Overall
+    difference and a descriptive similarity index. For a single season each row shows one value; for Overall
     each row shows the mean with its min&ndash;max range beneath.', fn_marks, '
   </p>
 </div>
@@ -840,9 +840,10 @@ section_peak_phase <- function(peakPhase.data,
     <p style="font-size:14px;line-height:1.6;color:#444;margin:0 0 1rem 0;">
       Compare all locations at once, each measure averaged across every forecast horizon (with its
       min&ndash;max range beneath). Timing is summarised as mean <em>absolute</em> weeks off (its signed range beneath shows the
-      direction &mdash; minus early, plus late), and the ranking is a composite of accuracy across all four
-      measures, so early/late and over/under misses cannot cancel out. Strongest performer first; click any column to re-sort, or search for a location. Raw shows
-      the signed count difference (its range reveals any cancellation), Relative shows percent accuracy; the
+      direction &mdash; minus early, plus late). The default sort uses a custom descriptive composite of timing closeness
+      and three magnitude similarity ratios; it is not a proper forecast score. Larger composites appear first;
+      use MAE in Statistical Scoring Metrics to assess median forecasts. Click any column to re-sort, or search for a location. Raw shows
+      the signed count difference (its range reveals any cancellation), Relative shows similarity index; the
       table follows the season selected above and the Raw / Relative (%) toggle.
     </p>
 
@@ -867,19 +868,19 @@ section_peak_phase <- function(peakPhase.data,
               <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Peak-to-Peak Intensity', arrow, '</div>
               <div ', sub_st, '>
                 <span class="peak-mag-raw-cell">Mean (Range)</span>
-                <span class="peak-mag-rel-cell" style="display:none;">Avg. % Accuracy (Range)</span></div>
+                <span class="peak-mag-rel-cell" style="display:none;">Avg. Similarity Index (%) (Range)</span></div>
             </th>
             <th class="sum-th" onclick="sortPeakCompare(3, \'num\')" style="border-right:1px solid #e0e0e0;">
               <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Intensity at Predicted Peak', arrow, '</div>
               <div ', sub_st, '>
                 <span class="peak-mag-raw-cell">Mean (Range)</span>
-                <span class="peak-mag-rel-cell" style="display:none;">Avg. % Accuracy (Range)</span></div>
+                <span class="peak-mag-rel-cell" style="display:none;">Avg. Similarity Index (%) (Range)</span></div>
             </th>
             <th class="sum-th" onclick="sortPeakCompare(4, \'num\')" style="border-right:none;">
               <div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1;">Intensity at Observed Peak', arrow, '</div>
               <div ', sub_st, '>
                 <span class="peak-mag-raw-cell">Mean (Range)</span>
-                <span class="peak-mag-rel-cell" style="display:none;">Avg. % Accuracy (Range)</span></div>
+                <span class="peak-mag-rel-cell" style="display:none;">Avg. Similarity Index (%) (Range)</span></div>
             </th>
           </tr>
         </thead>
@@ -952,7 +953,7 @@ section_peak_phase <- function(peakPhase.data,
 # Detailed Methods accordion (the four peak measures) --------------------------
 #------------------------------------------------------------------------------#
 # About: A reference for the four peak measures. Formulas use readable word     #
-# labels (KaTeX), matching the Percent Agreement section, so any reader can see  #
+# labels (KaTeX), matching the Similarity Index section, so any reader can see  #
 # exactly what is compared.                                                     #
 #------------------------------------------------------------------------------#
 
@@ -963,7 +964,7 @@ section_peak_phase <- function(peakPhase.data,
       Every measure below compares the forecast with what was actually observed. For each
       location and season there is one observed peak, and each forecast horizon has its own
       predicted peak. Timing is measured in weeks; the three intensity measures are reported
-      both as a raw count difference and as a percent accuracy.
+      both as a raw count difference and as a similarity index.
     </p>
 
     <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
@@ -1016,9 +1017,9 @@ section_peak_phase <- function(peakPhase.data,
 
     <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
 
-    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Percent Accuracy</p>
+    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Similarity Index</p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
-      Each intensity is also reported as a percent accuracy: the ratio of the smaller value to
+      Each intensity is also reported as a similarity index: the ratio of the smaller value to
       the larger value between the forecast and observed counts, as a percentage. It is bounded
       between 0% and 100%, where 100% is a perfect match, and it does not depend on the direction
       of the miss.
@@ -1026,7 +1027,7 @@ section_peak_phase <- function(peakPhase.data,
     <div id="eq-acc" style="text-align: center; margin: 0.75rem 0 1rem;"></div>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
       <strong>Example:</strong> if the predicted peak is 450 and the observed peak is 500,
-      the Peak-to-Peak percent accuracy is (450 / 500) &times; 100 = 90%.
+      the Peak-to-Peak similarity index is (450 / 500) &times; 100 = 90%.
     </p>
 
     <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
@@ -1058,7 +1059,7 @@ section_peak_phase <- function(peakPhase.data,
       "\\\\text{Intensity at Observed Peak} = \\\\text{Forecast at True Peak Week} - \\\\text{Observed Peak Value}",
       document.getElementById("eq-peakwk"), { throwOnError: false, displayMode: true });
     katex.render(
-      "\\\\text{Percent Accuracy} = \\\\frac{\\\\min(\\\\text{Forecasted},\\\\, \\\\text{Observed})}{\\\\max(\\\\text{Forecasted},\\\\, \\\\text{Observed})} \\\\times 100",
+      "\\\\text{Similarity Index} = \\\\frac{\\\\min(\\\\text{Forecasted},\\\\, \\\\text{Observed})}{\\\\max(\\\\text{Forecasted},\\\\, \\\\text{Observed})} \\\\times 100",
       document.getElementById("eq-acc"), { throwOnError: false, displayMode: true });
   </script>
   '))

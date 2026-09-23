@@ -38,7 +38,7 @@ trendPhaseTraditionalCalculation <- function(traditional.data,
 #------------------------------------------------------------------------------#
 # About: The common phase helper keeps the median forecast and applies the same #
 # population adjustment, stable threshold, season boundary, and peak window as #
-# the Percent Agreement and Forecast Bias phase tables.                         #
+# the Similarity Index and Forecast Bias phase tables.                         #
 #------------------------------------------------------------------------------#
 
   phase_input <- traditional.data

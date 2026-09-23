@@ -1,7 +1,7 @@
 #' Render the real-time traditional metrics section
 #'
 #' Builds the real-time "traditional metrics" drop-down: a table of the
-#' weighted interval score (WIS), median absolute error (MAE), and 50% / 95%
+#' weighted interval score (WIS), mean absolute error of the median (MAE), and 50% / 95%
 #' interval coverage, summarized per location over the real-time operational
 #' forecast rows. For multiple locations the table is sortable and searchable
 #' (one row per location, all shown at once); for a single location a single
@@ -45,6 +45,7 @@ section_realtime_traditional_metrics <- function(traditional.data,
 #------------------------------------------------------------------------------#
 
   if(is.null(eval_config)) eval_config <- create_evaluation_config()
+  availability_note <- wis_scoring_note(traditional.data)
 
   ###########################
   # Outcome display label   #
@@ -460,7 +461,7 @@ section_realtime_traditional_metrics <- function(traditional.data,
 # Detailed Methods accordion ---------------------------------------------------
 #------------------------------------------------------------------------------#
 
-  methods_html <- htmltools::HTML(paste0('
+  methods_html <- htmltools::HTML(paste0(availability_note, '
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 
@@ -481,7 +482,8 @@ section_realtime_traditional_metrics <- function(traditional.data,
 
     <p style="margin:0 0 0.5rem 0;"><strong>Average Absolute Error of the Median (MAE).</strong>
       The mean absolute difference between each observed value and the
-      forecast median. Lower is better.</p>
+      forecast median. This is a secondary point-forecast measure in this report.
+      Lower is better.</p>
     <div id="rt-trad-katex-mae" style="margin:0.25rem 0 1rem 0;"></div>
 
     <p style="margin:0 0 0.5rem 0;"><strong>Average Interval Coverage.</strong>
@@ -527,7 +529,7 @@ section_realtime_traditional_metrics <- function(traditional.data,
   <p style="font-size:14px;line-height:1.6;color:#444;margin:0 0 1rem 0;">
     Traditional scoring rules for the ', outcome, ' forecasts over the
     real-time operational forecasts: the weighted interval score (WIS),
-    median absolute error (MAE), and 50% / 95% interval coverage.
+    mean absolute error of the median (MAE), and 50% / 95% interval coverage.
   </p>'))
 
 #------------------------------------------------------------------------------#

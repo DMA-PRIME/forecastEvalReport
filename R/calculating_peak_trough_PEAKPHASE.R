@@ -556,7 +556,7 @@ calculating_peak_trough_PEAKPHASE <- function(data.for.evaluation,
         predictedPeakMagnitudeOff = predictedPeakValue - observedPeakValue,
 
         ##########################################
-        # Step 3: Percent Accuracy for Intensity #
+        # Step 3: Similarity Index for Intensity #
         ##########################################
         predictedPeakAccuracy = ifelse(
           pmax(predictedPeakValue, observedPeakValue) == 0, NA_real_,
@@ -573,7 +573,7 @@ calculating_peak_trough_PEAKPHASE <- function(data.for.evaluation,
         peakWeekMagnitudeOff = peakWeekForecastValue - observedPeakValue,
 
         #######################################
-        # Step 6: Percent Accuracy for Step 5 #
+        # Step 6: Similarity Index for Step 5 #
         #######################################
         peakWeekAccuracy = ifelse(
           is.na(peakWeekForecastValue) | pmax(peakWeekForecastValue, observedPeakValue) == 0, NA_real_,
@@ -587,7 +587,7 @@ calculating_peak_trough_PEAKPHASE <- function(data.for.evaluation,
         sameDayMagnitudeOff = predictedPeakValue - observedAtPredictedPeak,
 
         #######################################
-        # Step 8: Percent Accuracy for Step 7 #
+        # Step 8: Similarity Index for Step 7 #
         #######################################
         sameDayAccuracy = ifelse(
           is.na(observedAtPredictedPeak) | pmax(predictedPeakValue, observedAtPredictedPeak) == 0, NA_real_,

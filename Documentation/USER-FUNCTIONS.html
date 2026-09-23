@@ -1,0 +1,517 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>forecastEvalReport user functions</title>
+<style>
+body{font:16px/1.55 system-ui,sans-serif;color:#172330;background:#f5f7fa;margin:0}main{max-width:1250px;margin:auto;padding:32px}h1{font-size:32px}h2{font-size:23px;margin-top:0}p{max-width:1000px}code,pre{font:13px/1.5 Consolas,monospace}code{overflow-wrap:anywhere}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f6f8;padding:16px;border-radius:8px}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;background:white}th,td{text-align:left;vertical-align:top;padding:12px;border-bottom:1px solid #dbe2ea}th{background:#eaf0f5}td:first-child{min-width:170px}td:nth-child(2){min-width:180px}section{background:#fff;padding:24px;margin:24px 0;border:1px solid #dbe2ea;border-radius:10px;scroll-margin-top:95px}a{color:#175cac}.category{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#53657a}.note{border-left:3px solid #b27b13;padding:10px 14px;background:#fff9ec}.search{position:sticky;top:0;background:#f5f7fa;padding:12px 0;z-index:1}input{box-sizing:border-box;width:100%;padding:13px;font:inherit;border:1px solid #9aabbc;border-radius:7px}summary{cursor:pointer;font-weight:600;padding-top:14px}.muted{color:#53657a}#count{font-size:13px;margin:4px 0}.hidden{display:none}@media print{.search{display:none}body{background:white}main{padding:0}section{break-inside:auto}pre{font-size:10px}th{background:#eee}a{color:inherit;text-decoration:none}}
+</style><main><h1>forecastEvalReport<br>User functions &amp; arguments</h1>
+<p>Reference for the locally corrected methods-corrections branch, commit 0e8bae333d27ca2c2660480e421e82261acc9916 (23 September 2026).</p>
+<p>Covers every public function/operator exported by this build: 23 functions plus the %&gt;% pipe. Two additional documented but unexported helpers are listed separately. Internal implementation helpers and datasets are outside this user-function reference.</p>
+<p>Names, argument order, and defaults were extracted from the R source and checked against NAMESPACE. Descriptions explain what the current implementation does. “Required” means you must supply a value; NULL usually means automatic/default behavior or no override, as explained for that argument. TRUE/FALSE are on/off switches. The L suffix in 1L or 5L marks an R integer. For choice vectors such as c(&quot;forecast&quot;, &quot;consistency&quot;), pass one value; the first is the default.</p>
+<p>Load the package with library(forecastEvalReport), then call the exported functions below. An options file defines report_options, which holds model paths and report metadata; eval_config instead controls evaluation rules. This table covers function arguments, not every field inside report_options.</p>
+<div class="search"><label for="search">Find a function or argument</label><input id="search" type="search" placeholder="Try: trend, save_json, population, plot"><p id="count" aria-live="polite"></p></div>
+<h2>All public functions</h2><div class="table-wrap"><table><thead><tr><th>Function</th><th>Arguments</th><th>In plain language</th></tr></thead><tbody>
+<tr class="overview"><td><a href="#create_options_template"><code>create_options_template</code></a></td><td><code>force</code></td><td>Create an editable R file containing the report settings and input-file paths.</td></tr>
+<tr class="overview"><td><a href="#build_crosswalk_from_options"><code>build_crosswalk_from_options</code></a></td><td><code>options_file, force</code></td><td>Create the starter CSV where you describe your data sources, outcomes, and variables.</td></tr>
+<tr class="overview"><td><a href="#build_variables_crosswalk"><code>build_variables_crosswalk</code></a></td><td><code>config, implementation_model, evaluation_model, force</code></td><td>Create the same starter crosswalk from already prepared configuration and model data.</td></tr>
+<tr class="overview"><td><a href="#create_evaluation_config"><code>create_evaluation_config</code></a></td><td><code>non_transmission_months, season_start_day_month, peak_window, stable_threshold, pct_error_cushion, timing_tol_steps, mag_tol, trend_count_threshold, trend_calibration_data, trend_thresholds</code></td><td>Choose the rules used to score forecasts and classify peaks, bias, and trends.</td></tr>
+<tr class="overview"><td><a href="#create_plot_styles"><code>create_plot_styles</code></a></td><td><code>colors, pi_intervals, horizon_styles, target_data, current_projections, historical_estimates, phase_colors, plot_width, plot_height, default_view_weeks, rangeslider_bgcolor, eval_legend_title, right_axis</code></td><td>Choose plot colors, line styles, uncertainty bands, sizes, and labels.</td></tr>
+<tr class="overview"><td><a href="#generate_report"><code>generate_report</code></a></td><td><code>options_file, output_dir, output_file, quiet, plot_styles, eval_config, plot_export, split_by_location, split_filename, location_crosswalk, population_crosswalk</code></td><td>Build the HTML forecast evaluation report from a completed options file.</td></tr>
+<tr class="overview"><td><a href="#export_testing_evaluation"><code>export_testing_evaluation</code></a></td><td><code>options_file, output_dir, ai_form, save_results, ai_row_detail, eval_config, file_prefix, quiet, return_context, save_json, population_crosswalk</code></td><td>Score forecasts from the testing period and optionally save AI-ready Markdown, JSON, and CSV.</td></tr>
+<tr class="overview"><td><a href="#export_realtime_evaluation"><code>export_realtime_evaluation</code></a></td><td><code>options_file, output_dir, ai_form, save_results, ai_row_detail, eval_config, file_prefix, quiet, return_context, save_json, archive_current, population_crosswalk</code></td><td>Score archived operational forecasts when observed truth is available, and optionally save Markdown, JSON, and CSV.</td></tr>
+<tr class="overview"><td><a href="#calibrate_trend_thresholds"><code>calibrate_trend_thresholds</code></a></td><td><code>data, cutoff, population, round_digits</code></td><td>Calculate reusable trend cutoffs from historical observations before a chosen date.</td></tr>
+<tr class="overview"><td><a href="#trendcallcalculation"><code>trendCallCalculation</code></a></td><td><code>data.for.evaluation, population, population_location_col, population_value_col, rate_multiplier, stable_threshold, week_days, calibration_data, thresholds</code></td><td>Label weekly observed and forecast changes as decreasing, stable, or increasing, using frozen historical cutoffs.</td></tr>
+<tr class="overview"><td><a href="#read_testing_evaluations"><code>read_testing_evaluations</code></a></td><td><code>files, quiet</code></td><td>Read exported evaluation CSVs and combine them into one long table.</td></tr>
+<tr class="overview"><td><a href="#build_evaluation_table"><code>build_evaluation_table</code></a></td><td><code>x, family, scope, metric, columns, output_file, quiet</code></td><td>Turn long evaluation results into a table with a column for each model or input file.</td></tr>
+<tr class="overview"><td><a href="#save_forecast_plot"><code>save_forecast_plot</code></a></td><td><code>options_file, file, format, plot, location, width, height, scale, delay, n_forecasts, forecast_every, end_cushion, font_size, tick_size, forecast_size, forecast_color, observed_size, observed_color, aux_size, aux_color, title_gap, view_start, view_end, legend, overwrite, plot_styles, eval_config, quiet</code></td><td>Save the forecast plot, or the forecast-consistency plot, as an interactive HTML file or static image.</td></tr>
+<tr class="overview"><td><a href="#save_consistency_plot"><code>save_consistency_plot</code></a></td><td><code>options_file, ...</code></td><td>Save the plot showing how forecasts changed between issue dates.</td></tr>
+<tr class="overview"><td><a href="#extract_implementation_data"><code>extract_implementation_data</code></a></td><td><code>implementation_model, config, save_data</code></td><td>Pull dates, locations, outcome names, and forecast-period information from validated operational forecasts.</td></tr>
+<tr class="overview"><td><a href="#extract_evaluation_data"><code>extract_evaluation_data</code></a></td><td><code>evaluation_model, config, impl_meta</code></td><td>Split validated evaluation data into training, validation, and testing subsets and collect their metadata.</td></tr>
+<tr class="overview"><td><a href="#validate_covidhub_model"><code>validate_covidhub_model</code></a></td><td><code>file, verbose</code></td><td>Check a COVIDHub forecast CSV against the format rules implemented in this package.</td></tr>
+<tr class="overview"><td><a href="#validate_flusight_model"><code>validate_flusight_model</code></a></td><td><code>file, verbose</code></td><td>Check a FluSight forecast CSV against the format rules implemented in this package.</td></tr>
+<tr class="overview"><td><a href="#validate_rsvhub_model"><code>validate_rsvhub_model</code></a></td><td><code>file, verbose</code></td><td>Check an RSVHub forecast CSV against the format rules implemented in this package.</td></tr>
+<tr class="overview"><td><a href="#validate_metrocast_model"><code>validate_metrocast_model</code></a></td><td><code>file, verbose</code></td><td>Check a Flu MetroCast forecast CSV against the format rules implemented in this package.</td></tr>
+<tr class="overview"><td><a href="#validate_general_model"><code>validate_general_model</code></a></td><td><code>file, verbose, state_context</code></td><td>Check an operational forecast CSV in the package’s general format, including its geography fields.</td></tr>
+<tr class="overview"><td><a href="#validate_eval_model"><code>validate_eval_model</code></a></td><td><code>file, verbose, state_context</code></td><td>Check a historical evaluation forecast CSV in the package’s evaluation format.</td></tr>
+<tr class="overview"><td><a href="#validate_variables_crosswalk"><code>validate_variables_crosswalk</code></a></td><td><code>x, verbose</code></td><td>Check that the crosswalk describing your variables and data sources is complete and correctly formatted.</td></tr>
+<tr class="overview"><td><a href="#pipe"><code>%&gt;%</code></a></td><td><code>lhs, rhs</code></td><td>Pass a value into the next function call so several steps can be chained together.</td></tr>
+</tbody></table></div>
+<section class="function" id="create_options_template"><div class="category">Setup</div><h2><code>create_options_template</code></h2><p>Create an editable R file containing the report settings and input-file paths.</p><p><strong>Result / files:</strong> Writes report_options_template.R in the working folder and returns its path.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>force</code></td><td><code>FALSE</code></td><td>Allow an existing template or crosswalk file to be overwritten. FALSE stops if it already exists.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>create_options_template(
+  force = FALSE
+)</pre></details></section>
+<section class="function" id="build_crosswalk_from_options"><div class="category">Setup</div><h2><code>build_crosswalk_from_options</code></h2><p>Create the starter CSV where you describe your data sources, outcomes, and variables.</p><p><strong>Result / files:</strong> Writes a variables crosswalk CSV and returns its path. Complete it before generating a report.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>options_file</code></td><td><code>Required</code></td><td>Path to your completed R options file. The variables.crosswalk.file setting can still be blank at this stage.</td></tr>
+<tr><td><code>force</code></td><td><code>FALSE</code></td><td>Allow an existing template or crosswalk file to be overwritten. FALSE stops if it already exists.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>build_crosswalk_from_options(
+  options_file,
+  force = FALSE
+)</pre></details></section>
+<section class="function" id="build_variables_crosswalk"><div class="category">Advanced setup</div><h2><code>build_variables_crosswalk</code></h2><p>Create the same starter crosswalk from already prepared configuration and model data.</p><p><strong>Result / files:</strong> Writes the starter CSV in the working folder and returns its path.</p>
+<p class="note">Advanced helper: prefer build_crosswalk_from_options() when starting from a report options file.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>config</code></td><td><code>Required</code></td><td>The validated report configuration used internally by the preparation pipeline. This is different from eval_config; normal users can use the options-file entry points instead.</td></tr>
+<tr><td><code>implementation_model</code></td><td><code>NULL</code></td><td>An already validated operational forecast data frame. NULL, where allowed, means no implementation model is supplied.</td></tr>
+<tr><td><code>evaluation_model</code></td><td><code>NULL</code></td><td>An already validated historical evaluation data frame. NULL, where allowed, means no evaluation model is supplied.</td></tr>
+<tr><td><code>force</code></td><td><code>FALSE</code></td><td>Allow an existing template or crosswalk file to be overwritten. FALSE stops if it already exists.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>build_variables_crosswalk(
+  config,
+  implementation_model = NULL,
+  evaluation_model = NULL,
+  force = FALSE
+)</pre></details></section>
+<section class="function" id="create_evaluation_config"><div class="category">Evaluation settings</div><h2><code>create_evaluation_config</code></h2><p>Choose the rules used to score forecasts and classify peaks, bias, and trends.</p><p><strong>Result / files:</strong> Returns a settings list to pass as eval_config.</p>
+<p class="note">Percent Accuracy (Similarity Index) is the primary reported metric; MAE is a secondary point-forecast measure. Percent Accuracy describes forecast–observation similarity and is not the percentage of forecasts that were correct. Peak summaries use the observed peak within the testing period. The two stable_threshold arguments in this reference have different meanings; use trend_count_threshold here to change the trend override.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>non_transmission_months</code></td><td><code>c(5, 6, 7)</code></td><td>Calendar months excluded from testing-period aggregate scores: 5, 6, 7 means May–July. Plots retain these rows. Real-time evaluation includes all realized weeks.</td></tr>
+<tr><td><code>season_start_day_month</code></td><td><code>&quot;August 01&quot;</code></td><td>Season boundary used for testing peak summaries. Although supplied as &quot;Month DD&quot;, only the month is used. This does not change the trend-calibration season.</td></tr>
+<tr><td><code>peak_window</code></td><td><code>20</code></td><td>Percentage below the observed testing-season maximum allowed inside the contiguous peak phase. 20 means at least 80% of that maximum; it is not a number of weeks.</td></tr>
+<tr><td><code>stable_threshold</code></td><td><code>10</code></td><td>Minimum observed count for the stable-count percentage-bias summaries and bias-category eligibility. This is an observed-count floor, not a trend-change cutoff.</td></tr>
+<tr><td><code>pct_error_cushion</code></td><td><code>20</code></td><td>Percentage-error band labeled Within Range. 20 means errors from −20% through +20%.</td></tr>
+<tr><td><code>timing_tol_steps</code></td><td><code>0L</code></td><td>Allowed peak-timing miss, in time steps, still labeled On Time. Zero requires an exact timing match.</td></tr>
+<tr><td><code>mag_tol</code></td><td><code>0.8</code></td><td>Minimum smaller/larger peak-magnitude ratio labeled On Target. 0.8 means the smaller magnitude is at least 80% of the larger.</td></tr>
+<tr><td><code>trend_count_threshold</code></td><td><code>10</code></td><td>Absolute weekly count changes strictly below this value are labeled stable in the trend calculation. Separate from the bias floor stable_threshold.</td></tr>
+<tr><td><code>trend_calibration_data</code></td><td><code>NULL</code></td><td>Optional historical truth data frame: location, date or target_end_date, and value or Observed; optionally population. NULL uses available selected truth before evaluation. Do not also supply trend_thresholds.</td></tr>
+<tr><td><code>trend_thresholds</code></td><td><code>NULL</code></td><td>Optional saved table returned by calibrate_trend_thresholds(). Its calibration dates must precede evaluated issue/target dates. Do not also supply trend_calibration_data.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>create_evaluation_config(
+  non_transmission_months = c(5, 6, 7),
+  season_start_day_month = &quot;August 01&quot;,
+  peak_window = 20,
+  stable_threshold = 10,
+  pct_error_cushion = 20,
+  timing_tol_steps = 0L,
+  mag_tol = 0.8,
+  trend_count_threshold = 10,
+  trend_calibration_data = NULL,
+  trend_thresholds = NULL
+)</pre></details></section>
+<section class="function" id="create_plot_styles"><div class="category">Plot settings</div><h2><code>create_plot_styles</code></h2><p>Choose plot colors, line styles, uncertainty bands, sizes, and labels.</p><p><strong>Result / files:</strong> Returns a settings list to pass as plot_styles.</p>
+<p class="note">List-valued defaults are summarized in the table for readability. The exact call signature below contains their full values. Actual code defaults are used here, including gray colors and a 1000 × 800 plot size.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>colors</code></td><td><code>c(&quot;#898989&quot;)</code></td><td>Color palette for evaluation-model lines. The current code defaults to gray (#898989).</td></tr>
+<tr><td><code>pi_intervals</code></td><td><code>Built-in list; see exact signature below</code></td><td>Named list describing prediction bands: lower/upper quantiles, fill, hover color, label, and legend swatch class. Defaults define 50% and 95% intervals.</td></tr>
+<tr><td><code>horizon_styles</code></td><td><code>Built-in list; see exact signature below</code></td><td>Named list of color, dash pattern, and line width for each forecast horizon; defaults cover horizons 1–4.</td></tr>
+<tr><td><code>target_data</code></td><td><code>list(color = &quot;#000000&quot;, dash = &quot;solid&quot;, width = 2, marker_size = 4)</code></td><td>Color, dash pattern, line width, and marker size for observed truth.</td></tr>
+<tr><td><code>current_projections</code></td><td><code>list(color = &quot;#648FFF&quot;, dash = &quot;solid&quot;, width = 2, marker_size = 4)</code></td><td>Color, dash pattern, line width, and marker size for current forecasts.</td></tr>
+<tr><td><code>historical_estimates</code></td><td><code>list(color = &quot;#648FFF&quot;, dash = &quot;dot&quot;, width = 1.5, marker_size = 3)</code></td><td>Color, dash pattern, line width, and marker size for historical estimates.</td></tr>
+<tr><td><code>phase_colors</code></td><td><code>list(`Training Period` = &quot;#345FAF&quot;, `Validation Period` = &quot;#E4572E&quot;, `Testing Period` = &quot;#2E8B57&quot;)</code></td><td>Colors used to distinguish training, validation, and testing periods.</td></tr>
+<tr><td><code>plot_width</code></td><td><code>1000</code></td><td>Plot width in pixels.</td></tr>
+<tr><td><code>plot_height</code></td><td><code>800</code></td><td>Plot height in pixels.</td></tr>
+<tr><td><code>default_view_weeks</code></td><td><code>52L</code></td><td>Number of weeks shown in the initial plot view.</td></tr>
+<tr><td><code>rangeslider_bgcolor</code></td><td><code>&quot;#ffffff&quot;</code></td><td>Background color of the date-range slider.</td></tr>
+<tr><td><code>eval_legend_title</code></td><td><code>&quot;Evaluation Model&quot;</code></td><td>Heading used for the evaluation-model entries in the legend.</td></tr>
+<tr><td><code>right_axis</code></td><td><code>Built-in list; see exact signature below</code></td><td>Named settings for the auxiliary-variable axis: titles, outcomes treated as percentages, title font size/color, and title spacing.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>create_plot_styles(
+  colors = c(&quot;#898989&quot;),
+  pi_intervals = list(`50%` = list(lower = 0.25, upper = 0.75, fill = &quot;rgba(100,143,255,0.15)&quot;, hover_color = &quot;#648FFF&quot;, label = &quot;50% PI&quot;,      swatch_class = &quot;pi-50&quot;), `95%` = list(lower = 0.025, upper = 0.975, fill = &quot;rgba(100,143,255,0.08)&quot;, hover_color = &quot;#648FFF&quot;,      label = &quot;95% PI&quot;, swatch_class = &quot;pi-95&quot;)),
+  horizon_styles = list(`1` = list(color = &quot;#648FFF&quot;, dash = &quot;solid&quot;, width = 1.5), `2` = list(color = &quot;#FE6100&quot;, dash = &quot;dash&quot;, width = 1.5),      `3` = list(color = &quot;#DC267F&quot;, dash = &quot;dot&quot;, width = 1.5), `4` = list(color = &quot;#785EF0&quot;, dash = &quot;dashdot&quot;, width = 1.5)),
+  target_data = list(color = &quot;#000000&quot;, dash = &quot;solid&quot;, width = 2, marker_size = 4),
+  current_projections = list(color = &quot;#648FFF&quot;, dash = &quot;solid&quot;, width = 2, marker_size = 4),
+  historical_estimates = list(color = &quot;#648FFF&quot;, dash = &quot;dot&quot;, width = 1.5, marker_size = 3),
+  phase_colors = list(`Training Period` = &quot;#345FAF&quot;, `Validation Period` = &quot;#E4572E&quot;, `Testing Period` = &quot;#2E8B57&quot;),
+  plot_width = 1000,
+  plot_height = 800,
+  default_view_weeks = 52L,
+  rangeslider_bgcolor = &quot;#ffffff&quot;,
+  eval_legend_title = &quot;Evaluation Model&quot;,
+  right_axis = list(title_percent = &quot;Auxiliary Variables&quot;, title_default = &quot;Weekly Tests&quot;, percent_outcomes = c(&quot;Weekly % Flu-Attributable ED-Visits&quot;,      &quot;Weekly % RSV-Attributable ED-Visits&quot;, &quot;Weekly % COVID-19-Attributable ED-Visits&quot;), title_font_size = 16, title_font_color = &quot;#111&quot;,      title_standoff = 25)
+)</pre></details></section>
+<section class="function" id="generate_report"><div class="category">Reports</div><h2><code>generate_report</code></h2><p>Build the HTML forecast evaluation report from a completed options file.</p><p><strong>Result / files:</strong> Writes HTML and returns the saved path(s); the normal implementation pathway also archives forecasts.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>options_file</code></td><td><code>Required</code></td><td>Path to the completed R options file, defining report_options and the input paths. Report/export calls need a completed variables crosswalk.</td></tr>
+<tr><td><code>output_dir</code></td><td><code>getwd()</code></td><td>Folder where the requested output files are saved. getwd() means the current R working folder.</td></tr>
+<tr><td><code>output_file</code></td><td><code>NULL</code></td><td>Optional report filename ending in .html. NULL builds it from the report settings; split reports append each location name.</td></tr>
+<tr><td><code>quiet</code></td><td><code>TRUE</code></td><td>Suppress routine progress or rendering messages. Set FALSE to see more detail; this does not disable input checks.</td></tr>
+<tr><td><code>plot_styles</code></td><td><code>NULL</code></td><td>Appearance settings returned by create_plot_styles(). NULL uses the package defaults.</td></tr>
+<tr><td><code>eval_config</code></td><td><code>NULL</code></td><td>Settings returned by create_evaluation_config(). NULL uses the package defaults.</td></tr>
+<tr><td><code>plot_export</code></td><td><code>NULL</code></td><td>Advanced list requesting only a plot export. Prefer save_forecast_plot(). Ignored with a warning when split_by_location=TRUE.</td></tr>
+<tr><td><code>split_by_location</code></td><td><code>FALSE</code></td><td>Create one self-contained HTML report per location when TRUE; otherwise use one report with a location selector.</td></tr>
+<tr><td><code>split_filename</code></td><td><code>NULL</code></td><td>Optional per-location path template ending in .html, such as &quot;{location}/report.html&quot;. Use {location} for a filename-safe label or {location_name} for the raw location value. Used only for split reports.</td></tr>
+<tr><td><code>location_crosswalk</code></td><td><code>NULL</code></td><td>Optional CSV path or data frame with location and clean_name, overriding displayed location names. NULL uses built-in lookups.</td></tr>
+<tr><td><code>population_crosswalk</code></td><td><code>NULL</code></td><td>Optional CSV path, location/population data frame, or named numeric vector. Supplies/overrides population denominators for trend calculations; NULL uses built-in lookups.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>generate_report(
+  options_file,
+  output_dir = getwd(),
+  output_file = NULL,
+  quiet = TRUE,
+  plot_styles = NULL,
+  eval_config = NULL,
+  plot_export = NULL,
+  split_by_location = FALSE,
+  split_filename = NULL,
+  location_crosswalk = NULL,
+  population_crosswalk = NULL
+)</pre></details></section>
+<section class="function" id="export_testing_evaluation"><div class="category">Evaluation exports</div><h2><code>export_testing_evaluation</code></h2><p>Score forecasts from the testing period and optionally save AI-ready Markdown, JSON, and CSV.</p><p><strong>Result / files:</strong> Returns testing_eval, results, payload, paths, and optional context. No HTML rendering or forecast archiving.</p>
+<p class="note">Requires an evaluation model; an implementation model is optional. All three save flags default to FALSE: the call still computes and returns results. AI Markdown contains the summary; CSV/JSON include individual forecast results. A supplied training truth series is used as the selected truth source.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>options_file</code></td><td><code>Required</code></td><td>Path to the completed R options file, defining report_options and the input paths. Report/export calls need a completed variables crosswalk.</td></tr>
+<tr><td><code>output_dir</code></td><td><code>getwd()</code></td><td>Folder where the requested output files are saved. getwd() means the current R working folder.</td></tr>
+<tr><td><code>ai_form</code></td><td><code>FALSE</code></td><td>Write an AI-ready Markdown summary when TRUE. It prepares text for an AI to read; it does not call an AI service.</td></tr>
+<tr><td><code>save_results</code></td><td><code>FALSE</code></td><td>Write the complete long-format results CSV, including individual forecast results, when TRUE.</td></tr>
+<tr><td><code>ai_row_detail</code></td><td><code>FALSE</code></td><td>Include individual forecast tables in the Markdown summary. This has no effect on the full row detail included in CSV or JSON.</td></tr>
+<tr><td><code>eval_config</code></td><td><code>NULL</code></td><td>Settings returned by create_evaluation_config(). NULL uses the package defaults.</td></tr>
+<tr><td><code>file_prefix</code></td><td><code>NULL</code></td><td>Filename stem for exported files, without folder separators. NULL builds a name from the report settings.</td></tr>
+<tr><td><code>quiet</code></td><td><code>TRUE</code></td><td>Suppress routine progress or rendering messages. Set FALSE to see more detail; this does not disable input checks.</td></tr>
+<tr><td><code>return_context</code></td><td><code>FALSE</code></td><td>Include the prepared inputs, configuration, metadata, crosswalk, and master data in the returned R object for inspection/reuse.</td></tr>
+<tr><td><code>save_json</code></td><td><code>FALSE</code></td><td>Write structured JSON containing metadata, settings, results, forecast/truth pairs, metric definitions, WIS diagnostics, and trend calibration when TRUE.</td></tr>
+<tr><td><code>population_crosswalk</code></td><td><code>NULL</code></td><td>Optional named numeric population vector or location/population data frame for trend labels. Unlike generate_report(), this argument is not documented to accept a CSV path.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>export_testing_evaluation(
+  options_file,
+  output_dir = getwd(),
+  ai_form = FALSE,
+  save_results = FALSE,
+  ai_row_detail = FALSE,
+  eval_config = NULL,
+  file_prefix = NULL,
+  quiet = TRUE,
+  return_context = FALSE,
+  save_json = FALSE,
+  population_crosswalk = NULL
+)</pre></details></section>
+<section class="function" id="export_realtime_evaluation"><div class="category">Evaluation exports</div><h2><code>export_realtime_evaluation</code></h2><p>Score archived operational forecasts when observed truth is available, and optionally save Markdown, JSON, and CSV.</p><p><strong>Result / files:</strong> Returns realtime_eval, results, payload, paths, and optional context. Archives the current forecast by default.</p>
+<p class="note">Requires an implementation model. Scores all realized weeks, without testing-only off-season exclusions or peak metrics. If no observed targets are available, output records that status rather than reporting zero error. With save flags FALSE, no evaluation export is saved, but archive_current=TRUE still archives the current forecast.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>options_file</code></td><td><code>Required</code></td><td>Path to a completed R options file with an implementation model and completed variables crosswalk. An evaluation model is optional.</td></tr>
+<tr><td><code>output_dir</code></td><td><code>getwd()</code></td><td>Folder where the requested output files are saved. getwd() means the current R working folder.</td></tr>
+<tr><td><code>ai_form</code></td><td><code>FALSE</code></td><td>Write an AI-ready Markdown summary when TRUE. It prepares text for an AI to read; it does not call an AI service.</td></tr>
+<tr><td><code>save_results</code></td><td><code>FALSE</code></td><td>Write the complete long-format results CSV, including individual forecast results, when TRUE.</td></tr>
+<tr><td><code>ai_row_detail</code></td><td><code>FALSE</code></td><td>Include individual forecast tables in the Markdown summary. This has no effect on the full row detail included in CSV or JSON.</td></tr>
+<tr><td><code>eval_config</code></td><td><code>NULL</code></td><td>Settings returned by create_evaluation_config(). NULL uses the package defaults.</td></tr>
+<tr><td><code>file_prefix</code></td><td><code>NULL</code></td><td>Filename stem for exported files, without folder separators. NULL builds a name from the report settings.</td></tr>
+<tr><td><code>quiet</code></td><td><code>TRUE</code></td><td>Suppress routine progress or rendering messages. Set FALSE to see more detail; this does not disable input checks.</td></tr>
+<tr><td><code>return_context</code></td><td><code>FALSE</code></td><td>Include the prepared inputs, configuration, metadata, crosswalk, and master data in the returned R object for inspection/reuse.</td></tr>
+<tr><td><code>save_json</code></td><td><code>FALSE</code></td><td>Write structured JSON containing metadata, settings, results, forecast/truth pairs, metric definitions, WIS diagnostics, and trend calibration when TRUE.</td></tr>
+<tr><td><code>archive_current</code></td><td><code>TRUE</code></td><td>Save the current implementation forecast into the archive before scoring. FALSE scores the existing archive without adding the current snapshot.</td></tr>
+<tr><td><code>population_crosswalk</code></td><td><code>NULL</code></td><td>Optional named numeric population vector or location/population data frame for trend labels; pass data, not a CSV pathname.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>export_realtime_evaluation(
+  options_file,
+  output_dir = getwd(),
+  ai_form = FALSE,
+  save_results = FALSE,
+  ai_row_detail = FALSE,
+  eval_config = NULL,
+  file_prefix = NULL,
+  quiet = TRUE,
+  return_context = FALSE,
+  save_json = FALSE,
+  archive_current = TRUE,
+  population_crosswalk = NULL
+)</pre></details></section>
+<section class="function" id="calibrate_trend_thresholds"><div class="category">Trend evaluation</div><h2><code>calibrate_trend_thresholds</code></h2><p>Calculate reusable trend cutoffs from historical observations before a chosen date.</p><p><strong>Result / files:</strong> Returns a location-level threshold table with calibration dates, sample sizes, and status. Does not save a file by itself.</p>
+<p class="note">Calibration uses weekly changes after seasonal eligibility begins at the third consecutive nonzero week, in seasons running epidemiological week 40 through week 39. It calculates the 5th, 25th, 75th, and 95th percentiles separately by location. Insufficient or unsuitable history returns missing thresholds and a status explanation. Save the returned table with standard R saveRDS() and reload it with readRDS() to reuse frozen thresholds.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>data</code></td><td><code>Required</code></td><td>Historical weekly counts in a data frame with location, date or target_end_date, and value or Observed. An optional population column supplies denominators for each historical row.</td></tr>
+<tr><td><code>cutoff</code></td><td><code>Required</code></td><td>Exclusive calibration end: one Date or a data frame with location and cutoff. Observations on or after this date are excluded.</td></tr>
+<tr><td><code>population</code></td><td><code>NULL</code></td><td>Population lookup used if data has no population column: named numeric vector, location/population data frame, or one positive number for one location. NULL uses built-in lookup values.</td></tr>
+<tr><td><code>round_digits</code></td><td><code>NULL</code></td><td>NULL (default) keeps full numeric precision. An explicit integer from 0 to 10 rounds the stored cutoffs for legacy reproducibility and changes classification, not just display. Recalibrate older rounded tables to recover precision. Rates are per 100,000 people.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>calibrate_trend_thresholds(
+  data,
+  cutoff,
+  population = NULL,
+  round_digits = NULL
+)</pre></details></section>
+<section class="function" id="trendcallcalculation"><div class="category">Trend evaluation</div><h2><code>trendCallCalculation</code></h2><p>Label weekly observed and forecast changes as decreasing, stable, or increasing, using frozen historical cutoffs.</p><p><strong>Result / files:</strong> Returns scored rows in df and calibration tables in location_percentiles/location_thresholds; empty input returns empty df and location_percentiles.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>data.for.evaluation</code></td><td><code>Required</code></td><td>Prepared evaluation data containing location, target_end_date, horizon, value (forecast), and Observed (truth). A usual source is export_testing_evaluation(...)$testing_eval$data.</td></tr>
+<tr><td><code>population</code></td><td><code>NULL</code></td><td>Population denominator: named numeric vector, a data frame, or one positive number for one location. NULL uses the built-in lookup; custom values override it.</td></tr>
+<tr><td><code>population_location_col</code></td><td><code>&quot;location&quot;</code></td><td>Name of the location-key column if population is a data frame.</td></tr>
+<tr><td><code>population_value_col</code></td><td><code>&quot;population&quot;</code></td><td>Name of the population-count column if population is a data frame.</td></tr>
+<tr><td><code>rate_multiplier</code></td><td><code>1e+05</code></td><td>Population rate scale. 100000 expresses counts per 100,000 people; saved calibration cutoffs retain their per-100,000 metadata.</td></tr>
+<tr><td><code>stable_threshold</code></td><td><code>10</code></td><td>Force a stable trend when the absolute weekly raw-count change is strictly below this number. NULL disables this override. Different meaning from stable_threshold in create_evaluation_config().</td></tr>
+<tr><td><code>week_days</code></td><td><code>7</code></td><td>Spacing between weekly observations. This implementation requires 7; other values are rejected.</td></tr>
+<tr><td><code>calibration_data</code></td><td><code>attr(data.for.evaluation, &quot;trend_history&quot;)</code></td><td>Historical truth used to estimate cutoffs. By default, read the trend_history attribute attached to the prepared evaluation data. Evaluation outcomes are not used to fit thresholds.</td></tr>
+<tr><td><code>thresholds</code></td><td><code>NULL</code></td><td>Optional previously calibrated table from calibrate_trend_thresholds(); uses the saved cutoffs rather than estimating new ones.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>trendCallCalculation(
+  data.for.evaluation,
+  population = NULL,
+  population_location_col = &quot;location&quot;,
+  population_value_col = &quot;population&quot;,
+  rate_multiplier = 1e+05,
+  stable_threshold = 10,
+  week_days = 7,
+  calibration_data = attr(data.for.evaluation, &quot;trend_history&quot;),
+  thresholds = NULL
+)</pre></details></section>
+<section class="function" id="read_testing_evaluations"><div class="category">Result tables</div><h2><code>read_testing_evaluations</code></h2><p>Read exported evaluation CSVs and combine them into one long table.</p><p><strong>Result / files:</strong> Returns a data frame with source_file identifying where each row came from.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>files</code></td><td><code>Required</code></td><td>CSV file paths, or one directory containing the exported results. A directory causes every .csv file in it to be read, so keep unrelated CSVs elsewhere.</td></tr>
+<tr><td><code>quiet</code></td><td><code>TRUE</code></td><td>Suppress routine progress or rendering messages. Set FALSE to see more detail; this does not disable input checks.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>read_testing_evaluations(
+  files,
+  quiet = TRUE
+)</pre></details></section>
+<section class="function" id="build_evaluation_table"><div class="category">Result tables</div><h2><code>build_evaluation_table</code></h2><p>Turn long evaluation results into a table with a column for each model or input file.</p><p><strong>Result / files:</strong> Returns long (filtered input) and table (wide display table); optionally writes a CSV.</p>
+<p class="note">This reshapes existing scores; it does not recompute or reconcile evaluation periods. Keep testing and real-time results separate unless deliberately filtered. Duplicate row/column keys produce a warning and the first value is retained.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>x</code></td><td><code>Required</code></td><td>Exported results CSV paths, a directory of them, or an already loaded long-format results data frame.</td></tr>
+<tr><td><code>family</code></td><td><code>NULL</code></td><td>Keep selected metric-family names from the results. NULL keeps all; compatibility names include percentAgreement (Similarity Index), forecastBias, peakPhase, and traditional.</td></tr>
+<tr><td><code>scope</code></td><td><code>NULL</code></td><td>Keep selected values from the scope column, such as overall, horizon, season, or row. NULL keeps all.</td></tr>
+<tr><td><code>metric</code></td><td><code>NULL</code></td><td>Keep selected metric names exactly as they appear in the results. NULL keeps all.</td></tr>
+<tr><td><code>columns</code></td><td><code>&quot;model&quot;</code></td><td>Choose what defines each display column: &quot;model&quot; or &quot;source_file&quot;.</td></tr>
+<tr><td><code>output_file</code></td><td><code>NULL</code></td><td>Optional filename/path for saving the wide table as CSV. NULL returns it in R without saving.</td></tr>
+<tr><td><code>quiet</code></td><td><code>TRUE</code></td><td>Suppress routine progress or rendering messages. Set FALSE to see more detail; this does not disable input checks.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>build_evaluation_table(
+  x,
+  family = NULL,
+  scope = NULL,
+  metric = NULL,
+  columns = &quot;model&quot;,
+  output_file = NULL,
+  quiet = TRUE
+)</pre></details></section>
+<section class="function" id="save_forecast_plot"><div class="category">Plot exports</div><h2><code>save_forecast_plot</code></h2><p>Save the forecast plot, or the forecast-consistency plot, as an interactive HTML file or static image.</p><p><strong>Result / files:</strong> Returns saved file path(s). Static formats require webshot2 and a supported Chrome/Chromium browser; TIFF also uses magick.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>options_file</code></td><td><code>Required</code></td><td>Path to the completed R options file, defining report_options and the input paths. Report/export calls need a completed variables crosswalk.</td></tr>
+<tr><td><code>file</code></td><td><code>NULL</code></td><td>Output file path or folder. NULL uses the working folder and an automatic name. A recognized file extension determines the format when format is omitted.</td></tr>
+<tr><td><code>format</code></td><td><code>c(&quot;html&quot;, &quot;png&quot;, &quot;jpeg&quot;, &quot;jpg&quot;, &quot;pdf&quot;, &quot;tiff&quot;, &quot;tif&quot;)</code></td><td>Choose html, png, jpeg/jpg, pdf, or tiff/tif. Defaults to html unless inferred from the filename.</td></tr>
+<tr><td><code>plot</code></td><td><code>c(&quot;forecast&quot;, &quot;consistency&quot;)</code></td><td>Choose &quot;forecast&quot; for the forecast plot or &quot;consistency&quot; to show forecasts across issue dates. Defaults to forecast.</td></tr>
+<tr><td><code>location</code></td><td><code>NULL</code></td><td>Location display name or its positive alphabetical index. NULL includes all: one selectable HTML page or separate static files.</td></tr>
+<tr><td><code>width</code></td><td><code>NULL</code></td><td>Static capture width in pixels; NULL uses 1200 for static output.</td></tr>
+<tr><td><code>height</code></td><td><code>NULL</code></td><td>Static capture height in pixels; NULL uses 750 for static output.</td></tr>
+<tr><td><code>scale</code></td><td><code>1</code></td><td>Image capture zoom/resolution multiplier. A larger value produces more pixels.</td></tr>
+<tr><td><code>delay</code></td><td><code>NULL</code></td><td>Seconds to wait before capturing the rendered plot. NULL lets the function choose.</td></tr>
+<tr><td><code>n_forecasts</code></td><td><code>5L</code></td><td>Number of recent forecasts displayed for the consistency plot. Used unless forecast_every selects a different spacing.</td></tr>
+<tr><td><code>forecast_every</code></td><td><code>NULL</code></td><td>For consistency plots, select every Nth forecast from the chosen starting window. A positive integer overrides n_forecasts.</td></tr>
+<tr><td><code>end_cushion</code></td><td><code>NULL</code></td><td>For consistency plots with forecast_every, skip this many most-recent forecast dates before selecting the spaced sequence.</td></tr>
+<tr><td><code>font_size</code></td><td><code>NULL</code></td><td>Optional base plot font size.</td></tr>
+<tr><td><code>tick_size</code></td><td><code>NULL</code></td><td>Optional axis tick-label font size for the consistency plot.</td></tr>
+<tr><td><code>forecast_size</code></td><td><code>NULL</code></td><td>Optional forecast median-line width for the consistency plot.</td></tr>
+<tr><td><code>forecast_color</code></td><td><code>NULL</code></td><td>Optional single color for consistency-plot forecast lines/markers. Does not recolor uncertainty bands.</td></tr>
+<tr><td><code>observed_size</code></td><td><code>NULL</code></td><td>Optional observed-truth line width for the consistency plot.</td></tr>
+<tr><td><code>observed_color</code></td><td><code>NULL</code></td><td>Optional observed-truth line/marker color for the consistency plot.</td></tr>
+<tr><td><code>aux_size</code></td><td><code>NULL</code></td><td>Optional auxiliary-variable line width on the consistency plot’s secondary axis.</td></tr>
+<tr><td><code>aux_color</code></td><td><code>NULL</code></td><td>One color, or a recycled palette, for auxiliary-variable lines on the consistency plot.</td></tr>
+<tr><td><code>title_gap</code></td><td><code>NULL</code></td><td>Optional spacing in pixels between axis tick labels and axis titles for the consistency plot.</td></tr>
+<tr><td><code>view_start</code></td><td><code>NULL</code></td><td>Initial visible start date, as a Date or YYYY-MM-DD string. Supply together with view_end; it changes the view, not the underlying data.</td></tr>
+<tr><td><code>view_end</code></td><td><code>NULL</code></td><td>Initial visible end date, as a Date or YYYY-MM-DD string. Supply together with view_start.</td></tr>
+<tr><td><code>legend</code></td><td><code>TRUE</code></td><td>Show a side legend on static exports when TRUE. HTML retains its interactive legend regardless.</td></tr>
+<tr><td><code>overwrite</code></td><td><code>TRUE</code></td><td>Allow replacement of an existing output file when TRUE.</td></tr>
+<tr><td><code>plot_styles</code></td><td><code>NULL</code></td><td>Appearance settings returned by create_plot_styles(). NULL uses the package defaults.</td></tr>
+<tr><td><code>eval_config</code></td><td><code>NULL</code></td><td>Settings returned by create_evaluation_config(). NULL uses the package defaults.</td></tr>
+<tr><td><code>quiet</code></td><td><code>TRUE</code></td><td>Suppress routine progress or rendering messages. Set FALSE to see more detail; this does not disable input checks.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>save_forecast_plot(
+  options_file,
+  file = NULL,
+  format = c(&quot;html&quot;, &quot;png&quot;, &quot;jpeg&quot;, &quot;jpg&quot;, &quot;pdf&quot;, &quot;tiff&quot;, &quot;tif&quot;),
+  plot = c(&quot;forecast&quot;, &quot;consistency&quot;),
+  location = NULL,
+  width = NULL,
+  height = NULL,
+  scale = 1,
+  delay = NULL,
+  n_forecasts = 5L,
+  forecast_every = NULL,
+  end_cushion = NULL,
+  font_size = NULL,
+  tick_size = NULL,
+  forecast_size = NULL,
+  forecast_color = NULL,
+  observed_size = NULL,
+  observed_color = NULL,
+  aux_size = NULL,
+  aux_color = NULL,
+  title_gap = NULL,
+  view_start = NULL,
+  view_end = NULL,
+  legend = TRUE,
+  overwrite = TRUE,
+  plot_styles = NULL,
+  eval_config = NULL,
+  quiet = TRUE
+)</pre></details></section>
+<section class="function" id="save_consistency_plot"><div class="category">Plot exports</div><h2><code>save_consistency_plot</code></h2><p>Save the plot showing how forecasts changed between issue dates.</p><p><strong>Result / files:</strong> Calls save_forecast_plot with plot=&quot;consistency&quot; and returns saved file path(s).</p>
+<p class="note">See save_forecast_plot for the meaning and default of every forwarded argument. The ... argument is optional, not a required value.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>options_file</code></td><td><code>Required</code></td><td>Path to the completed R options file, defining report_options and the input paths. Report/export calls need a completed variables crosswalk.</td></tr>
+<tr><td><code>...</code></td><td><code>Optional extra arguments</code></td><td>Optional arguments passed to save_forecast_plot(), with the same defaults: file, format, location, width, height, scale, delay, n_forecasts, forecast_every, end_cushion, font_size, tick_size, forecast_size, forecast_color, observed_size, observed_color, aux_size, aux_color, title_gap, view_start, view_end, legend, overwrite, plot_styles, eval_config, quiet. Do not supply plot; this wrapper sets it to &quot;consistency&quot;.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>save_consistency_plot(
+  options_file,
+  ...
+)</pre></details></section>
+<section class="function" id="extract_implementation_data"><div class="category">Advanced preparation</div><h2><code>extract_implementation_data</code></h2><p>Pull dates, locations, outcome names, and forecast-period information from validated operational forecasts.</p><p><strong>Result / files:</strong> Returns metadata; writes current projections under Forecasts/ unless save_data=FALSE.</p>
+<p class="note">Advanced helper: the validated report config is produced by the package’s internal preparation pipeline, not by create_evaluation_config(). Most users should call generate_report() or an export function instead.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>implementation_model</code></td><td><code>Required</code></td><td>An already validated operational forecast data frame. NULL, where allowed, means no implementation model is supplied.</td></tr>
+<tr><td><code>config</code></td><td><code>Required</code></td><td>The validated report configuration used internally by the preparation pipeline. This is different from eval_config; normal users can use the options-file entry points instead.</td></tr>
+<tr><td><code>save_data</code></td><td><code>TRUE</code></td><td>Write current forecast rows into Forecasts/ when TRUE; FALSE only returns metadata.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>extract_implementation_data(
+  implementation_model,
+  config,
+  save_data = TRUE
+)</pre></details></section>
+<section class="function" id="extract_evaluation_data"><div class="category">Advanced preparation</div><h2><code>extract_evaluation_data</code></h2><p>Split validated evaluation data into training, validation, and testing subsets and collect their metadata.</p><p><strong>Result / files:</strong> Returns the subsets, date ranges, and other report metadata.</p>
+<p class="note">Advanced helper: config is the validated report configuration, not the metric settings returned by create_evaluation_config().</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>evaluation_model</code></td><td><code>Required</code></td><td>An already validated historical evaluation data frame. NULL, where allowed, means no evaluation model is supplied.</td></tr>
+<tr><td><code>config</code></td><td><code>Required</code></td><td>The validated report configuration used internally by the preparation pipeline. This is different from eval_config; normal users can use the options-file entry points instead.</td></tr>
+<tr><td><code>impl_meta</code></td><td><code>NULL</code></td><td>Metadata returned by extract_implementation_data(). NULL means derive the shared metadata from the evaluation file itself.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>extract_evaluation_data(
+  evaluation_model,
+  config,
+  impl_meta = NULL
+)</pre></details></section>
+<section class="function" id="validate_covidhub_model"><div class="category">Input checks</div><h2><code>validate_covidhub_model</code></h2><p>Check a COVIDHub forecast CSV against the format rules implemented in this package.</p><p><strong>Result / files:</strong> Returns the loaded, validated data frame or stops with input errors.</p>
+<p class="note">Validation checks the input rules implemented in this package; it does not establish that the forecasting method is scientifically correct.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>file</code></td><td><code>Required</code></td><td>Path to the forecast submission CSV in the format named by this validator.</td></tr>
+<tr><td><code>verbose</code></td><td><code>FALSE</code></td><td>Print a success summary after validation when TRUE.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>validate_covidhub_model(
+  file,
+  verbose = FALSE
+)</pre></details></section>
+<section class="function" id="validate_flusight_model"><div class="category">Input checks</div><h2><code>validate_flusight_model</code></h2><p>Check a FluSight forecast CSV against the format rules implemented in this package.</p><p><strong>Result / files:</strong> Returns the loaded, validated data frame or stops with input errors.</p>
+<p class="note">Validation checks the input rules implemented in this package; it does not establish that the forecasting method is scientifically correct.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>file</code></td><td><code>Required</code></td><td>Path to the forecast submission CSV in the format named by this validator.</td></tr>
+<tr><td><code>verbose</code></td><td><code>FALSE</code></td><td>Print a success summary after validation when TRUE.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>validate_flusight_model(
+  file,
+  verbose = FALSE
+)</pre></details></section>
+<section class="function" id="validate_rsvhub_model"><div class="category">Input checks</div><h2><code>validate_rsvhub_model</code></h2><p>Check an RSVHub forecast CSV against the format rules implemented in this package.</p><p><strong>Result / files:</strong> Returns the loaded, validated data frame or stops with input errors.</p>
+<p class="note">Validation checks the input rules implemented in this package; it does not establish that the forecasting method is scientifically correct.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>file</code></td><td><code>Required</code></td><td>Path to the forecast submission CSV in the format named by this validator.</td></tr>
+<tr><td><code>verbose</code></td><td><code>FALSE</code></td><td>Print a success summary after validation when TRUE.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>validate_rsvhub_model(
+  file,
+  verbose = FALSE
+)</pre></details></section>
+<section class="function" id="validate_metrocast_model"><div class="category">Input checks</div><h2><code>validate_metrocast_model</code></h2><p>Check a Flu MetroCast forecast CSV against the format rules implemented in this package.</p><p><strong>Result / files:</strong> Returns the loaded, validated data frame or stops with input errors.</p>
+<p class="note">Validation checks the input rules implemented in this package; it does not establish that the forecasting method is scientifically correct.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>file</code></td><td><code>Required</code></td><td>Path to the forecast submission CSV in the format named by this validator.</td></tr>
+<tr><td><code>verbose</code></td><td><code>FALSE</code></td><td>Print a success summary after validation when TRUE.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>validate_metrocast_model(
+  file,
+  verbose = FALSE
+)</pre></details></section>
+<section class="function" id="validate_general_model"><div class="category">Input checks</div><h2><code>validate_general_model</code></h2><p>Check an operational forecast CSV in the package’s general format, including its geography fields.</p><p><strong>Result / files:</strong> Returns the loaded, validated data frame or stops with input errors.</p>
+<p class="note">Validation checks the input rules implemented in this package; it does not establish that the forecasting method is scientifically correct.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>file</code></td><td><code>Required</code></td><td>Path to the forecast submission CSV in the format named by this validator.</td></tr>
+<tr><td><code>verbose</code></td><td><code>FALSE</code></td><td>Print a success summary after validation when TRUE.</td></tr>
+<tr><td><code>state_context</code></td><td><code>NA_character_</code></td><td>Optional two-letter U.S. state abbreviation to restrict county/HSA matching. NA_character_ means no state restriction.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>validate_general_model(
+  file,
+  verbose = FALSE,
+  state_context = NA_character_
+)</pre></details></section>
+<section class="function" id="validate_eval_model"><div class="category">Input checks</div><h2><code>validate_eval_model</code></h2><p>Check a historical evaluation forecast CSV in the package’s evaluation format.</p><p><strong>Result / files:</strong> Returns the loaded, validated data frame or stops with input errors.</p>
+<p class="note">Validation checks the input rules implemented in this package; it does not establish that the forecasting method is scientifically correct.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>file</code></td><td><code>Required</code></td><td>Path to the forecast submission CSV in the format named by this validator.</td></tr>
+<tr><td><code>verbose</code></td><td><code>FALSE</code></td><td>Print a success summary after validation when TRUE.</td></tr>
+<tr><td><code>state_context</code></td><td><code>NA_character_</code></td><td>Optional two-letter U.S. state abbreviation to restrict county/HSA matching. NA_character_ means no state restriction.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>validate_eval_model(
+  file,
+  verbose = FALSE,
+  state_context = NA_character_
+)</pre></details></section>
+<section class="function" id="validate_variables_crosswalk"><div class="category">Input checks</div><h2><code>validate_variables_crosswalk</code></h2><p>Check that the crosswalk describing your variables and data sources is complete and correctly formatted.</p><p><strong>Result / files:</strong> Returns the validated crosswalk, with logical fields normalized, or stops with input errors.</p>
+<p class="note">Validation checks the input rules implemented in this package; it does not establish that the forecasting method is scientifically correct.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>x</code></td><td><code>Required</code></td><td>Path to a completed variables-crosswalk CSV, or the already loaded crosswalk data frame.</td></tr>
+<tr><td><code>verbose</code></td><td><code>FALSE</code></td><td>Print a success summary after validation when TRUE.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>validate_variables_crosswalk(
+  x,
+  verbose = FALSE
+)</pre></details></section>
+<section class="function" id="pipe"><div class="category">Convenience operator</div><h2><code>%&gt;%</code></h2><p>Pass a value into the next function call so several steps can be chained together.</p><p><strong>Result / files:</strong> Returns the result of the next step; re-exported from magrittr.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>lhs</code></td><td><code>Required</code></td><td>The data/value on the left side of the pipe.</td></tr>
+<tr><td><code>rhs</code></td><td><code>Required</code></td><td>The function call on the right. The left-side value normally becomes its first argument; use . as the placeholder when needed.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>lhs %&gt;% rhs</pre></details></section>
+<section class="function" id="generate_comparison_dashboard"><div class="category">Not exported</div><h2><code>generate_comparison_dashboard</code></h2><p>Build a local interactive HTML dashboard comparing two or more model reports.</p><p><strong>Result / files:</strong> Returns the saved HTML path. Defined and documented, but absent from this build’s public exports.</p>
+<p class="note">Availability note: this function has documentation and an @export annotation, but is missing from NAMESPACE in the delivered build. It is not attached by library(forecastEvalReport) or available through forecastEvalReport::generate_comparison_dashboard.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>options_files</code></td><td><code>Required</code></td><td>Paths to at least two completed report options files, one for each model/run.</td></tr>
+<tr><td><code>output_file</code></td><td><code>&quot;forecast-model-comparison.html&quot;</code></td><td>Path of the self-contained HTML dashboard to write.</td></tr>
+<tr><td><code>title</code></td><td><code>&quot;Model Summaries&quot;</code></td><td>Title shown in the dashboard.</td></tr>
+<tr><td><code>evaluation</code></td><td><code>c(&quot;both&quot;, &quot;testing&quot;, &quot;realtime&quot;)</code></td><td>Choose &quot;both&quot;, &quot;testing&quot;, or &quot;realtime&quot;. The first choice, both, is the default.</td></tr>
+<tr><td><code>eval_config</code></td><td><code>NULL</code></td><td>Settings returned by create_evaluation_config(). NULL uses the package defaults.</td></tr>
+<tr><td><code>include_row_metrics</code></td><td><code>TRUE</code></td><td>Include individual forecast metrics in the dashboard when TRUE; FALSE reduces the output size.</td></tr>
+<tr><td><code>overwrite</code></td><td><code>TRUE</code></td><td>Allow replacement of an existing output file when TRUE.</td></tr>
+<tr><td><code>quiet</code></td><td><code>TRUE</code></td><td>Suppress routine progress or rendering messages. Set FALSE to see more detail; this does not disable input checks.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>generate_comparison_dashboard(
+  options_files,
+  output_file = &quot;forecast-model-comparison.html&quot;,
+  title = &quot;Model Summaries&quot;,
+  evaluation = c(&quot;both&quot;, &quot;testing&quot;, &quot;realtime&quot;),
+  eval_config = NULL,
+  include_row_metrics = TRUE,
+  overwrite = TRUE,
+  quiet = TRUE
+)</pre></details></section>
+<section class="function" id="save_report_pdf"><div class="category">Not exported</div><h2><code>save_report_pdf</code></h2><p>Print a newly generated or existing HTML report to PDF.</p><p><strong>Result / files:</strong> Returns saved PDF path(s). Requires pagedown and headless Chrome; absent from this build’s public exports.</p>
+<p class="note">Availability note: this function has documentation and an @export annotation, but is missing from NAMESPACE in the delivered build. It is not attached by library(forecastEvalReport) or available through forecastEvalReport::save_report_pdf. PDF printing captures the active location; supply separate per-location reports to print every location.</p>
+<div class="table-wrap"><table><thead><tr><th>Argument</th><th>Default</th><th>What it means</th></tr></thead><tbody>
+<tr><td><code>options_file</code></td><td><code>NULL</code></td><td>Options file for generating a report before printing. Supply either this or html_file, but not both.</td></tr>
+<tr><td><code>html_file</code></td><td><code>NULL</code></td><td>Path(s) to existing HTML report(s) to print. Supply either this or options_file, but not both.</td></tr>
+<tr><td><code>output_dir</code></td><td><code>getwd()</code></td><td>Folder where the requested output files are saved. getwd() means the current R working folder.</td></tr>
+<tr><td><code>output_file</code></td><td><code>NULL</code></td><td>Optional PDF filename. NULL generates a name; this setting is ignored when printing several HTML inputs.</td></tr>
+<tr><td><code>paper</code></td><td><code>First choice by default; see exact signature below</code></td><td>Paper size/orientation. Defaults to tabloid-landscape; other supported sizes are listed in the exact signature below. Use custom with width and height.</td></tr>
+<tr><td><code>width</code></td><td><code>NULL</code></td><td>Custom paper width in inches, used only with paper=&quot;custom&quot;.</td></tr>
+<tr><td><code>height</code></td><td><code>NULL</code></td><td>Custom paper height in inches, used only with paper=&quot;custom&quot;.</td></tr>
+<tr><td><code>margin</code></td><td><code>0.4</code></td><td>Page margin on all sides, in inches.</td></tr>
+<tr><td><code>scale</code></td><td><code>1</code></td><td>Content zoom, from 0.1 to 2. Smaller values fit more content on a page.</td></tr>
+<tr><td><code>wait</code></td><td><code>8</code></td><td>Seconds to wait after the HTML loads so plots finish drawing.</td></tr>
+<tr><td><code>background</code></td><td><code>TRUE</code></td><td>Print background colors and images when TRUE.</td></tr>
+<tr><td><code>expand_accordions</code></td><td><code>TRUE</code></td><td>Open collapsible report sections before printing when TRUE.</td></tr>
+<tr><td><code>expand_legends</code></td><td><code>TRUE</code></td><td>Expand each plot legend and place it beside the plot when TRUE.</td></tr>
+<tr><td><code>hide_controls</code></td><td><code>TRUE</code></td><td>Hide interactive-only controls such as plot toolbars and location selectors before printing.</td></tr>
+<tr><td><code>keep_html</code></td><td><code>FALSE</code></td><td>Keep the intermediate print-ready HTML for inspection when TRUE.</td></tr>
+<tr><td><code>overwrite</code></td><td><code>TRUE</code></td><td>Allow replacement of an existing output file when TRUE.</td></tr>
+<tr><td><code>quiet</code></td><td><code>TRUE</code></td><td>Suppress routine progress or rendering messages. Set FALSE to see more detail; this does not disable input checks.</td></tr>
+<tr><td><code>...</code></td><td><code>Optional extra arguments</code></td><td>Optional additional generate_report() arguments when using options_file, for example plot_styles, eval_config, location_crosswalk, or population_crosswalk.</td></tr>
+</tbody></table></div><details><summary>Exact call signature</summary><pre>save_report_pdf(
+  options_file = NULL,
+  html_file = NULL,
+  output_dir = getwd(),
+  output_file = NULL,
+  paper = c(&quot;tabloid-landscape&quot;, &quot;tabloid&quot;, &quot;letter-landscape&quot;, &quot;letter&quot;, &quot;legal-landscape&quot;, &quot;legal&quot;, &quot;a3-landscape&quot;, &quot;a3&quot;, &quot;a4-landscape&quot;,      &quot;a4&quot;, &quot;custom&quot;),
+  width = NULL,
+  height = NULL,
+  margin = 0.4,
+  scale = 1,
+  wait = 8,
+  background = TRUE,
+  expand_accordions = TRUE,
+  expand_legends = TRUE,
+  hide_controls = TRUE,
+  keep_html = FALSE,
+  overwrite = TRUE,
+  quiet = TRUE,
+  ...
+)</pre></details></section>
+<section><h2>Common starting calls</h2><pre>library(forecastEvalReport)
+
+# First-time setup: edit the generated files between these calls.
+create_options_template()
+build_crosswalk_from_options(&quot;report_options_template.R&quot;)
+# Complete the crosswalk and set its path in report_options_template.R.
+
+settings &lt;- create_evaluation_config()
+generate_report(&quot;report_options_template.R&quot;, eval_config = settings)
+
+testing &lt;- export_testing_evaluation(
+  &quot;report_options_template.R&quot;, output_dir = &quot;exports&quot;,
+  ai_form = TRUE, save_json = TRUE, save_results = TRUE,
+  eval_config = settings, file_prefix = &quot;testing&quot;
+)
+
+realtime &lt;- export_realtime_evaluation(
+  &quot;report_options_template.R&quot;, output_dir = &quot;exports&quot;,
+  ai_form = TRUE, save_json = TRUE, save_results = TRUE,
+  eval_config = settings, file_prefix = &quot;realtime&quot;,
+  archive_current = TRUE
+)
+
+testing$paths
+realtime$paths</pre></section>
+<p class="muted">Checked: 24 public entries, 2 documented unexported helpers, 166 declared argument entries. Source: corrected local package, commit 0e8bae3. Creating this reference does not change code or GitHub.</p>
+<script>
+const input=document.querySelector('#search');const sections=[...document.querySelectorAll('section.function')];const overview=[...document.querySelectorAll('tr.overview')];
+function filter(){const q=input.value.trim().toLowerCase();let count=0;sections.forEach(s=>{const show=s.textContent.toLowerCase().includes(q);s.classList.toggle('hidden',!show);if(show)count++;});overview.forEach(r=>r.classList.toggle('hidden',!r.textContent.toLowerCase().includes(q)));document.querySelector('#count').textContent=count+' of '+sections.length+' function entries shown';}input.addEventListener('input',filter);filter();
+</script></main></html>

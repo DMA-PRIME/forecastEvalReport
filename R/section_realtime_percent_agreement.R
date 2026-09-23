@@ -1,7 +1,7 @@
-#' Render the Percent Agreement drop-down section
+#' Render the Percent Accuracy (Similarity Index) drop-down section
 #'
-#' Builds the full Percent Agreement accordion for the testing-period block:
-#' an intro, the "Percent Agreement Over Time" figure (one panel per location,
+#' Builds the full Percent Accuracy (Similarity Index) accordion for the testing-period block:
+#' an intro, the "Percent Accuracy (Similarity Index) Over Time" figure (one panel per location,
 #' switched by a geography dropdown), a synced Median (Range) summary table by
 #' forecast horizon, and a Detailed Methods accordion. Renders nothing when no
 #' testing data is present, matching every other testing-period section.
@@ -153,9 +153,14 @@ section_realtime_percent_agreement <- function(percentAgreement.data,
 
   intro_html <- htmltools::HTML('
   <p style="font-size: 15px; line-height: 1.8; color: #444; margin: 0 0 1rem 0;">
-    Percent agreement measures how closely forecasted values align with observed
+    <strong>Primary reported metric.</strong> Percent Accuracy (Similarity Index)
+    summarizes forecast–observation similarity using a min/max ratio. It is not the
+    percentage of forecasts that were correct or a proper score for median forecasts.
+    Mean absolute error (MAE), shown in Statistical Scoring Metrics, is a secondary
+    point-forecast measure in outcome units; lower MAE is better.
+        Percent Accuracy (Similarity Index) measures how closely forecasted values align with observed
     counts, ranging from 0% to 100% where <strong>higher</strong> values indicate
-    <strong>stronger</strong> agreement. The figure and table below summarize agreement
+    a <strong>larger min/max ratio</strong>. The figure and table below summarize the similarity index
     over time across the overall median and for all forecast horizons.
   </p>
   ')
@@ -174,9 +179,9 @@ section_realtime_percent_agreement <- function(percentAgreement.data,
         To Navigate
       </span>
       <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0;">
-        The solid black line shows the <strong>overall median percent agreement</strong>
+        The solid black line shows the <strong>overall median similarity index</strong>
         over time; click a horizon in the legend to overlay individual horizon lines.', no_eval_sentence, '
-        In the table, columns show median agreement and range by horizon, with an
+        In the table, columns show median similarity index and range by horizon, with an
         overall summary in purple.
       </p>
     </div>
@@ -189,7 +194,7 @@ section_realtime_percent_agreement <- function(percentAgreement.data,
 
   header_html <- htmltools::tagList(
     htmltools::div(style = "margin-top: 1.5em;"),
-    htmltools::tags$h3(htmltools::tags$strong("Percent Agreement Over Time by Forecast Horizon")),
+    htmltools::tags$h3(htmltools::tags$strong("Percent Accuracy (Similarity Index) Over Time by Forecast Horizon")),
     htmltools::div(style = "margin-top: 2em;")
   )
 
@@ -311,7 +316,7 @@ section_realtime_percent_agreement <- function(percentAgreement.data,
 #------------------------------------------------------------------------------#
 # Building the location x horizon table (Median + Range) -----------------------
 #------------------------------------------------------------------------------#
-# About: Median and range (min/max) of row-level percent agreement, computed    #
+# About: Median and range (min/max) of row-level similarity index, computed    #
 # on transmission-season rows only. Empty (location x horizon) groups render a  #
 # dash instead of crashing quantile()/min()/max() on an empty vector.           #
 #------------------------------------------------------------------------------#
@@ -496,13 +501,13 @@ section_realtime_percent_agreement <- function(percentAgreement.data,
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
       Target end dates falling in the non-transmission season (<strong>', nt_label, '</strong>)
       are excluded from all summary statistics. During this period low and highly variable
-      counts can distort agreement metrics. Row-level values are retained in the data for
+      counts can distort the similarity index. Row-level values are retained in the data for
       visual continuity in plots but are not included in any median or range calculations.
     </p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
       <strong>Example:</strong> A forecast whose target end date falls within the
       non-transmission window (', nt_label, ') will appear in the time series plot but
-      will not contribute to the reported median percent agreement for any horizon or the
+      will not contribute to the reported median similarity index for any horizon or the
       overall summary.
     </p>
 
@@ -517,16 +522,16 @@ section_realtime_percent_agreement <- function(percentAgreement.data,
 
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
       The following definitions describe the methods used to calculate and summarize
-      percent agreement between forecasted and observed values, providing a transparent
+      similarity index between forecasted and observed values, providing a transparent
       and interpretable measure of how closely model predictions align with observed
       counts across forecast horizons and locations.
     </p>
 
     <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0 1.5rem;">
 
-    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Row-Level Percent Agreement</p>
+    <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Row-Level Percent Accuracy (Similarity Index)</p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
-      Percent agreement is calculated at the individual forecast level as the ratio of
+      Percent Accuracy (Similarity Index) is calculated at the individual forecast level as the ratio of
       the smaller value to the larger value between the forecasted and observed counts,
       expressed as a percentage. This symmetric measure is bounded between 0% and 100%,
       where 100% indicates a perfect match. Rows where the observed count is missing or
@@ -535,8 +540,8 @@ section_realtime_percent_agreement <- function(percentAgreement.data,
     <div id="eq-pa-row" style="text-align: center; margin: 0.75rem 0 1rem;"></div>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
       <strong>Example:</strong> If the model forecasted 450 ', outcome, ' and 500 were
-      observed, percent agreement is (450 / 500) &times; 100 = 90%. If the model
-      forecasted 600 and 500 were observed, percent agreement is (500 / 600) &times;
+      observed, similarity index is (450 / 500) &times; 100 = 90%. If the model
+      forecasted 600 and 500 were observed, similarity index is (500 / 600) &times;
       100 = 83.3%. The direction of the error does not affect the result.
     </p>
 
@@ -544,17 +549,17 @@ section_realtime_percent_agreement <- function(percentAgreement.data,
 ', transmission_filter_block, '
     <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Horizon-Level Summaries</p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
-      Row-level percent agreement values are grouped by <strong>forecast horizon and
+      Row-level similarity index values are grouped by <strong>forecast horizon and
       location</strong>. Within each group, the <strong>median</strong> and
       <strong>range</strong> (minimum and maximum) are computed across all
-      transmission-season rows. These summaries capture how forecast accuracy changes as
+      transmission-season rows. These summaries capture how the similarity index changes as
       the prediction window extends — shorter horizons are generally expected to show
-      higher agreement than longer ones.
+      higher similarity index values than longer ones.
     </p>
     <div id="eq-pa-horizon" style="text-align: center; margin: 0.75rem 0 1rem;"></div>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
       <strong>Example:</strong> If horizon 1 forecasts across all transmission-season
-      weeks have a median percent agreement of 88% (range: 70% – 98%), the model is
+      weeks have a median similarity index of 88% (range: 70% – 98%), the model is
       typically within 12% of the observed count one week ahead.
     </p>
 
@@ -563,7 +568,7 @@ section_realtime_percent_agreement <- function(percentAgreement.data,
     <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Overall Summary</p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
       An overall summary collapses across all horizons within each location, computing
-      the <strong>median</strong> and <strong>range</strong> of percent agreement across
+      the <strong>median</strong> and <strong>range</strong> of similarity index across
       all transmission-season rows regardless of horizon. This provides a single
       high-level benchmark of forecast performance for each location.
     </p>
@@ -580,7 +585,7 @@ section_realtime_percent_agreement <- function(percentAgreement.data,
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script>
     katex.render(
-      "\\\\text{Percent Agreement} = \\\\frac{\\\\min(\\\\text{Forecasted},\\\\, \\\\text{Observed})}{\\\\max(\\\\text{Forecasted},\\\\, \\\\text{Observed})} \\\\times 100",
+      "\\\\text{Percent Accuracy (Similarity Index)} = \\\\frac{\\\\min(\\\\text{Forecasted},\\\\, \\\\text{Observed})}{\\\\max(\\\\text{Forecasted},\\\\, \\\\text{Observed})} \\\\times 100",
       document.getElementById("eq-pa-row"),
       { throwOnError: false, displayMode: true }
     );
@@ -599,7 +604,7 @@ section_realtime_percent_agreement <- function(percentAgreement.data,
 
   methods_accordion <- htmltools::tags$details(
     class = "accordion",
-    htmltools::tags$summary(htmltools::tags$strong("Detailed Methods (Real-Time Percent Agreement)")),
+    htmltools::tags$summary(htmltools::tags$strong("Detailed Methods (Real-Time Percent Accuracy (Similarity Index))")),
     htmltools::div(class = "accordion-body", methods_html)
   )
 
@@ -607,7 +612,7 @@ section_realtime_percent_agreement <- function(percentAgreement.data,
 # Location-to-Location Comparison accordion (multi-location only) --------------
 #------------------------------------------------------------------------------#
 # About: All locations shown at once, sortable and searchable, starting sorted #
-# best-to-worst (highest overall median agreement first). Only meaningful when #
+# best-to-worst (highest overall median similarity index first). Only meaningful when #
 # more than one location is present, so it is omitted for single-location      #
 # reports. Uses its own table id and sort function so it does not interfere     #
 # with the one-location-at-a-time table above.                                 #
@@ -639,8 +644,8 @@ section_realtime_percent_agreement <- function(percentAgreement.data,
     ##################################
     compare_body <- htmltools::HTML(paste0('
     <p style="font-size: 14px; line-height: 1.6; color: #444; margin: 0 0 1rem 0;">
-      Compare percent agreement across all locations at once. The table starts sorted from
-      best to worst by overall median agreement; click any column to re-sort, or use the
+      Compare similarity index across all locations at once. The table starts sorted from
+      highest to lowest by overall median similarity index; click any column to re-sort, or use the
       search box to find a specific location.
     </p>
 
@@ -733,7 +738,7 @@ section_realtime_percent_agreement <- function(percentAgreement.data,
 
   htmltools::tags$details(
     class = "accordion",
-    htmltools::tags$summary(htmltools::tags$strong("Real-Time Percent Agreement")),
+    htmltools::tags$summary(htmltools::tags$strong("Real-Time Percent Accuracy (Similarity Index)")),
     htmltools::div(
       class = "accordion-body",
       intro_html,

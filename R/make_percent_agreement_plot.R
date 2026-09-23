@@ -28,7 +28,7 @@ make_percent_agreement_plot <- function(data, loc, outcome) {
 #------------------------------------------------------------------------------#
 # Preparing the input data for the plot ----------------------------------------
 #------------------------------------------------------------------------------#
-# About: This section filters the percent accuracy data for the selected      #
+# About: This section filters the similarity index data for the selected      #
 # location, prepares the observed data for the right y axis, identifies unique #
 # horizons, assigns horizon colors, and computes the overall median percent    #
 # agreement per target end date for the main line.                             #
@@ -107,7 +107,7 @@ make_percent_agreement_plot <- function(data, loc, outcome) {
 #------------------------------------------------------------------------------#
 # Computing the overall median line --------------------------------------------
 #------------------------------------------------------------------------------#
-# About: This section computes the median percent accuracy and median         #
+# About: This section computes the median similarity index and median         #
 # forecasted value across all horizons for each location and target end date   #
 # excluding May through July. Both are used in the hover tooltip.              #
 #------------------------------------------------------------------------------#
@@ -133,9 +133,9 @@ make_percent_agreement_plot <- function(data, loc, outcome) {
         is.na(median_agreement),
         NA_character_,
         paste0(
-          "<b>Overall Median Percent Accuracy</b><br>",
+          "<b>Overall Median Percent Accuracy (Similarity Index)</b><br>",
           "Date: ", format(target_end_date, "%b %d, %Y"), "<br>",
-          "Median Accuracy: ", round(median_agreement, 1), "%<br>",
+          "Median Percent Accuracy (Similarity Index): ", round(median_agreement, 1), "%<br>",
           "Median Forecasted ", outcome, ": ", round(median_value, 1), "<br>",
           "Observed ", outcome, ": ", fmt_hover_val(observed_count)
         )
@@ -386,9 +386,9 @@ make_percent_agreement_plot <- function(data, loc, outcome) {
           size  = 7
         ),
         hovertemplate = paste0(
-          "<b>Horizon ", h, " Percent Accuracy</b><br>",
+          "<b>Horizon ", h, " Percent Accuracy (Similarity Index)</b><br>",
           "Date: %{x}<br>",
-          "Percent Accuracy: %{y:.1f}%<br>",
+          "Percent Accuracy (Similarity Index): %{y:.1f}%<br>",
           "Forecasted ", outcome, ": %{customdata[0]}<br>",
           "Observed ", outcome, ": %{customdata[1]}",
           "<extra></extra>"
@@ -406,7 +406,7 @@ make_percent_agreement_plot <- function(data, loc, outcome) {
       y             = ~median_agreement,
       type          = "scatter",
       mode          = "lines",
-      name          = "Overall Median Percent Accuracy",
+      name          = "Overall Median Percent Accuracy (Similarity Index)",
       yaxis         = "y",
       connectgaps   = FALSE,
       customdata    = ~median_value,
@@ -462,7 +462,7 @@ make_percent_agreement_plot <- function(data, loc, outcome) {
 
       # Left Y axis
       yaxis       = list(
-        title      = "Percent Accuracy (%)",
+        title      = "Percent Accuracy (Similarity Index) (%)",
         titlefont  = list(size = 16),
         showgrid   = TRUE,
         gridcolor  = "#f0f0f0",

@@ -1,7 +1,7 @@
 #' Render the traditional metrics section
 #'
 #' Builds the testing-period "traditional metrics" drop-down: a table of the
-#' weighted interval score (WIS), median absolute error (MAE), WIS directional
+#' weighted interval score (WIS), mean absolute error of the median (MAE), WIS directional
 #' components, and 50% / 80% / 95%
 #' interval coverage, summarized per location over the transmission-season
 #' testing rows. For multiple locations the table is sortable and searchable
@@ -55,6 +55,7 @@ section_traditional_metrics <- function(traditional.data,
 #------------------------------------------------------------------------------#
 
   if(is.null(eval_config)) eval_config <- create_evaluation_config()
+  availability_note <- wis_scoring_note(traditional.data)
 
   ###########################
   # Outcome display label   #
@@ -114,7 +115,7 @@ section_traditional_metrics <- function(traditional.data,
 #------------------------------------------------------------------------------#
 # Non-transmission month label for the Detailed Methods -------------------------
 #------------------------------------------------------------------------------#
-# About: Mirrors the Percent Accuracy section. The Transmission Season Filter  #
+# About: Mirrors the Percent Accuracy (Similarity Index) section. The Transmission Season Filter  #
 # block in Detailed Methods is only shown when non-transmission months are     #
 # configured and actually appear among the target end dates in the data.       #
 #------------------------------------------------------------------------------#
@@ -172,7 +173,7 @@ section_traditional_metrics <- function(traditional.data,
   #####################################################
   # Full metric order and which of them will be shown #
   #####################################################
-  metric_keys      <- c("WIS", "MAE", "Under", "Over", "Cov50", "Cov80", "Cov95")
+  metric_keys      <- c("MAE", "WIS", "Under", "Over", "Cov50", "Cov80", "Cov95")
   metric_available <- vapply(metric_keys, has_any_value, logical(1))
 
   # Defensive fallback: if nothing is available, keep the full layout so the
@@ -209,7 +210,7 @@ section_traditional_metrics <- function(traditional.data,
   #####################################################
   metric_phrase_parts <- c(
     if(metric_available[["WIS"]]) "the <strong>weighted interval score (WIS)</strong>",
-    if(metric_available[["MAE"]]) "<strong>median absolute error (MAE)</strong>",
+    if(metric_available[["MAE"]]) "<strong>mean absolute error of the median (MAE)</strong>",
     if(metric_available[["Under"]] || metric_available[["Over"]])
       paste0("<strong>WIS ",
              paste(c(if(metric_available[["Under"]]) "underprediction",
@@ -769,7 +770,7 @@ section_traditional_metrics <- function(traditional.data,
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
       The nested Trend/Phase-Specific Performance table uses the same
       per-forecast <strong>traditional scores</strong> described above. As in
-      the Percent Accuracy and Forecast Bias sections, trend and phase labels
+      the Percent Accuracy (Similarity Index) and Forecast Bias sections, trend and phase labels
       simply divide those scores into clinically meaningful parts of the
       observed epidemic curve; they do not change how any score is calculated.
     </p>
@@ -807,7 +808,7 @@ section_traditional_metrics <- function(traditional.data,
   ####################################################################
   # Creating the remainder of the methods for the traditional scores #
   ####################################################################
-  methods_html <- htmltools::HTML(paste0('
+  methods_html <- htmltools::HTML(paste0(availability_note, '
   <div style="font-family: sans-serif; padding: 0.5rem 0;">
 
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
@@ -850,7 +851,7 @@ section_traditional_metrics <- function(traditional.data,
       The average absolute error of the median measures point-forecast accuracy: the
       mean absolute difference between each observed value and the corresponding
       forecast median. It ignores the rest of the forecast distribution, making it a
-      useful companion to WIS for separating point accuracy from interval calibration.
+      secondary point-forecast measure in this report; WIS separately assesses probabilistic forecasts.
       Lower is better, and MAE is expressed in the same units as the observed data.
     </p>
     <div id="eq-trad-mae" style="text-align: center; margin: 0.75rem 0 1rem;"></div>

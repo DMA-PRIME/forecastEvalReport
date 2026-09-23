@@ -1,7 +1,7 @@
 #' Render the real-time evaluation introduction text
 #'
 #' Produces the orienting paragraph and per-metric descriptions shown at the top
-#' of the real-time (operational) evaluation section: percent agreement,
+#' of the real-time (operational) evaluation section: similarity index,
 #' forecast bias, and the traditional (statistical) scoring metrics. Peak-phase
 #' timing/magnitude is intentionally omitted, as it is a testing-period concept.
 #' The evaluation window is taken from the realized rows of the real-time
@@ -72,38 +72,38 @@ section_realtime_intro <- function(realtime_data) {
     <!-- Metric list: one numbered row per metric, in reading order -->
     <div style="display: flex; flex-direction: column; gap: 10px; padding-left: 2rem;">
 
-      <!-- 1. Percent agreement -> percentAgreementCalculation() -->
+      <!-- 1. Percent Accuracy (Similarity Index) -> percentAgreementCalculation() -->
       <div style="display: flex; align-items: center; gap: 12px;">
         <span style="min-width: 22px; height: 22px; border-radius: 50%; background-color: #C9B8E8;
                      color: #fff; font-size: 11px; font-weight: 700; display: flex; flex-shrink: 0;
                      align-items: center; justify-content: center;">1</span>
         <p style="font-size: 14px; line-height: 1.7; color: #444; margin: 0;">
-          <strong>Percent Agreement:</strong> how closely forecasted and observed counts
-          align, scored as the ratio of the smaller value to the larger.
+          <strong>Percent Accuracy (Similarity Index):</strong> how closely forecasted and observed counts
+          align using a descriptive min/max ratio. This is the primary reported metric, not the percentage of forecasts that were correct. MAE is secondary.
         </p>
       </div>
 
-      <!-- 2. Forecast bias -> forecastBiasCalculation() -->
+      <!-- 2. Traditional statistical scores -> traditionalMetricsCalculation() -->
       <div style="display: flex; align-items: center; gap: 12px;">
         <span style="min-width: 22px; height: 22px; border-radius: 50%; background-color: #C9B8E8;
                      color: #fff; font-size: 11px; font-weight: 700; display: flex; flex-shrink: 0;
                      align-items: center; justify-content: center;">2</span>
         <p style="font-size: 14px; line-height: 1.7; color: #444; margin: 0;">
-          <strong>Forecast Bias:</strong> the systematic direction of forecast error —
-          whether forecasts tend to over- or underestimate observed counts.
+          <strong>Statistical Scoring Metrics:</strong> the Weighted Interval Score (WIS)
+          and the absolute error of the median forecast summarize overall accuracy, while
+          50%, 80%, and 95% interval coverage measure how often observed counts fell within the
+          corresponding prediction intervals.
         </p>
       </div>
 
-      <!-- 3. Traditional statistical scores -> traditionalMetricsCalculation() -->
+      <!-- 3. Forecast bias -> forecastBiasCalculation() -->
       <div style="display: flex; align-items: center; gap: 12px;">
         <span style="min-width: 22px; height: 22px; border-radius: 50%; background-color: #C9B8E8;
                      color: #fff; font-size: 11px; font-weight: 700; display: flex; flex-shrink: 0;
                      align-items: center; justify-content: center;">3</span>
         <p style="font-size: 14px; line-height: 1.7; color: #444; margin: 0;">
-          <strong>Statistical Scoring Metrics:</strong> the Weighted Interval Score (WIS)
-          and the absolute error of the median forecast summarize overall accuracy, while
-          50% and 95% interval coverage measure how often observed counts fell within the
-          corresponding prediction intervals.
+          <strong>Forecast Bias:</strong> the systematic direction of forecast error —
+          whether forecasts tend to over- or underestimate observed counts.
         </p>
       </div>
 

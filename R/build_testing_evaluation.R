@@ -3,7 +3,7 @@
 #' Single entry point for the report's testing-period evaluation layer. Joins
 #' the evaluation model's testing-period forecasts to the observed outcome
 #' values via `prepare_testing_evaluation_data()`, then runs the point-metric
-#' helpers (percent agreement, forecast bias), the peak-phase helper, and the
+#' helpers (similarity index, forecast bias), the peak-phase helper, and the
 #' traditional scoring-rule helper (WIS, MAE, coverage) on the resulting frame.
 #' Every underlying helper guards its own inputs and returns
 #' NA-filled / empty output rather than erroring, so this builder is safe to
@@ -33,8 +33,8 @@
 #' @param pct_error_cushion Numeric. Percentage-error band (in points) around
 #'   zero within which a forecast-bias row counts as "Within Range". Default 20.
 #' @param timing_tol_steps Numeric. Tolerance, in time steps, within which a
-#'   peak-phase timing miss still counts as "On Time". Default 1.
-#' @param mag_tol Numeric in 0-1. Minimum rank-matched agreement at/above which
+#'   peak-phase timing miss still counts as "On Target". Default 0.
+#' @param mag_tol Numeric in 0-1. Minimum smaller/larger magnitude ratio at/above which
 #'   a peak-phase magnitude counts as "On Target". Default 0.80.
 #'
 #' @return A named list with `data` (the prepared evaluation frame),
@@ -101,7 +101,7 @@ build_testing_evaluation <- function(eval_meta,
 # Metric calculations ----------------------------------------------------------
 #------------------------------------------------------------------------------#
 # About: This section runs the four testing-period metric helpers on the       #
-# prepared frame. Percent agreement and forecast bias return the frame         #
+# prepared frame. Similarity index and forecast bias return the frame         #
 # augmented with their metric columns; the peak-phase helper returns a         #
 # per-forecast indicator frame; the traditional helper scores WIS, MAE, and    #
 # coverage from the full quantile rows. Each guards internally, so a missing   #
@@ -109,7 +109,7 @@ build_testing_evaluation <- function(eval_meta,
 #------------------------------------------------------------------------------#
 
   #################################
-  # Calculating percent agreement #
+  # Calculating similarity index #
   #################################
   percentAgreement.data <- percentAgreementCalculation(
     data.for.evaluation,
@@ -129,7 +129,7 @@ build_testing_evaluation <- function(eval_meta,
   ##########################################
   # Calculating the peak-phase performance #
   ##########################################
-  peakPhase.data <<- calculating_peak_trough_PEAKPHASE(
+  peakPhase.data <- calculating_peak_trough_PEAKPHASE(
     data.for.evaluation,
     season_start_day_month  = season_start_day_month,
     peak_window             = peak_window,
@@ -158,6 +158,11 @@ build_testing_evaluation <- function(eval_meta,
   ##################################
   # Bundling the data and metrics  #
   ##################################
+  for(metric in c("percentAgreement.data", "forecastBias.data", "traditional.data")) {
+    value <- get(metric)
+    attr(value, "trend_history") <- attr(data.for.evaluation, "trend_history")
+    assign(metric, value)
+  }
   list(
     data             = data.for.evaluation,
     percentAgreement = percentAgreement.data,

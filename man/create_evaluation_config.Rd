@@ -11,7 +11,10 @@ create_evaluation_config(
   stable_threshold = 10,
   pct_error_cushion = 20,
   timing_tol_steps = 0L,
-  mag_tol = 0.8
+  mag_tol = 0.8,
+  trend_count_threshold = 10,
+  trend_calibration_data = NULL,
+  trend_thresholds = NULL
 )
 }
 \arguments{
@@ -36,11 +39,22 @@ zero within which a forecast-bias row counts as "Within Range"; beyond
 +/- this it is "Overestimate" / "Underestimate". Default \code{20}.}
 
 \item{timing_tol_steps}{Numeric. Tolerance, in time steps, within which a
-peak-phase timing miss still counts as "On Time". Default \code{1}.}
+peak-phase timing miss still counts as "On Time". Default \code{0}.}
 
-\item{mag_tol}{Numeric between 0 and 1. Minimum rank-matched agreement
+\item{mag_tol}{Numeric between 0 and 1. Minimum smaller/larger magnitude ratio
 at/above which a peak-phase magnitude counts as "On Target". Default
 \code{0.80}.}
+
+\item{trend_count_threshold}{Non-negative raw weekly count-change threshold.
+Changes strictly below this are stable. Default 10; separate from the bias floor.}
+
+\item{trend_calibration_data}{Optional historical observations for trend calibration,
+with location, target_end_date (or date), and Observed (or value), plus optional
+population. Defaults to the chosen truth series strictly before evaluation.}
+
+\item{trend_thresholds}{Optional saved table from calibrate_trend_thresholds().
+Cannot be combined with trend_calibration_data. Calibration dates must precede
+the evaluated issue and target dates.}
 }
 \value{
 A named list of evaluation settings for use by
@@ -53,5 +67,5 @@ standard report behavior. Users who want to customize the evaluation create
 their own config object by calling this function with overrides, then source
 it in their options file and pass it to \code{\link[=generate_report]{generate_report()}}. The settings
 flow through to \code{build_testing_evaluation()} and on to the individual metric
-helpers (percent agreement, forecast bias, peak phase).
+helpers (similarity index, forecast bias, peak phase).
 }

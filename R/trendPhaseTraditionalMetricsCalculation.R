@@ -50,7 +50,7 @@ trendPhaseTraditionalMetricsCalculation <- function(phase_data){
 #------------------------------------------------------------------------------#
 # Summarizing the selected traditional measures -------------------------------#
 #------------------------------------------------------------------------------#
-# About: The nested table follows the Percent Agreement and Forecast Bias      #
+# About: The nested table follows the Similarity Index and Forecast Bias      #
 # layout: observed trend labels are rows, phases are columns, and users select  #
 # Overall or a single horizon. Traditional metrics retain their usual means.    #
 #------------------------------------------------------------------------------#

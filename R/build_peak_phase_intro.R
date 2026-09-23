@@ -36,9 +36,9 @@ build_peak_phase_intro <- function(multi_location = TRUE,
 
   # Outcome slot for the definition sentence
   week_phrase <- if(has_outcome){
-    sprintf("the single highest week of %s in a season", outcome)
+    sprintf("the single highest evaluated week of %s within each season of the testing period", outcome)
   } else {
-    "the single highest week of a season"
+    "the single highest evaluated week within each season of the testing period"
   }
 
   ##############################################
@@ -46,7 +46,7 @@ build_peak_phase_intro <- function(multi_location = TRUE,
   ##############################################
   definition_html <- sprintf(
     'The <strong>peak</strong> is %s: the week whose observed value reaches the
-     season&rsquo;s maximum. This section measures how well the model forecast
+     testing-period maximum for that season. This section measures how well the model forecast
      that peak at each <strong>forecast horizon</strong> &mdash; the number of
      weeks ahead a forecast was made &mdash; from the earliest lead times
      through the nowcast (the estimate for the current week). Four measures are

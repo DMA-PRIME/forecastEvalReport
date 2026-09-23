@@ -8,7 +8,8 @@
 #' @noRd
 prepare_comparison_realtime <- function(options_file,
                                         eval_config = NULL,
-                                        quiet = TRUE) {
+                                        quiet = TRUE,
+                                        archive_current = TRUE) {
 
 #------------------------------------------------------------------------------#
 # Reading and validating the options ------------------------------------------
@@ -105,7 +106,7 @@ prepare_comparison_realtime <- function(options_file,
   impl_meta <- extract_implementation_data(
     implementation_model = implementation_model,
     config = config,
-    save_data = TRUE
+    save_data = archive_current
   )
 
   eval_meta <- if(!is.null(evaluation_model)){
@@ -136,7 +137,9 @@ prepare_comparison_realtime <- function(options_file,
   realtime_eval <- build_realtime_evaluation(
     impl_meta = impl_meta,
     master_data = master_data,
-    variables_crosswalk = variables_crosswalk
+    variables_crosswalk = variables_crosswalk,
+    stable_threshold = eval_config$stable_threshold,
+    pct_error_cushion = eval_config$pct_error_cushion
   )
 
   list(

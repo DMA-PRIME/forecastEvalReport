@@ -211,6 +211,7 @@ build_realtime_evaluation <- function(impl_meta,
     time_step   = time_step,
     truth_type  = truth_type
   )
+  attr(data.for.evaluation, "truth_source") <- truth_type
 
 #------------------------------------------------------------------------------#
 # Coverage gate (applies all four rules) ---------------------------------------#
@@ -289,6 +290,11 @@ build_realtime_evaluation <- function(impl_meta,
 # Returning the bundle ---------------------------------------------------------
 #------------------------------------------------------------------------------#
 
+  for(metric in c("percentAgreement.data", "forecastBias.data", "traditional.data")) {
+    value <- get(metric)
+    attr(value, "trend_history") <- attr(data.for.evaluation, "trend_history")
+    assign(metric, value)
+  }
   list(
     data             = data.for.evaluation,
     percentAgreement = percentAgreement.data,

@@ -471,5 +471,10 @@ prepare_realtime_evaluation_data <- function(impl_meta,
   )
 
   rownames(res) <- NULL
+  if(!is.null(observed) && nrow(res)) {
+    pairs <- unique(raw[c("location", "location_canonical")])
+    history <- merge(pairs, observed, by="location_canonical", all=FALSE)
+    attr(res, "trend_history") <- history[c("location", "target_end_date", "Observed")]
+  }
   res
 }

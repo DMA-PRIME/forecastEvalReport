@@ -234,13 +234,14 @@ forecastBiasCalculation <- function(data.for.evaluation,
       dplyr::mutate(
 
         # Raw error (forecast - observed)
-        raw_error = forecastValue - targetValue,
+        raw_error = dplyr::if_else(is.finite(forecastValue) & is.finite(targetValue),
+                                   forecastValue - targetValue, NA_real_),
 
         # Percentage error, guarded against missing / zero observed
         pct_error = dplyr::if_else(
 
           # Handling missing values
-          is.na(targetValue) | targetValue == 0 | is.na(forecastValue),
+          !is.finite(targetValue) | targetValue == 0 | !is.finite(forecastValue),
           NA_real_,
 
           # Calculating the percent error
@@ -248,11 +249,12 @@ forecastBiasCalculation <- function(data.for.evaluation,
         ),
 
         # Stable = observed available and at/above the stable threshold
-        is_stable = !is.na(targetValue) & targetValue >= stable_threshold,
+        is_stable = is.finite(targetValue) & targetValue >= stable_threshold,
 
         # Row category (off-season and low-count rows labeled distinctly)
         bias_group = dplyr::case_when(
           !is_transmission ~ "No Evaluation", # No evaluation model
+          !is.finite(pct_error) ~ "Unscorable",
           !is_stable       ~ "Insufficient Data", # Not enough data
           pct_error >  pct_error_cushion  ~ "Overestimate", # Overestimate with cushion
           pct_error < -pct_error_cushion  ~ "Underestimate", # Underestimate with cushion
@@ -319,7 +321,7 @@ forecastBiasCalculation <- function(data.for.evaluation,
         bias_summary_one(raw_error[is_transmission],             "Raw",       "Horizon"),
         bias_summary_one(pct_error[is_transmission],             "PctAll",    "Horizon"),
         bias_summary_one(pct_error[is_transmission & is_stable], "PctStable", "Horizon"),
-        data.frame(n_stable_horizon = sum(is_stable & is_transmission, na.rm = TRUE))
+        data.frame(n_stable_horizon = sum(is_stable & is_transmission & is.finite(pct_error), na.rm = TRUE))
       ))
 
     # Broadcasting the horizon summaries back onto every row
@@ -377,7 +379,7 @@ forecastBiasCalculation <- function(data.for.evaluation,
         bias_summary_one(raw_error[is_transmission],             "Raw",       "Overall"),
         bias_summary_one(pct_error[is_transmission],             "PctAll",    "Overall"),
         bias_summary_one(pct_error[is_transmission & is_stable], "PctStable", "Overall"),
-        data.frame(n_stable_overall = sum(is_stable & is_transmission, na.rm = TRUE),
+        data.frame(n_stable_overall = sum(is_stable & is_transmission & is.finite(pct_error), na.rm = TRUE),
                    n_total_overall  = sum(is_transmission, na.rm = TRUE))
       ))
 

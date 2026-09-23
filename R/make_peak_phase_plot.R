@@ -411,14 +411,14 @@ make_peak_phase_plot <- function(data, loc, training.data.label = NULL,
       if(P===0){
         rows = row("Observed peak", fI(d.obsPeak.v)) + row("Forecasted peak", fI(h.ppV))
              + row("Timing", h.tLab || (fS(h.timing)+" wk"))
-             + row("Intensity", fS(h.magOff)) + row("% Accuracy (Intensity)", pcnt(h.magAcc));
+             + row("Intensity", fS(h.magOff)) + row("Similarity Index (%)", pcnt(h.magAcc));
       } else if(P===1){
         rows = row("Observed (that week)", fI(h.oap)) + row("Forecasted peak", fI(h.ppV))
-             + row("Intensity", fS(h.sdOff)) + row("% Accuracy (Intensity)", pcnt(h.sdAcc));
+             + row("Intensity", fS(h.sdOff)) + row("Similarity Index (%)", pcnt(h.sdAcc));
       } else {
         rows = h.pwEx
           ? row("Observed peak", fI(d.obsPeak.v)) + row("Forecast (peak week)", fI(h.pwV))
-            + row("Intensity", fS(h.pwOff)) + row("% Accuracy (Intensity)", pcnt(h.pwAcc))
+            + row("Intensity", fS(h.pwOff)) + row("Similarity Index (%)", pcnt(h.pwAcc))
           : `<div>No forecast targeted the true peak week at this horizon.</div>`;
       }
       floatEl.innerHTML =

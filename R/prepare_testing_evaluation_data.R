@@ -624,6 +624,12 @@ prepare_testing_evaluation_data <- function(eval_meta,
   ##############################
   # Returning the final result #
   ##############################
+  if(have_truth && nrow(result)) {
+    pairs <- unique(forecasts[c("location", "location_display")])
+    history <- merge(pairs, observed, by="location_display", all=FALSE)
+    attr(result, "trend_history") <- history[c("location", "target_end_date", "Observed")]
+  }
+  attr(result, "truth_source") <- if(truth_source == "training") "training_data" else if(have_truth) "outcome_data" else "unavailable"
   result
 
 }

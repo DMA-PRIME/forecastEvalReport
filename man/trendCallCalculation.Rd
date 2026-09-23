@@ -11,34 +11,63 @@ trendCallCalculation(
   population_value_col = "population",
   rate_multiplier = 1e+05,
   stable_threshold = 10,
-  week_days = 7
+  week_days = 7,
+  calibration_data = attr(data.for.evaluation, "trend_history"),
+  thresholds = NULL
 )
 }
 \arguments{
-\item{data.for.evaluation}{Testing evaluation data frame, normally \code{build_testing_evaluation(...)$data} or \code{export_testing_evaluation(...)$testing_eval$data}. Must contain \code{location}, \code{target_end_date}, \code{horizon}, \code{value}, and \code{Observed}.}
+\item{data.for.evaluation}{Testing evaluation data frame, normally
+\code{build_testing_evaluation(...)$data} or
+\code{export_testing_evaluation(...)$testing_eval$data}. Must contain
+\code{location}, \code{target_end_date}, \code{horizon}, \code{value}, and \code{Observed}.}
 
-\item{population}{Population denominator. Supply \code{NULL} for automatic lookup, a single positive number for one location, a named numeric vector, or a data frame. Custom lookups only need to contain locations absent from the built-in table. See \code{population_location_col} and \code{population_value_col}.}
+\item{population}{Population denominator. Supply \code{NULL} for automatic lookup,
+a single positive number for one location, a named numeric vector, or a
+data frame. Custom lookups only need to contain locations absent from the
+built-in table. See \code{population_location_col} and \code{population_value_col}.}
 
-\item{population_location_col}{Character. Location-key column in a population data frame. Default \code{"location"}.}
+\item{population_location_col}{Character. Location-key column in a population
+data frame. Default \code{"location"}.}
 
-\item{population_value_col}{Character. Numeric population column in a population data frame. Default \code{"population"}.}
+\item{population_value_col}{Character. Numeric population column in a
+population data frame. Default \code{"population"}.}
 
-\item{rate_multiplier}{Positive numeric rate denominator. Default \code{100000}, producing rates per 100,000 population.}
+\item{rate_multiplier}{Positive numeric rate denominator. Default \code{100000},
+producing rates per 100,000 population.}
 
-\item{stable_threshold}{A non-negative raw-count change below which the call is forced to \code{"stable"}, reproducing the regional and county analysis. Default \code{10}. Set to \code{NULL} to use only rate-change percentiles.}
+\item{stable_threshold}{A non-negative raw-count change below which the call
+is forced to \code{"stable"}, reproducing the regional and county analysis.
+Default \code{10}. Set to \code{NULL} to disable the count override (an adaptation).}
 
-\item{week_days}{Positive number of days required between consecutive target dates for a week-to-week comparison. Default \code{7}.}
+\item{week_days}{Positive number of days required between consecutive target
+dates for a week-to-week comparison. Default \code{7}.}
+
+\item{calibration_data}{Historical truth frame, defaulting to the prepared data's history.}
+
+\item{thresholds}{A saved calibration table from calibrate_trend_thresholds().}
 }
 \value{
-A named list with \code{df}, containing population, raw counts, rates, raw and rate week-to-week changes, forecast and observed trend calls, and agreement; and \code{location_percentiles}, containing each location's population and observed rate-change cut points.
+A named list with \code{df}, containing population, raw counts, rates,
+raw and rate week-to-week changes, forecast and observed trend calls, and
+agreement; and \code{location_percentiles}, containing each location's
+frozen historical cut points per 100,000 (also returned as location_thresholds).
 }
 \description{
-Replicates the supplied state, region, and county trend analysis for the testing-period forecast evaluation frame. Forecast and observed counts are converted to rates, week-to-week differences are calculated on those rates, and the observed rate-change percentiles within each location define the five trend categories applied to both series.
+Applies the Mathis et al. (2025) weekly trend framework using historical
+thresholds frozen before the evaluated issue and target dates. Thresholds
+are calibrated from supplied historical truth or loaded from a saved table.
+Evaluation outcomes are never used to estimate the cutoffs. The default
+count-change override is strictly less than 10 admissions, separately from
+the forecast-bias count floor. See calibrate_trend_thresholds().
 }
 \details{
-The original analysis uses a hybrid stability rule: a weekly change of fewer than 10 raw counts is called stable before the population-adjusted percentile rules are applied. This function preserves that behavior through \code{stable_threshold}. Set it to \code{NULL} to disable the raw-count override.
-
-Population can be supplied as one number for a single-location analysis, a named numeric vector keyed by location, or a data frame containing location and population columns. When \code{population = NULL}, the function resolves locations from \code{default_population_crosswalk}, which includes all Hubverse locations, all South Carolina counties, and South Carolina's four public health regions. A supplied lookup extends and overrides that built-in table.
+Population can be supplied as one number for a single-location analysis, a
+named numeric vector keyed by location, or a data frame containing location
+and population columns. When \code{population = NULL}, the function resolves
+locations from \link{default_population_crosswalk}, which includes all Hubverse
+locations, all South Carolina counties, and South Carolina's four public
+health regions. A supplied lookup extends and overrides that built-in table.
 }
 \examples{
 \dontrun{
@@ -49,4 +78,5 @@ trends <- trendCallCalculation(
   population = c("Lowcountry" = 1200000, "Midlands" = 1100000)
 )
 }
+
 }

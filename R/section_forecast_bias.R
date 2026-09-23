@@ -984,13 +984,7 @@ section_forecast_bias <- function(forecastBias.data,
       zero indicate little systematic bias.
     </p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
-      <strong>Observed trend:</strong> Counts are converted to rates per 100,000
-      population and compared with the preceding target period. Each location\'s
-      observed rate-change distribution defines <strong>Large Increase</strong>,
-      <strong>Increase</strong>, <strong>Stable</strong>,
-      <strong>Decrease</strong>, and <strong>Large Decrease</strong>. A raw
-      period-to-period change smaller than <strong>', stable_thr,
-      '</strong> counts is treated as Stable.
+      <strong>Observed trend:</strong> ', trend_methods_html(), '
     </p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
       <strong>Observed phase:</strong> Within each location and season, Peak is
@@ -1067,7 +1061,9 @@ section_forecast_bias <- function(forecastBias.data,
 
     <p style="font-size: 14px; font-weight: 700; margin: 0 0 0.5rem;">Bias Group Classification</p>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1rem;">
-      Each row is classified into one of four bias groups based on the percentage error and the
+      Missing/nonfinite forecasts or truth and undefined percentage errors (zero truth) are
+      <strong>Unscorable</strong> and excluded from percentage-bias summaries. Other eligible
+      rows are classified based on the percentage error and the
       stability flag. Rows with observed counts below ', stable_thr, ' are classified as
       <strong>Insufficient Data</strong>. Remaining rows are classified as
       <strong>Overestimate</strong> (percentage error &gt; +', cushion, '%),
