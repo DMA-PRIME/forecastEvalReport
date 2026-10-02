@@ -81,20 +81,10 @@ make_realtime_percent_agreement_plot <- function(data, loc, outcome) {
   # Number of horizon traces to draw
   n_horizons <- length(horizons)
 
-  ##########################################################
-  # Setting horizon colors using RColorBrewer Set1 palette #
-  ##########################################################
-  horizon_colors <- setNames(
-
-    # Handling <= 9 Horizons
-    if(n_horizons <= 9){RColorBrewer::brewer.pal(max(3, n_horizons), "Set1")[1:n_horizons]
-
-    # Handling >9 Horizons
-    }else{colorRampPalette(RColorBrewer::brewer.pal(9, "Set1"))(n_horizons)},
-
-    # Color to character
-    as.character(horizons)
-  )
+  #####################################
+  # Setting horizon colors (Set1)     #
+  #####################################
+  horizon_colors <- horizon_palette(horizons)
 
   ##########################################################
   # Hover value formatter — renders a dash when a value is #

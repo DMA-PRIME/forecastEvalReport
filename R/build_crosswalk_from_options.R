@@ -148,7 +148,7 @@ build_crosswalk_from_options <- function(options_file, force = FALSE) {
   config <- tryCatch(
 
     # Running the validate parameters function
-    forecastEvalReport:::validate_report_params(opts, verbose = FALSE),
+    validate_report_params(opts, verbose = FALSE),
 
     ################################################
     # Triggered if an error occurs with validation #

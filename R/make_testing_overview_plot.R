@@ -64,7 +64,7 @@ make_testing_overview_plot <- function(data, loc, outcome,
   ######################
   
   # Preparing the phase data 
-  phase_data <- peakPhase.data %>%
+  phase_data <- peakTrough.data %>%
     dplyr::ungroup() %>%
     dplyr::filter(location %in% c(loc)) %>%
     dplyr::select(target_end_date, borderStart, borderEnd, season) %>%

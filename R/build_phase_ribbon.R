@@ -196,7 +196,7 @@ build_phase_ribbon <- function(p, evaluation_temp, phase, color) {
       fill        = "toself",
 
       # Semi-transparent fill using scales::alpha for consistent opacity
-      fillcolor   = scales::alpha(color, 0.05),
+      fillcolor   = grDevices::adjustcolor(color, alpha.f = 0.05),
 
       # No border line on the ribbon
       line        = list(width = 0),

@@ -93,20 +93,10 @@ make_forecast_bias_plot <- function(data, loc, outcome) {
   # Number of horizon traces to draw
   n_horizons <- length(horizons)
 
-  ##########################################################
-  # Setting horizon colors using RColorBrewer Set1 palette #
-  ##########################################################
-  horizon_colors <- setNames(
-
-    # Handling less then or equal to 9 horizons
-    if (n_horizons <= 9) {RColorBrewer::brewer.pal(max(3, n_horizons), "Set1")[1:n_horizons]
-
-    # Handling more than 9 horizons
-    } else {colorRampPalette(RColorBrewer::brewer.pal(9, "Set1"))(n_horizons)},
-
-    # Setting the character for the horzions
-    as.character(horizons)
-  )
+  #####################################
+  # Setting horizon colors (Set1)     #
+  #####################################
+  horizon_colors <- horizon_palette(horizons)
 
 #------------------------------------------------------------------------------#
 # Building NA scaffold for no-eval dates ---------------------------------------

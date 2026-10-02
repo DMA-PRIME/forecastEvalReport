@@ -478,7 +478,7 @@ generate_report <- function(options_file,
   config <- tryCatch(
 
     # Validating the report parameters
-    forecastEvalReport:::validate_report_params(opts, verbose = FALSE),
+    validate_report_params(opts, verbose = FALSE),
 
     ########################################
     # Triggering error if validation fails #

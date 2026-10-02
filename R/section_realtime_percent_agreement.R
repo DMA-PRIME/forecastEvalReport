@@ -11,7 +11,7 @@
 #' filtered by the raw `location` code, which is what `make_realtime_percent_agreement_plot()`
 #' expects.
 #'
-#' @param percentAgreement.data Output of `percentAgreementCalculation()` — the
+#' @param percentAgreement.data Output of `percentAgreementCalculation()` &mdash; the
 #'   evaluation frame with row-level `per_agreement`, `is_transmission`,
 #'   `horizon`, `location`, and (when available) `location_display`.
 #' @param impl_meta Metadata list from `extract_evaluation_data()`. Used for the
@@ -548,13 +548,13 @@ section_realtime_percent_agreement <- function(percentAgreement.data,
       location</strong>. Within each group, the <strong>median</strong> and
       <strong>range</strong> (minimum and maximum) are computed across all
       transmission-season rows. These summaries capture how forecast accuracy changes as
-      the prediction window extends — shorter horizons are generally expected to show
+      the prediction window extends &mdash; shorter horizons are generally expected to show
       higher agreement than longer ones.
     </p>
     <div id="eq-pa-horizon" style="text-align: center; margin: 0.75rem 0 1rem;"></div>
     <p style="font-size: 14px; line-height: 1.6; margin: 0 0 1.5rem;">
       <strong>Example:</strong> If horizon 1 forecasts across all transmission-season
-      weeks have a median percent agreement of 88% (range: 70% – 98%), the model is
+      weeks have a median percent agreement of 88% (range: 70% &ndash; 98%), the model is
       typically within 12% of the observed count one week ahead.
     </p>
 
