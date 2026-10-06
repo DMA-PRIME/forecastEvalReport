@@ -37,7 +37,7 @@ build_forecast_archive <- function(impl_meta, max_forecasts = 5L){
   # Resolve the Forecasts/ directory   #
   ######################################
   forecast_dir <- dirname(impl_meta$forecast_path[1])
-  if(!dir.exists(forecast_dir)) return(empty_result)
+  if(!dir.exists(forecast_dir)) return(NULL)
 
   if(length(impl_meta[["locations"]]) > 1){
 

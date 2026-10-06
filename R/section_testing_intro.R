@@ -122,7 +122,7 @@ section_testing_intro <- function(eval_meta) {
                      color: #fff; font-size: 11px; font-weight: 700; display: flex; flex-shrink: 0;
                      align-items: center; justify-content: center;">2</span>
         <p style="font-size: 14px; line-height: 1.7; color: #444; margin: 0;">
-          <strong>Forecast Bias:</strong> the systematic direction of forecast error —
+          <strong>Forecast Bias:</strong> the systematic direction of forecast error &mdash;
           whether forecasts tend to over- or underestimate observed counts.
         </p>
       </div>

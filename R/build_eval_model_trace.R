@@ -69,7 +69,7 @@ build_eval_model_trace <- function(p, evaluation_temp, outcome,
     ####################################
 
     # The column name is `horizon` (renamed from `estimate_projected_report`)
-    horizon_data <<- evaluation_temp[
+    horizon_data <- evaluation_temp[
       !is.na(evaluation_temp$horizon) &
         evaluation_temp$horizon == horizon, ]
 

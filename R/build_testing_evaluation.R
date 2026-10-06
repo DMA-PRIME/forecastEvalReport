@@ -129,7 +129,7 @@ build_testing_evaluation <- function(eval_meta,
   ##########################################
   # Calculating the peak-phase performance #
   ##########################################
-  peakPhase.data <<- calculating_peak_trough_PEAKPHASE(
+  peakPhase.data <- calculating_peak_trough_PEAKPHASE(
     data.for.evaluation,
     season_start_day_month  = season_start_day_month,
     peak_window             = peak_window,

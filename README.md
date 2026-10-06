@@ -75,7 +75,7 @@ Results from `main` and beta should not be assumed directly comparable: beta cha
 
 ## Documentation and examples
 
-Use R help for function arguments and examples, such as `?generate_report` and `?export_testing_evaluation`. The [`Examples/`](Examples/) directory contains example workflows and data.
+Use R help for function arguments and examples, such as `?generate_report` and `?export_testing_evaluation`. Example workflows and the scripts that generate the example data live in the [`Examples/`](https://github.com/DMA-PRIME/forecastEvalReport/tree/main/Examples) directory of the repository (it is not shipped with the installed package).
 
 ## License
 

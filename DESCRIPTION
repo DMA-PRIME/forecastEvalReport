@@ -13,6 +13,7 @@ Imports:
     DT,
     htmltools,
     htmlwidgets,
+    jsonlite,
     kableExtra,
     knitr,
     lubridate,
@@ -26,6 +27,7 @@ LazyData: true
 Config/roxygen2/version: 8.0.0
 RoxygenNote: 8.0.0
 Suggests: 
+    magick,
     reticulate,
     webshot2
 SystemRequirements: Google Chrome or Chromium (optional; used by webshot2

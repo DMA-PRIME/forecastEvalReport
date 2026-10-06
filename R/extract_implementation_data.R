@@ -887,7 +887,7 @@ extract_implementation_data <- function(implementation_model,
   }else{""}
 
   # Creating the file name
-  file_name    <- paste0("Forecast", stringr::str_to_title(loc_tag), "-", ref_date_str, ".csv")
+  file_name    <- paste0("Forecast", gsub("(^|[^[:alnum:]])([[:alpha:]])", "\\1\\U\\2", tolower(loc_tag), perl = TRUE), "-", ref_date_str, ".csv")
 
   ######################
   # Full path assembly #
